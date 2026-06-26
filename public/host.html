@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Host Control</title>
+  <style>
+    :root { color-scheme: dark; --bg:#080812; --card:#141426; --line:#2b2b46; --text:#fff; --muted:#b9b9cc; --accent:#7c5cff; --danger:#ff4d6d; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background: radial-gradient(circle at top, #23234a, var(--bg) 55%); color:var(--text); }
+    .wrap { width:min(980px, 100%); margin:0 auto; padding:18px; }
+    h1 { font-size:28px; margin:8px 0 10px; }
+    h2 { font-size:18px; margin:0 0 12px; }
+    .top { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin-bottom:14px; }
+    .badge, .line { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1); border-radius:999px; padding:9px 12px; color:var(--muted); font-size:14px; }
+    .card { background:rgba(20,20,38,.88); border:1px solid var(--line); border-radius:22px; padding:16px; margin:14px 0; box-shadow:0 18px 60px rgba(0,0,0,.25); }
+    .grid { display:grid; gap:12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+    label { display:block; color:var(--muted); font-size:13px; margin:0 0 6px; }
+    input[type="text"], input[type="url"], input[type="number"], textarea { width:100%; border:1px solid var(--line); background:#0f0f1d; color:#fff; border-radius:14px; padding:12px; font-size:15px; }
+    textarea { min-height:82px; resize:vertical; line-height:1.35; font-family:inherit; }
+    input[type="checkbox"], input[type="radio"] { transform:scale(1.12); margin-right:8px; }
+    .checkrow { display:flex; align-items:center; min-height:42px; color:#e9e9f4; }
+    .radioRow { display:flex; gap:16px; flex-wrap:wrap; padding:8px 0; }
+    button { border:0; border-radius:16px; padding:13px 16px; background:var(--accent); color:#fff; font-weight:800; font-size:15px; cursor:pointer; }
+    button.secondary { background:#2b2b46; }
+    button.danger { background:var(--danger); }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    .audLink { overflow-wrap:anywhere; color:#d9d3ff; font-size:14px; }
+    .hint { color:var(--muted); font-size:13px; margin-top:6px; line-height:1.35; }
+    .qrOverlay { position:fixed; inset:0; background:rgba(0,0,0,.78); display:none; align-items:center; justify-content:center; z-index:999; padding:18px; }
+    .qrOverlay.show { display:flex; }
+    .overlayCard { background:#fff; color:#111; border-radius:24px; padding:18px; width:min(92vw, 520px); text-align:center; }
+    #qrTarget { display:inline-grid; place-items:center; position:relative; padding:12px; background:#fff; border-radius:18px; }
+    .qrLogo { position:absolute; width:20%; height:20%; object-fit:contain; border-radius:18px; background:#fff; padding:6px; left:50%; top:50%; transform:translate(-50%, -50%); box-shadow:0 2px 10px rgba(0,0,0,.22); }
+    #qrLinkText { color:#333; overflow-wrap:anywhere; font-size:12px; margin:12px 0; }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>Host Control</h1>
+    <div class="top">
+      <div id="stateLine" class="badge">State: …</div>
+      <div id="statusBadge" class="badge">Status: …</div>
+      <div id="revBadge" class="badge">Revision: …</div>
+      <div id="countBadge" class="badge">Audience: …</div>
+      <div id="roomBadge" class="badge">Room: …</div>
+    </div>
+
+    <section class="card">
+      <h2>Audience</h2>
+      <p class="hint">Use QR or Copy Link</p>
+      <div id="audienceLink" class="audLink"></div>
+      <div class="actions">
+        <button id="btnShowQR">Show QR</button>
+        <button id="btnCopyLink" class="secondary">Copy Link</button>
+        <button id="btnSync" class="secondary">SYNC CHECK</button>
+      </div>
+      <p id="syncLine" class="hint">Sync check: …</p>
+    </section>
+
+    <section class="card">
+      <h2>Reveal Settings</h2>
+      <div class="grid">
+        <div><label>Reveal URL (image or page)</label><input id="revealUrl" type="url" /></div>
+        <div><label>Logo URL (optional)</label><input id="logoUrl" type="url" /></div>
+        <div><label>Logo duration (ms)</label><input id="logoMs" type="number" value="4000" /></div>
+        <div><label>Animation duration (ms)</label><input id="animationMs" type="number" value="12000" /></div>
+      </div>
+      <div class="radioRow">
+        <label>Reveal type</label>
+        <label><input type="radio" name="revealType" value="page" checked />Page (iframe)</label>
+        <label><input type="radio" name="revealType" value="image" />Image</label>
+      </div>
+      <label class="checkrow"><input id="skipAnimation" type="checkbox" />Skip animation (instant reveal)</label>
+      <div class="actions"><button id="btnSendReveal">Show Magic</button><button id="btnResetPhase" class="secondary">Reset Phase</button></div>
+    </section>
+
+    <section class="card">
+      <h2>iPhone App Launch (Host on iPhone)</h2>
+      <div class="grid">
+        <label class="checkrow"><input id="iosLaunchEnabled" type="checkbox" />Open app after “Show Magic”</label>
+        <div><label>Delay (ms)</label><input id="iosLaunchDelayMs" type="number" value="250" /></div>
+        <div><label>Deep link URL</label><input id="iosLaunchUrl" type="url" /></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Review Settings</h2>
+      <div class="grid">
+        <div><label>Google review URL</label><input id="reviewUrl" type="url" /></div>
+        <label class="checkrow"><input id="autoRedirect" type="checkbox" />Auto redirect</label>
+        <div><label>Redirect delay (ms)</label><input id="autoRedirectDelayMs" type="number" value="3000" /></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Client Splash (before review)</h2>
+      <div class="grid">
+        <label class="checkrow"><input id="clientSplashEnabled" type="checkbox" />Enable</label>
+        <div><label>Duration (ms)</label><input id="clientSplashMs" type="number" value="3000" /></div>
+        <div><label>Text size</label><input id="clientSplashTextSize" type="number" min="3" max="10" step="0.2" value="6.2" /><p class="hint">Bigger number = bigger message on audience screen.</p></div>
+        <div><label>Card 1 message</label><textarea id="clientSplashCard1" placeholder="Type line 1&#10;Type line 2"></textarea></div>
+        <div><label>Card 2 message</label><textarea id="clientSplashCard2" placeholder="Type line 1&#10;Type line 2"></textarea></div>
+        <div><label>Card 3 message</label><textarea id="clientSplashCard3" placeholder="Type line 1&#10;Type line 2"></textarea></div>
+        <div><label>Card 4 message</label><textarea id="clientSplashCard4" placeholder="Type line 1&#10;Type line 2"></textarea></div>
+        <div><label>Card 5 message</label><textarea id="clientSplashCard5" placeholder="Type line 1&#10;Type line 2"></textarea></div>
+        <div><label>Photo message (below image)</label><textarea id="clientSplashMsg"></textarea></div>
+      </div>
+      <div class="actions"><button id="btnSendReview">Show Messages</button><button id="btnResetAll" class="danger">Reset All</button></div>
+    </section>
+
+    <section class="card">
+      <h2>Media URLs</h2>
+      <p class="hint">Paste your Supabase links here. These auto-save in this browser and can be changed without another Fly deploy.</p>
+      <div class="grid">
+        <div><label>Reveal Music URL</label><input id="revealMusicUrl" type="url" placeholder="https://.../music.mp3" /></div>
+        <div><label>Review Music URL</label><input id="reviewMusicUrl" type="url" placeholder="https://.../review.mp3" /></div>
+        <div><label>Client Image URL</label><input id="clientImageUrl" type="url" placeholder="https://.../client.png" /></div>
+      </div>
+    </section>
+
+
+    <section class="card">
+      <h2>Spotify Style Karaoke</h2>
+      <p class="hint">Optional alternative to the custom message cards. Paste the MP3 URL and .LRC lyrics URL. The app will preload karaoke files automatically when you click Show Magic, then click Start Karaoke when you are ready. This does not change the normal Show Magic or Show Messages flow.</p>
+      <div class="grid">
+        <div><label>Karaoke MP3 URL</label><input id="karaokeAudioUrl" type="url" placeholder="https://.../song.mp3" /></div>
+        <div><label>Karaoke Lyrics .LRC URL</label><input id="karaokeLrcUrl" type="url" placeholder="https://.../song.lrc" /></div>
+        <div><label>Karaoke Background Image URL (optional)</label><input id="karaokeBgUrl" type="url" placeholder="https://.../photo.jpg" /></div>
+        <div><label>Karaoke Title</label><input id="karaokeTitle" type="text" placeholder="Sophia's Song" /></div>
+      </div>
+      <div class="actions">
+        <button id="btnStartKaraoke">Start Karaoke</button>
+        <button id="btnStopKaraoke" class="secondary">Stop Karaoke</button>
+      </div>
+    </section>
+
+  </main>
+
+  <div id="qrOverlay" class="qrOverlay">
+    <div class="overlayCard">
+      <h2>Audience QR</h2>
+      <div id="qrTarget"></div>
+      <div id="qrCanvasWrap" style="display:none"></div><div id="qrBox" style="display:none"></div>
+      <div id="qrLinkText"></div>
+      <button id="btnCloseQR" class="secondary">Close</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="/host.js?v=78"></script>
+</body>
+</html>
