@@ -221,6 +221,26 @@ function applyClientTextStyle(state = {}) {
 
 const btnReview = document.getElementById("btnReview");
 const countdownEl = document.getElementById("countdown");
+const reviewTitleEl = document.getElementById("reviewTitle");
+const reviewMsgEl = document.getElementById("reviewMsg");
+const idleHeart = document.getElementById("idleHeart");
+const idleLogo = document.getElementById("idleLogo");
+
+// Corporate mode: show the company logo on the waiting screen instead of the
+// heart. Returns true when the logo is shown (so the caller can silence beats).
+function applyIdleVisual(state = {}) {
+  const url = (state.idleLogoUrl || "").trim();
+  const showLogo = !!state.corporateMode && !!url;
+  if (showLogo) {
+    if (idleLogo && idleLogo.getAttribute("src") !== url) idleLogo.src = url;
+    idleLogo?.classList.remove("hidden");
+    idleHeart?.classList.add("hidden");
+  } else {
+    idleLogo?.classList.add("hidden");
+    idleHeart?.classList.remove("hidden");
+  }
+  return showLogo;
+}
 
 // Heart sound UI
 const soundHint = document.getElementById("soundHint");
@@ -546,6 +566,10 @@ async function showClientPhotoStep(state, durationMs) {
 
 // New: 2 text cards + photo step (duration applies to EACH step)
 async function showClientSplashIfPresent(state, token) {
+  // Corporate mode skips the personal message cards + client photo entirely and
+  // goes straight to the thank-you / review screen.
+  if (state.corporateMode) return false;
+
   const cfg = state.clientSplash || {};
   const enabled = cfg.enabled !== false;
   const durationMs = Number(cfg.durationMs ?? 0);
@@ -1037,6 +1061,16 @@ function startReviewFlow(state) {
   const url = (state.reviewUrl || "").trim();
   if (!url) return;
 
+  // Configurable thank-you title + review-request line (used mainly in corporate
+  // mode). Both fall back to today's behavior when blank.
+  const title = (state.reviewMode?.thankTitle || "").trim();
+  const message = (state.reviewMode?.thankMessage || "").trim();
+  if (reviewTitleEl) reviewTitleEl.textContent = title || "Thank you!";
+  if (reviewMsgEl) {
+    reviewMsgEl.textContent = message;
+    reviewMsgEl.classList.toggle("hidden", !message);
+  }
+
   btnReview.onclick = () => (window.location.href = url);
 
   showOnly("review");
@@ -1128,7 +1162,9 @@ async function handleStateUpdate(state) {
     running = false;
     stopKaraoke();
     showOnly("idle");
-    maybeStartBeatsWithFallback();
+    const corporateLogoShown = applyIdleVisual(state);
+    if (corporateLogoShown) stopBeats();
+    else maybeStartBeatsWithFallback();
     return;
   }
 
@@ -1172,7 +1208,8 @@ async function handleStateUpdate(state) {
   }
 
   showOnly("idle");
-  maybeStartBeatsWithFallback();
+  if (applyIdleVisual(state)) stopBeats();
+  else maybeStartBeatsWithFallback();
 }
 
 socket.on("connect", async () => {

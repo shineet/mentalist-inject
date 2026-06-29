@@ -20,6 +20,8 @@
     #viewReveal{padding:0;background:#000}.revealMedia{width:100vw;height:100vh;border:0;object-fit:contain;background:#000}.fallback{position:fixed;bottom:calc(18px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:20}
     #viewClient{background:radial-gradient(circle at top,#291e5a,#080812 65%)}#clientCard{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);box-shadow:0 24px 90px rgba(0,0,0,.35);border-radius:34px;color:#fff;font-weight:900;letter-spacing:-.035em;text-shadow:0 4px 18px rgba(0,0,0,.4)}#clientImg{max-width:94vw;max-height:72vh;object-fit:contain;border-radius:28px;box-shadow:0 24px 90px rgba(0,0,0,.45)}#clientMsg{position:fixed;left:6vw;right:6vw;bottom:calc(28px + env(safe-area-inset-bottom));font-size:clamp(22px,4.5vw,56px);font-weight:850;text-shadow:0 4px 24px #000;white-space:pre-line}
     #viewReview{background:radial-gradient(circle at top,#1b315b,#05050b 64%);flex-direction:column;gap:18px}#viewReview h1{font-size:clamp(32px,7vw,82px);margin:0}.reviewBtn{font-size:clamp(20px,4vw,42px);padding:18px 28px}.countdown{font-size:clamp(16px,3vw,28px);color:var(--muted)}
+    .reviewMsg{font-size:clamp(20px,4.4vw,46px);font-weight:800;line-height:1.25;max-width:90vw;white-space:pre-line;text-shadow:0 4px 20px rgba(0,0,0,.45)}
+    .idleLogo{max-width:min(72vw,520px);max-height:52vh;object-fit:contain;filter:drop-shadow(0 18px 60px rgba(0,0,0,.45))}
     .net{display:none}
 
     #viewKaraoke{padding:0;overflow:hidden;background:#050505;position:fixed;inset:0;}
@@ -176,7 +178,8 @@
 
   <section id="viewIdle" class="view">
     <div class="idleWrap">
-      <div class="heart">❤️</div>
+      <img id="idleLogo" class="idleLogo hidden" alt="" />
+      <div id="idleHeart" class="heart">❤️</div>
       <div class="idleText">Get ready</div>
       <div class="hint">Keep this page open</div>
     </div>
@@ -217,13 +220,14 @@
   </section>
 
   <section id="viewReview" class="view hidden">
-    <h1>Thank you!</h1>
+    <h1 id="reviewTitle">Thank you!</h1>
+    <div id="reviewMsg" class="reviewMsg hidden"></div>
     <button id="btnReview" class="reviewBtn">Leave a Google Review</button>
     <div id="countdown" class="countdown"></div>
   </section>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/audience.js?v=77"></script>
+  <script src="/audience.js?v=79"></script>
 
   <div id="karaokePhotoEnd" class="screen hidden">
     <img id="karaokePhotoEndImg" alt="Client photo" />

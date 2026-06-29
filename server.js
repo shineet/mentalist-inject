@@ -7,7 +7,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v78-remote-mapping";
+const REVISION = "v79-corporate-mode";
 
 // Defaults (edit if you want)
 const DEFAULT_REVIEW_URL = "https://g.page/r/CfEvBpaR9455EAI/review";
@@ -132,6 +132,13 @@ const defaultState = () => ({
   timings: { logoMs: 4000, animationMs: 12000 },
   skipAnimation: false,
 
+  // Corporate table-hopping variant. When on, the audience idle screen shows
+  // idleLogoUrl instead of the heart (and the heartbeat is silenced), message
+  // cards + karaoke are skipped, and the review screen uses the thank-you copy
+  // below. All default-empty/false so the private-party flow is unchanged.
+  corporateMode: false,
+  idleLogoUrl: "",
+
   clientSplash: {
     enabled: true,
     durationMs: 3000,
@@ -141,7 +148,7 @@ const defaultState = () => ({
     photoMessage: "Thank you — one last quick thing ❤️",
   },
 
-  reviewMode: { autoRedirect: true, autoRedirectDelayMs: 3000 },
+  reviewMode: { autoRedirect: true, autoRedirectDelayMs: 3000, thankTitle: "", thankMessage: "" },
 
   karaoke: { audioUrl: "", lrcUrl: "", bgUrl: "", title: "" },
 

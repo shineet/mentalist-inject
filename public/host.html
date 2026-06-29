@@ -76,6 +76,17 @@
     </section>
 
     <section class="card">
+      <h2>Corporate Mode (table hopping)</h2>
+      <p class="hint">One switch for corporate gigs. When on: the waiting screen shows your company logo instead of the heart (and the heartbeat goes silent), the personal message cards and karaoke are skipped, and "Show Messages" goes straight to the thank-you / review screen below. Turn off to return to the normal private-party show. Auto-saves; no redeploy needed.</p>
+      <label class="checkrow"><input id="corporateMode" type="checkbox" />Corporate Mode ON</label>
+      <div class="grid">
+        <div><label>Company Logo URL (idle screen)</label><input id="idleLogoUrl" type="url" placeholder="https://.../company-logo.png" /></div>
+        <div><label>Thank-you title</label><input id="reviewThankTitle" type="text" placeholder="Thank you!" /></div>
+        <div><label>Thank-you / review request message</label><textarea id="reviewThankMessage" placeholder="If you enjoyed the show, I'd love a 5-star review ⭐⭐⭐⭐⭐"></textarea></div>
+      </div>
+    </section>
+
+    <section class="card">
       <h2>iPhone App Launch (Host on iPhone)</h2>
       <div class="grid">
         <label class="checkrow"><input id="iosLaunchEnabled" type="checkbox" />Open app after “Show Magic”</label>
@@ -149,6 +160,6 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="/host.js?v=78"></script>
+  <script src="/host.js?v=79"></script>
 </body>
 </html>

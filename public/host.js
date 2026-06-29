@@ -83,6 +83,11 @@ const els = {
   autoRedirect: document.getElementById("autoRedirect"),
   autoRedirectDelayMs: document.getElementById("autoRedirectDelayMs"),
 
+  corporateMode: document.getElementById("corporateMode"),
+  idleLogoUrl: document.getElementById("idleLogoUrl"),
+  reviewThankTitle: document.getElementById("reviewThankTitle"),
+  reviewThankMessage: document.getElementById("reviewThankMessage"),
+
   karaokeAudioUrl: document.getElementById("karaokeAudioUrl"),
   karaokeLrcUrl: document.getElementById("karaokeLrcUrl"),
   karaokeBgUrl: document.getElementById("karaokeBgUrl"),
@@ -160,6 +165,11 @@ function loadSettings() {
     els.revealUrl.value = randomRevealUrl();
     els.skipAnimation.checked = false;
 
+    if (els.corporateMode) els.corporateMode.checked = false;
+    if (els.idleLogoUrl) els.idleLogoUrl.value = "";
+    if (els.reviewThankTitle) els.reviewThankTitle.value = "";
+    if (els.reviewThankMessage) els.reviewThankMessage.value = "";
+
     els.clientSplashEnabled.checked = true;
     els.clientSplashMs.value = 3000;
     if (els.clientSplashTextSize) els.clientSplashTextSize.value = 6.2;
@@ -196,6 +206,11 @@ function loadSettings() {
     els.clientImageUrl.value = s.clientImageUrl ?? DEFAULT_CLIENT_IMAGE_URL;
     els.autoRedirect.checked = s.autoRedirect ?? true;
     els.autoRedirectDelayMs.value = s.autoRedirectDelayMs ?? 3000;
+
+    if (els.corporateMode) els.corporateMode.checked = !!s.corporateMode;
+    if (els.idleLogoUrl) els.idleLogoUrl.value = s.idleLogoUrl ?? "";
+    if (els.reviewThankTitle) els.reviewThankTitle.value = s.reviewThankTitle ?? "";
+    if (els.reviewThankMessage) els.reviewThankMessage.value = s.reviewThankMessage ?? "";
 
     els.clientSplashEnabled.checked = s.clientSplashEnabled ?? true;
     els.clientSplashMs.value = s.clientSplashMs ?? 3000;
@@ -253,6 +268,11 @@ function saveSettings() {
     autoRedirect: !!els.autoRedirect.checked,
     autoRedirectDelayMs: Number(els.autoRedirectDelayMs.value || 0),
 
+    corporateMode: !!els.corporateMode?.checked,
+    idleLogoUrl: (els.idleLogoUrl?.value || "").trim(),
+    reviewThankTitle: (els.reviewThankTitle?.value || "").trim(),
+    reviewThankMessage: (els.reviewThankMessage?.value || "").trim(),
+
     clientSplashEnabled: !!els.clientSplashEnabled.checked,
     clientSplashMs: Number(els.clientSplashMs.value || 0),
     clientSplashTextSize: Number(els.clientSplashTextSize?.value || 6.2),
@@ -287,11 +307,19 @@ function payloadFromUI() {
     skipAnimation: s.skipAnimation,
     timings: { logoMs: s.logoMs, animationMs: s.animationMs },
 
+    corporateMode: s.corporateMode,
+    idleLogoUrl: s.idleLogoUrl,
+
     reviewUrl: s.reviewUrl,
     revealMusicUrl: s.revealMusicUrl,
     reviewMusicUrl: s.reviewMusicUrl,
     clientImageUrl: s.clientImageUrl,
-    reviewMode: { autoRedirect: s.autoRedirect, autoRedirectDelayMs: s.autoRedirectDelayMs },
+    reviewMode: {
+      autoRedirect: s.autoRedirect,
+      autoRedirectDelayMs: s.autoRedirectDelayMs,
+      thankTitle: s.reviewThankTitle,
+      thankMessage: s.reviewThankMessage,
+    },
 
     clientSplash: {
       enabled: s.clientSplashEnabled,
