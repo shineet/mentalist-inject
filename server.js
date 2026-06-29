@@ -7,7 +7,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v79-corporate-mode";
+const REVISION = "v80-corporate-logo-plate";
 
 // Defaults (edit if you want)
 const DEFAULT_REVIEW_URL = "https://g.page/r/CfEvBpaR9455EAI/review";
