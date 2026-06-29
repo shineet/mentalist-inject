@@ -575,6 +575,7 @@ socket.on("connect", () => {
       els.revBadge.textContent = `Revision: ${resp.revision}`;
       els.countBadge.textContent = `Audience: ${resp.counts.audience} • Hosts: ${resp.counts.hosts} • Total: ${resp.counts.total}`;
       els.syncLine.textContent = `Connected • phase=${resp.state.phase} • uptime=${resp.uptimeSec}s`;
+      updateDockPhase(resp.state.phase);
     }
   });
 });
@@ -583,7 +584,35 @@ socket.on("disconnect", () => { els.statusBadge.textContent = "Status: disconnec
 
 socket.on("state:update", (st) => {
   els.stateLine.textContent = `State: ${st.phase} • last update ${new Date(st.lastUpdateTs).toLocaleTimeString()}`;
+  updateDockPhase(st.phase);
 });
+
+// ── Live-show control dock ──────────────────────────────────────────────────
+// Fixed bottom bar so the show triggers are always reachable without scrolling.
+// Each dock button proxies to the real section button (.click()), so behavior —
+// validations, payload, the iOS deep link on Show Magic — is identical.
+const dock = {
+  phase: document.getElementById("dockPhase"),
+  magic: document.getElementById("dockMagic"),
+  karaoke: document.getElementById("dockKaraoke"),
+  review: document.getElementById("dockReview"),
+  reset: document.getElementById("dockReset"),
+};
+const DOCK_PHASE_LABELS = {
+  idle: "IDLE",
+  reveal_sequence: "REVEALING",
+  revealed: "REVEALED",
+  karaoke_prepare: "KARAOKE…",
+  karaoke: "KARAOKE",
+  review: "REVIEW",
+};
+function updateDockPhase(phase) {
+  if (dock.phase) dock.phase.textContent = DOCK_PHASE_LABELS[phase] || String(phase || "—").toUpperCase();
+}
+dock.magic?.addEventListener("click", () => els.btnSendReveal?.click());
+dock.karaoke?.addEventListener("click", () => els.btnStartKaraoke?.click());
+dock.review?.addEventListener("click", () => els.btnSendReview?.click());
+dock.reset?.addEventListener("click", () => els.btnResetPhase?.click());
 
 socket.on("counts:update", (c) => {
   els.countBadge.textContent = `Audience: ${c.audience} • Hosts: ${c.hosts} • Total: ${c.total}`;
