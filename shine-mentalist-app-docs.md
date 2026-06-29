@@ -342,7 +342,9 @@ The host uses a Bluetooth remote clicker during the show. Arrow keys map to acti
 | `ArrowDown` | Show Messages (trigger review flow) |
 | `ArrowLeft` | Reset Phase |
 
-> **Note:** There are currently three separate `keydown` listeners in `host.js` with partially overlapping mappings (a legacy of incremental additions). This could be consolidated in a future cleanup.
+> **Consolidated in v82-remote-cleanup-persist.** There is now a SINGLE `keydown` listener in `host.js` with the one-action-per-key mapping above (matching the on-screen show dock). The old three overlapping listeners were removed. Reset All is deliberately NOT on the remote (on-screen button only) so a stray `ArrowLeft` can never factory-wipe the show mid-performance.
+
+> **Show dock:** the host page has a fixed bottom control bar (Magic / Karaoke / Review / Reset Phase + a live phase indicator) so the show triggers are reachable without scrolling. The dock buttons proxy to the real section buttons, so behavior is identical to the remote and to clicking the buttons in their cards.
 
 ---
 

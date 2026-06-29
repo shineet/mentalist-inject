@@ -347,8 +347,11 @@ setInterval(() => {
 }, 20000);
 
 const debouncedSave = debounce(() => {
-  if (!socket.connected) return;
-  emitHostAction("host:saveSettings", "saveSettings", payloadFromUI());
+  // payloadFromUI() writes localStorage via saveSettings(). Always do that so
+  // every field (incl. Corporate Mode + URL) persists locally regardless of
+  // connection state; only the server push depends on the socket being up.
+  const payload = payloadFromUI();
+  if (socket.connected) emitHostAction("host:saveSettings", "saveSettings", payload);
 }, 180);
 
 ["input", "change"].forEach((evt) => {
@@ -620,13 +623,18 @@ socket.on("counts:update", (c) => {
 });
 
 
-/* ================== REMOTE HOTKEYS ==================
-   Many Bluetooth remotes act like arrow keys.
-   Defaults:
-     ArrowRight  -> Send Reveal
-     ArrowDown   -> Google Review
-   (Only triggers when you're NOT typing in an input.)
-====================================================== */
+loadSettings();
+emitHostAction("host:saveSettings", "saveSettings", payloadFromUI());
+
+/* ================== REMOTE HOTKEYS (consolidated) ==================
+   Single keydown listener, one action per key, matching the show dock:
+     ArrowUp    -> Show Magic
+     ArrowRight -> Start Karaoke
+     ArrowDown  -> Show Messages / Review
+     ArrowLeft  -> Reset Phase
+   Reset All is intentionally NOT on the remote (on-screen button only), so a
+   stray Left press can never wipe the show. Ignored while typing in a field.
+=================================================================== */
 function isTypingInField() {
   const el = document.activeElement;
   if (!el) return false;
@@ -637,86 +645,13 @@ function isTypingInField() {
 document.addEventListener("keydown", (e) => {
   if (e.repeat) return;
   if (isTypingInField()) return;
-
-  // Prevent arrow keys from scrolling the page while performing
   const k = e.key;
-
-  if (k === "ArrowRight") {
-    e.preventDefault();
-    els.btnSendReveal?.click();
-    return;
-  }
-
-  if (k === "ArrowDown") {
-    e.preventDefault();
-    els.btnSendReview?.click();
-    return;
-  }
-});
-
-loadSettings();
-emitHostAction("host:saveSettings", "saveSettings", payloadFromUI());
-
-
-/* ======== EXTENDED REMOTE HOTKEYS v18 ========
-   ArrowRight -> Send Reveal
-   ArrowDown  -> Google Review
-   ArrowUp    -> Reset Phase
-   ArrowLeft  -> Reset All (with confirm)
-=============================================== */
-
-document.addEventListener("keydown", (e) => {
-  if (e.repeat) return;
-
-  const el = document.activeElement;
-  if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable)) return;
-
-  const k = e.key;
-
-  if (k === "ArrowUp") {
-    e.preventDefault();
-    els.btnResetPhase?.click();
-  }
-
-  if (k === "ArrowLeft") {
-    e.preventDefault();
-    els.btnResetAll?.click();
-  }
-});
-
-
-
-// Bluetooth remote / keyboard arrow mapping
-// Up    -> Show Magic
-// Right -> Start Karaoke
-// Down  -> Show Messages
-// Left  -> Reset Phase
-document.addEventListener("keydown", (e) => {
-  const key = e.key;
-  if (!["ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft"].includes(key)) return;
-
+  if (!["ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft"].includes(k)) return;
   e.preventDefault();
 
-  if (key === "ArrowUp") {
-    document.getElementById("btnSendReveal")?.click();
-    document.getElementById("btnShowMagic")?.click();
-    return;
-  }
-
-  if (key === "ArrowRight") {
-    document.getElementById("btnStartKaraoke")?.click();
-    return;
-  }
-
-  if (key === "ArrowDown") {
-    document.getElementById("btnGoogleReview")?.click();
-    document.getElementById("btnShowMessages")?.click();
-    return;
-  }
-
-  if (key === "ArrowLeft") {
-    document.getElementById("btnResetPhase")?.click();
-    return;
-  }
-}, true);
+  if (k === "ArrowUp") els.btnSendReveal?.click();           // Show Magic
+  else if (k === "ArrowRight") els.btnStartKaraoke?.click(); // Start Karaoke
+  else if (k === "ArrowDown") els.btnSendReview?.click();    // Show Messages / Review
+  else if (k === "ArrowLeft") els.btnResetPhase?.click();    // Reset Phase
+});
 
