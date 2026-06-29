@@ -292,12 +292,31 @@ function showNetBanner(show, text) {
   netBanner.style.display = show ? "block" : "none";
 }
 
+// Auto-reload when a newer build is deployed, so a left-open audience phone can
+// never run stale code. The server revision arrives in the /state.json poll. We
+// remember the revision the page loaded with; if it changes we reload — but ONLY
+// on the idle screen with nothing running, so a reveal/karaoke/review is never
+// interrupted. (Deploys reset the room to idle, so phones refresh between shows.)
+let loadedRevision = null;
+let reloadingForUpdate = false;
+function maybeReloadForNewVersion(serverRevision, phase) {
+  if (!serverRevision || reloadingForUpdate) return;
+  if (loadedRevision === null) { loadedRevision = serverRevision; return; }
+  if (serverRevision === loadedRevision) return;
+  if (phase === "idle" && !running) {
+    reloadingForUpdate = true;
+    try { location.reload(); } catch { reloadingForUpdate = false; }
+  }
+  // If not idle, do nothing now; a later poll will reload once we return to idle.
+}
+
 let pollTimer = null;
 async function pollStateOnce() {
   try {
     const r = await fetch(`/state.json?room=${encodeURIComponent(ROOM)}&v=${Date.now()}`, { cache: "no-store" });
     const j = await r.json();
     if (j?.ok && j.state) await handleStateUpdate(j.state);
+    if (j?.ok) maybeReloadForNewVersion(j.revision, j.state?.phase);
   } catch {}
 }
 
