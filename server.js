@@ -7,7 +7,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v85-manual-slide-advance";
+const REVISION = "v86-smart-dock-slot";
 
 // Defaults (edit if you want)
 const DEFAULT_REVIEW_URL = "https://g.page/r/CfEvBpaR9455EAI/review";

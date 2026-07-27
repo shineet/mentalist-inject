@@ -194,6 +194,7 @@ function applySettingsToForm(s) {
   if (els.karaokeLrcUrl) els.karaokeLrcUrl.value = s.karaokeLrcUrl ?? "";
   if (els.karaokeBgUrl) els.karaokeBgUrl.value = s.karaokeBgUrl ?? "";
   if (els.karaokeTitle) els.karaokeTitle.value = s.karaokeTitle ?? "";
+  updateDockKaraokeSlot();
 
   setSelectedRevealType(s.revealType ?? "page");
 }
@@ -717,7 +718,6 @@ const dock = {
   phase: document.getElementById("dockPhase"),
   magic: document.getElementById("dockMagic"),
   karaoke: document.getElementById("dockKaraoke"),
-  review: document.getElementById("dockReview"),
   splashPrev: document.getElementById("dockSplashPrev"),
   splashNext: document.getElementById("dockSplashNext"),
   reset: document.getElementById("dockReset"),
@@ -738,6 +738,19 @@ function updateDockPhase(phase) {
   if (dock.phase) dock.phase.textContent = DOCK_PHASE_LABELS[phase] || String(phase || "—").toUpperCase();
   updateSplashControlsVisibility();
 }
+// The dock's 2nd slot is one button that reflects whichever alternate path
+// this show is actually set up for, instead of always showing "Karaoke" even
+// when no karaoke files are configured. Shows Karaoke only once an MP3 URL is
+// pasted in; otherwise it's the Messages trigger (same action as "Show
+// Messages" in the Client Splash card / the old separate Review dock button,
+// which this replaces).
+function karaokeConfigured() {
+  return !!(els.karaokeAudioUrl?.value || "").trim();
+}
+function updateDockKaraokeSlot() {
+  if (!dock.karaoke) return;
+  dock.karaoke.textContent = karaokeConfigured() ? "🎤 Karaoke" : "💬 Messages";
+}
 // Prev/Next slide controls (both the dock's compact buttons and the full
 // buttons in the Client Splash card) only make sense while actually showing
 // message slides in manual-advance mode -- hidden otherwise so they can't be
@@ -750,11 +763,11 @@ function updateSplashControlsVisibility() {
   if (els.btnSplashNext) els.btnSplashNext.style.display = show ? "" : "none";
 }
 dock.magic?.addEventListener("click", () => els.btnSendReveal?.click());
-dock.karaoke?.addEventListener("click", () => els.btnStartKaraoke?.click());
+dock.karaoke?.addEventListener("click", () => (karaokeConfigured() ? els.btnStartKaraoke : els.btnSendReview)?.click());
 dock.splashPrev?.addEventListener("click", () => els.btnSplashPrev?.click());
 dock.splashNext?.addEventListener("click", () => els.btnSplashNext?.click());
-dock.review?.addEventListener("click", () => els.btnSendReview?.click());
 dock.reset?.addEventListener("click", () => els.btnResetPhase?.click());
+els.karaokeAudioUrl?.addEventListener("input", updateDockKaraokeSlot);
 
 socket.on("counts:update", (c) => {
   els.countBadge.textContent = `Audience: ${c.audience} • Hosts: ${c.hosts} • Total: ${c.total}`;

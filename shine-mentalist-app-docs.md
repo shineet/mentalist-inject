@@ -356,7 +356,9 @@ The host uses a Bluetooth remote clicker during the show. Arrow keys map to acti
 
 > **v85 contextual override:** while `currentPhase === "review"` AND the Client Splash "Manual advance" checkbox is on, Right/Left are repurposed to Next/Prev slide instead of Karaoke/Reset Phase -- this is what lets one clicker pace through message slides for live commentary. Reverts to normal behavior immediately once manual advance is off or the phase changes away from review, so the remote's normal mapping is never permanently altered.
 
-> **Show dock:** the host page has a fixed bottom control bar (Magic / Karaoke / Review / Reset Phase + a live phase indicator) so the show triggers are reachable without scrolling. The dock buttons proxy to the real section buttons, so behavior is identical to the remote and to clicking the buttons in their cards.
+> **Show dock:** the host page has a fixed bottom control bar (Magic / [Karaoke or Messages] / Reset Phase + a live phase indicator, plus Prev/Next Slide when applicable per v85 above) so the show triggers are reachable without scrolling. The dock buttons proxy to the real section buttons, so behavior is identical to the remote and to clicking the buttons in their cards.
+>
+> **v86: smart 2nd slot, not two fixed buttons.** Through v85 the dock always showed separate "🎤 Karaoke" and "💬 Review" buttons, even for a show with no karaoke files configured at all (a dead button). Now there's one slot (`updateDockKaraokeSlot()` in host.js): it shows "🎤 Karaoke" only once `karaokeAudioUrl` is non-empty, otherwise "💬 Messages" (same action the old Review button had). Re-evaluated live on every `karaokeAudioUrl` edit and on settings hydration, so pasting/clearing a karaoke MP3 URL flips the dock immediately without a reload. The separate Review dock button was removed as redundant once Messages can occupy that slot.
 
 ---
 
