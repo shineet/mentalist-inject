@@ -583,7 +583,10 @@ async function showClientPhotoStep(state, durationMs) {
   return ok;
 }
 
-// New: 2 text cards + photo step (duration applies to EACH step)
+// Auto-timer path: any number of text cards (state.clientSplash.cards, was a
+// fixed card1..card5 through v84) + a photo step, duration applies to EACH.
+// Only used when clientSplash.manualAdvance is false -- see
+// runManualSplash()/renderManualSplashStep() below for the host-paced path.
 async function showClientSplashIfPresent(state, token) {
   // Corporate mode skips the personal message cards + client photo entirely and
   // goes straight to the thank-you / review screen.
@@ -595,21 +598,129 @@ async function showClientSplashIfPresent(state, token) {
 
   if (!enabled || durationMs <= 0) return false;
 
-  const c1 = (cfg.card1 || "").trim();
-  const c2 = (cfg.card2 || "").trim();
-  const c3 = (cfg.card3 || "").trim();
-  const c4 = (cfg.card4 || "").trim();
-  const c5 = (cfg.card5 || "").trim();
-
-  if (c1) { await showClientTextCard(c1, durationMs, state); if (token && !isCurrentRun(token)) return false; }
-  if (c2) { await showClientTextCard(c2, durationMs, state); if (token && !isCurrentRun(token)) return false; }
-  if (c3) { await showClientTextCard(c3, durationMs, state); if (token && !isCurrentRun(token)) return false; }
-  if (c4) { await showClientTextCard(c4, durationMs, state); if (token && !isCurrentRun(token)) return false; }
-  if (c5) { await showClientTextCard(c5, durationMs, state); if (token && !isCurrentRun(token)) return false; }
+  const cards = (Array.isArray(cfg.cards) ? cfg.cards : []).map((c) => (c || "").trim()).filter(Boolean);
+  for (const card of cards) {
+    await showClientTextCard(card, durationMs, state);
+    if (token && !isCurrentRun(token)) return false;
+  }
 
   const ok = await showClientPhotoStep(state, durationMs);
   if (token && !isCurrentRun(token)) return false;
   return ok;
+}
+
+// ── Manual (host-paced) advance ─────────────────────────────────────────────
+// Renders exactly one step (a text card, the photo step, or "done") based on
+// state.clientSplash.currentCardIndex, and does nothing else -- no internal
+// timer. Re-entrant/idempotent: calling it again with an unchanged index is a
+// no-op, and calling it with a new index while a transition is still fading
+// queues to the latest requested index rather than overlapping animations
+// (so rapid next/prev clicks from the host can't race each other visually).
+let manualSplashLastRendered = -1;
+let manualSplashDesiredIndex = null;
+let manualSplashBusy = false;
+let manualSplashLatestState = null;
+let manualSplashShowing = false;
+let manualSplashToken = null;
+let manualSplashDoneCb = null;
+
+function resetManualSplashTracking() {
+  manualSplashLastRendered = -1;
+  manualSplashDesiredIndex = null;
+  manualSplashShowing = false;
+}
+
+// token is the same runToken-style value the caller uses elsewhere (isCurrentRun)
+// so a phase change mid-transition (e.g. host hits Reset while a card is fading)
+// can't let this stale async loop fire onDone()/startReviewFlow at the wrong time.
+function runManualSplash(state, token, onDone) {
+  const cfg = state.clientSplash || {};
+  if (state.corporateMode) { onDone(); return; }
+  if (cfg.enabled === false) { onDone(); return; }
+
+  const cards = (Array.isArray(cfg.cards) ? cfg.cards : []).map((c) => (c || "").trim()).filter(Boolean);
+  const maxIdx = cards.length + 1; // + photo step, + 1 terminal ("done")
+  const idx = Math.max(0, Math.min(Number(cfg.currentCardIndex || 0), maxIdx));
+
+  manualSplashLatestState = state;
+  manualSplashDesiredIndex = idx;
+  manualSplashToken = token;
+  manualSplashDoneCb = onDone;
+  if (!manualSplashBusy) driveManualSplash();
+}
+
+async function driveManualSplash() {
+  manualSplashBusy = true;
+  while (manualSplashDesiredIndex !== null && manualSplashDesiredIndex !== manualSplashLastRendered) {
+    const idx = manualSplashDesiredIndex;
+    const token = manualSplashToken;
+    const state = manualSplashLatestState;
+    const cfg = state.clientSplash || {};
+    const cards = (Array.isArray(cfg.cards) ? cfg.cards : []).map((c) => (c || "").trim()).filter(Boolean);
+    manualSplashLastRendered = idx;
+
+    if (idx >= cards.length + 1) {
+      // Past the photo step -- fade out and hand off to the real review screen.
+      if (manualSplashShowing) {
+        views.client.classList.remove("show");
+        await wait(520 + 40);
+        manualSplashShowing = false;
+      }
+      manualSplashBusy = false;
+      if (token && !isCurrentRun(token)) return;
+      manualSplashDoneCb?.();
+      return;
+    }
+
+    const isPhoto = idx >= cards.length;
+    await renderManualSplashStep({ text: isPhoto ? null : cards[idx], isPhoto, state });
+    if (token && !isCurrentRun(token)) { manualSplashBusy = false; return; }
+  }
+  manualSplashBusy = false;
+}
+
+async function renderManualSplashStep({ text, isPhoto, state }) {
+  if (!views.client) return;
+
+  if (manualSplashShowing) {
+    views.client.classList.remove("show");
+    await wait(520 + 40);
+  }
+
+  showOnly("client");
+  views.client.classList.add("fadeCine");
+
+  if (isPhoto) {
+    const cfg = state.clientSplash || {};
+    const msg = (cfg.photoMessage || "").trim();
+    if (clientCard) clientCard.classList.add("hidden");
+    if (clientMsg) { clientMsg.textContent = msg || ""; clientMsg.classList.toggle("hidden", !msg); }
+
+    const configuredUrl = (state?.clientImageUrl || cfg.clientImageUrl || cfg.imageUrl || cfg.photoUrl || "/client.png").trim();
+    const url = configuredUrl.includes("?") ? `${configuredUrl}&v=${Date.now()}` : `${configuredUrl}?v=${Date.now()}`;
+    const loadPromise = new Promise((resolve) => {
+      const img = new Image();
+      img.onload = async () => { try { if (img.decode) await img.decode(); } catch {} resolve(true); };
+      img.onerror = () => resolve(false);
+      img.src = url;
+    });
+    const ok = await Promise.race([loadPromise, new Promise((resolve) => setTimeout(() => resolve(false), 4500))]);
+    if (clientImg) {
+      if (ok) { clientImg.src = url; clientImg.classList.remove("hidden"); }
+      else clientImg.classList.add("hidden");
+    }
+  } else {
+    if (clientCard) {
+      applyClientTextStyle(state);
+      clientCard.textContent = String(text || "").replace(/\\n/g, "\n");
+      clientCard.classList.remove("hidden");
+    }
+    if (clientImg) clientImg.classList.add("hidden");
+    if (clientMsg) clientMsg.classList.add("hidden");
+  }
+
+  views.client.classList.add("show");
+  manualSplashShowing = true;
 }
 
 async function runRevealSequence(state, token) {
@@ -1218,6 +1329,21 @@ async function handleStateUpdate(state) {
 
   if (phase === "review") {
     stopKaraoke();
+
+    if (state.clientSplash?.manualAdvance) {
+      // Host-paced path: no internal timer. phaseChanged means this is a fresh
+      // entry into review (host just clicked "Show Messages") -- reset local
+      // tracking so index 0 actually renders even if it happens to match
+      // whatever was last shown in a previous review run this session.
+      // Note: runToken is already bumped for any phaseChanged by the generic
+      // block earlier in this function -- just reset our own tracking here.
+      if (phaseChanged) resetManualSplashTracking();
+      const reviewRun = runToken;
+      runManualSplash(state, reviewRun, () => { startReviewFlow(state); });
+      return;
+    }
+
+    if (!phaseChanged) return; // avoid restarting the auto-cycle on an unrelated re-broadcast
     const reviewRun = ++runToken;
     showClientSplashIfPresent(state, reviewRun).then(() => {
       if (!isCurrentRun(reviewRun)) return;

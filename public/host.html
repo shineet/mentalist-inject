@@ -25,6 +25,11 @@
     button.secondary { background:#2b2b46; }
     button.danger { background:var(--danger); }
     .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+    .cardRow { display:flex; gap:8px; align-items:flex-start; margin-bottom:8px; }
+    .cardRow textarea { flex:1 1 auto; }
+    .cardRow button.removeCard { flex:0 0 auto; background:#2b2b46; color:var(--muted); padding:10px 14px; font-weight:700; }
+    .cardRow button.removeCard:hover { background:var(--danger); color:#fff; }
+    #btnAddCard { background:#2b2b46; }
     .audLink { overflow-wrap:anywhere; color:#d9d3ff; font-size:14px; }
     .hint { color:var(--muted); font-size:13px; margin-top:6px; line-height:1.35; }
     .qrOverlay { position:fixed; inset:0; background:rgba(0,0,0,.78); display:none; align-items:center; justify-content:center; z-index:999; padding:18px; }
@@ -119,16 +124,23 @@
       <h2>Client Splash (before review)</h2>
       <div class="grid">
         <label class="checkrow"><input id="clientSplashEnabled" type="checkbox" />Enable</label>
-        <div><label>Duration (ms)</label><input id="clientSplashMs" type="number" value="3000" /></div>
+        <label class="checkrow"><input id="clientSplashManualAdvance" type="checkbox" />Manual advance (control with remote / on-screen button instead of a timer)</label>
+        <div id="clientSplashDurationField"><label>Duration per slide (ms) — ignored in Manual advance</label><input id="clientSplashMs" type="number" value="3000" /></div>
         <div><label>Text size</label><input id="clientSplashTextSize" type="number" min="3" max="10" step="0.2" value="6.2" /><p class="hint">Bigger number = bigger message on audience screen.</p></div>
-        <div><label>Card 1 message</label><textarea id="clientSplashCard1" placeholder="Type line 1&#10;Type line 2"></textarea></div>
-        <div><label>Card 2 message</label><textarea id="clientSplashCard2" placeholder="Type line 1&#10;Type line 2"></textarea></div>
-        <div><label>Card 3 message</label><textarea id="clientSplashCard3" placeholder="Type line 1&#10;Type line 2"></textarea></div>
-        <div><label>Card 4 message</label><textarea id="clientSplashCard4" placeholder="Type line 1&#10;Type line 2"></textarea></div>
-        <div><label>Card 5 message</label><textarea id="clientSplashCard5" placeholder="Type line 1&#10;Type line 2"></textarea></div>
+        <div style="grid-column:1/-1">
+          <label>Message slides</label>
+          <div id="clientSplashCardsList"></div>
+          <button id="btnAddCard" type="button">+ Add Slide</button>
+        </div>
         <div><label>Photo message (below image)</label><textarea id="clientSplashMsg"></textarea></div>
       </div>
-      <div class="actions"><button id="btnSendReview">Show Messages</button><button id="btnSaveAsDefault" class="secondary" title="Save the two music URLs and the review URL as the default for new/reset shows">💾 Save as Default</button><button id="btnResetAll" class="danger">Reset All</button></div>
+      <div class="actions">
+        <button id="btnSendReview">Show Messages</button>
+        <button id="btnSplashPrev" class="secondary" type="button">◀ Prev Slide</button>
+        <button id="btnSplashNext" class="secondary" type="button">Next Slide ▶</button>
+        <button id="btnSaveAsDefault" class="secondary" title="Save the two music URLs and the review URL as the default for new/reset shows">💾 Save as Default</button>
+        <button id="btnResetAll" class="danger">Reset All</button>
+      </div>
     </section>
 
     <section class="card">
@@ -175,12 +187,14 @@
       <button id="dockMagic" class="dockBtn primary" type="button">▶ Magic</button>
       <button id="dockKaraoke" class="dockBtn" type="button">🎤 Karaoke</button>
       <button id="dockReview" class="dockBtn" type="button">💬 Review</button>
+      <button id="dockSplashPrev" class="dockBtn" type="button" style="display:none">◀ Slide</button>
+      <button id="dockSplashNext" class="dockBtn primary" type="button" style="display:none">Slide ▶</button>
       <button id="dockReset" class="dockBtn muted" type="button">↺ Reset</button>
     </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="/host.js?v=84"></script>
+  <script src="/host.js?v=85"></script>
 </body>
 </html>

@@ -67,14 +67,15 @@ const els = {
   iosLaunchDelayMs: document.getElementById("iosLaunchDelayMs"),
 
   clientSplashEnabled: document.getElementById("clientSplashEnabled"),
+  clientSplashManualAdvance: document.getElementById("clientSplashManualAdvance"),
+  clientSplashDurationField: document.getElementById("clientSplashDurationField"),
   clientSplashMs: document.getElementById("clientSplashMs"),
   clientSplashTextSize: document.getElementById("clientSplashTextSize"),
-  clientSplashCard1: document.getElementById("clientSplashCard1"),
-  clientSplashCard2: document.getElementById("clientSplashCard2"),
-  clientSplashCard3: document.getElementById("clientSplashCard3"),
-  clientSplashCard4: document.getElementById("clientSplashCard4"),
-  clientSplashCard5: document.getElementById("clientSplashCard5"),
+  clientSplashCardsList: document.getElementById("clientSplashCardsList"),
+  btnAddCard: document.getElementById("btnAddCard"),
   clientSplashMsg: document.getElementById("clientSplashMsg"),
+  btnSplashPrev: document.getElementById("btnSplashPrev"),
+  btnSplashNext: document.getElementById("btnSplashNext"),
 
   reviewUrl: document.getElementById("reviewUrl"),
   revealMusicUrl: document.getElementById("revealMusicUrl"),
@@ -177,14 +178,13 @@ function applySettingsToForm(s) {
   if (els.reviewThankMessage) els.reviewThankMessage.value = s.reviewThankMessage ?? "";
 
   els.clientSplashEnabled.checked = s.clientSplashEnabled ?? true;
+  if (els.clientSplashManualAdvance) els.clientSplashManualAdvance.checked = !!s.clientSplashManualAdvance;
+  if (els.clientSplashDurationField) els.clientSplashDurationField.style.display = s.clientSplashManualAdvance ? "none" : "";
   els.clientSplashMs.value = s.clientSplashMs ?? 3000;
   if (els.clientSplashTextSize) els.clientSplashTextSize.value = s.clientSplashTextSize ?? 6.2;
-  els.clientSplashCard1.value = s.clientSplashCard1 ?? "Hope you enjoyed my show";
-  els.clientSplashCard2.value = s.clientSplashCard2 ?? "Let\'s all wish Kylie a very happy B'Day";
-  els.clientSplashCard3.value = s.clientSplashCard3 ?? "";
-  els.clientSplashCard4.value = s.clientSplashCard4 ?? "";
-  els.clientSplashCard5.value = s.clientSplashCard5 ?? "";
+  renderCardsList(s.clientSplashCards ?? ["Hope you enjoyed my show", "Let\'s all wish Kylie a very happy B'Day"]);
   els.clientSplashMsg.value = s.clientSplashMsg ?? "Thank you — one last quick thing ❤️";
+  updateSplashControlsVisibility();
 
   els.iosLaunchEnabled.checked = s.iosLaunchEnabled ?? false;
   els.iosLaunchDelayMs.value = s.iosLaunchDelayMs ?? 250;
@@ -225,13 +225,10 @@ function applyServerStateToForm(st) {
     reviewThankTitle: st.reviewMode?.thankTitle,
     reviewThankMessage: st.reviewMode?.thankMessage,
     clientSplashEnabled: st.clientSplash?.enabled,
+    clientSplashManualAdvance: st.clientSplash?.manualAdvance,
     clientSplashMs: st.clientSplash?.durationMs,
     clientSplashTextSize: st.clientSplash?.textSize,
-    clientSplashCard1: st.clientSplash?.card1,
-    clientSplashCard2: st.clientSplash?.card2,
-    clientSplashCard3: st.clientSplash?.card3,
-    clientSplashCard4: st.clientSplash?.card4,
-    clientSplashCard5: st.clientSplash?.card5,
+    clientSplashCards: st.clientSplash?.cards,
     clientSplashMsg: st.clientSplash?.photoMessage,
     karaokeAudioUrl: st.karaoke?.audioUrl,
     karaokeLrcUrl: st.karaoke?.lrcUrl,
@@ -263,13 +260,10 @@ function loadSettings() {
     if (els.reviewThankMessage) els.reviewThankMessage.value = "";
 
     els.clientSplashEnabled.checked = true;
+    if (els.clientSplashManualAdvance) els.clientSplashManualAdvance.checked = false;
     els.clientSplashMs.value = 3000;
     if (els.clientSplashTextSize) els.clientSplashTextSize.value = 6.2;
-    els.clientSplashCard1.value = "Hope you enjoyed my show";
-    els.clientSplashCard2.value = "Let\'s all wish Kylie a very happy B'Day";
-    els.clientSplashCard3.value = "";
-    els.clientSplashCard4.value = "";
-    els.clientSplashCard5.value = "";
+    renderCardsList(["Hope you enjoyed my show", "Let\'s all wish Kylie a very happy B'Day"]);
     els.clientSplashMsg.value = "Thank you — one last quick thing ❤️";
 
     els.iosLaunchEnabled.checked = true;
@@ -297,6 +291,7 @@ function loadSettings() {
     els.iosLaunchEnabled.checked = true;
     els.iosLaunchDelayMs.value = 250;
     els.iosLaunchUrl.value = DEFAULT_IOS_LAUNCH_URL;
+    renderCardsList(["Hope you enjoyed my show", "Let\'s all wish Kylie a very happy B'Day"]);
     if (els.karaokeAudioUrl) els.karaokeAudioUrl.value = "";
     if (els.karaokeLrcUrl) els.karaokeLrcUrl.value = "";
     if (els.karaokeBgUrl) els.karaokeBgUrl.value = "";
@@ -327,13 +322,10 @@ function saveSettings() {
     reviewThankMessage: (els.reviewThankMessage?.value || "").trim(),
 
     clientSplashEnabled: !!els.clientSplashEnabled.checked,
+    clientSplashManualAdvance: !!els.clientSplashManualAdvance?.checked,
     clientSplashMs: Number(els.clientSplashMs.value || 0),
     clientSplashTextSize: Number(els.clientSplashTextSize?.value || 6.2),
-    clientSplashCard1: (els.clientSplashCard1?.value || "").trim(),
-    clientSplashCard2: (els.clientSplashCard2?.value || "").trim(),
-    clientSplashCard3: (els.clientSplashCard3?.value || "").trim(),
-    clientSplashCard4: (els.clientSplashCard4?.value || "").trim(),
-    clientSplashCard5: (els.clientSplashCard5?.value || "").trim(),
+    clientSplashCards: getCardsFromUI(),
     clientSplashMsg: (els.clientSplashMsg.value || "").trim(),
 
     iosLaunchEnabled: !!els.iosLaunchEnabled.checked,
@@ -376,14 +368,13 @@ function payloadFromUI() {
 
     clientSplash: {
       enabled: s.clientSplashEnabled,
+      manualAdvance: s.clientSplashManualAdvance,
       durationMs: s.clientSplashMs,
       textSize: s.clientSplashTextSize,
-      card1: s.clientSplashCard1,
-      card2: s.clientSplashCard2,
-      card3: s.clientSplashCard3,
-      card4: s.clientSplashCard4,
-      card5: s.clientSplashCard5,
+      cards: s.clientSplashCards,
       photoMessage: s.clientSplashMsg,
+      // currentCardIndex deliberately omitted -- only host:splashNext/Prev/
+      // sendToReview change it; a routine settings save must never reset it.
     },
 
     karaoke: {
@@ -558,6 +549,48 @@ els.btnSaveAsDefault?.addEventListener("click", () => {
   setTimeout(() => { btn.textContent = original; }, 1600);
 });
 
+// ── Message slides: advance controls (manual-advance mode) ─────────────────
+els.btnSplashNext?.addEventListener("click", () => emitHostAction("host:splashNext", "splashNext", { room: ROOM }));
+els.btnSplashPrev?.addEventListener("click", () => emitHostAction("host:splashPrev", "splashPrev", { room: ROOM }));
+
+els.clientSplashManualAdvance?.addEventListener("change", () => {
+  if (els.clientSplashDurationField) els.clientSplashDurationField.style.display = els.clientSplashManualAdvance.checked ? "none" : "";
+  updateSplashControlsVisibility();
+});
+
+// ── Message slides: dynamic list (add/remove any number of slides) ─────────
+function makeCardRow(value) {
+  const row = document.createElement("div");
+  row.className = "cardRow";
+  const ta = document.createElement("textarea");
+  ta.className = "clientSplashCardInput";
+  ta.placeholder = "Type line 1\nType line 2";
+  ta.value = value || "";
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "removeCard";
+  btn.textContent = "✕";
+  btn.title = "Remove this slide";
+  btn.addEventListener("click", () => { row.remove(); debouncedSave(); });
+  row.appendChild(ta);
+  row.appendChild(btn);
+  return row;
+}
+function renderCardsList(cards) {
+  if (!els.clientSplashCardsList) return;
+  els.clientSplashCardsList.innerHTML = "";
+  const list = Array.isArray(cards) && cards.length ? cards : [""];
+  list.forEach((c) => els.clientSplashCardsList.appendChild(makeCardRow(c)));
+}
+function getCardsFromUI() {
+  if (!els.clientSplashCardsList) return [];
+  return [...els.clientSplashCardsList.querySelectorAll(".clientSplashCardInput")].map((ta) => ta.value.trim());
+}
+els.btnAddCard?.addEventListener("click", () => {
+  els.clientSplashCardsList?.appendChild(makeCardRow(""));
+  debouncedSave();
+});
+
 els.btnSync.addEventListener("click", () => {
   els.syncLine.textContent = "Sync check: checking…";
   socket.emit("host:syncCheck", { room: ROOM }, (resp) => {
@@ -685,6 +718,8 @@ const dock = {
   magic: document.getElementById("dockMagic"),
   karaoke: document.getElementById("dockKaraoke"),
   review: document.getElementById("dockReview"),
+  splashPrev: document.getElementById("dockSplashPrev"),
+  splashNext: document.getElementById("dockSplashNext"),
   reset: document.getElementById("dockReset"),
 };
 const DOCK_PHASE_LABELS = {
@@ -695,11 +730,29 @@ const DOCK_PHASE_LABELS = {
   karaoke: "KARAOKE",
   review: "REVIEW",
 };
+// Tracked so the keydown remote handler (below) knows whether Right/Left
+// should be repurposed for slide advance instead of Karaoke/Reset Phase.
+let currentPhase = "idle";
 function updateDockPhase(phase) {
+  currentPhase = phase;
   if (dock.phase) dock.phase.textContent = DOCK_PHASE_LABELS[phase] || String(phase || "—").toUpperCase();
+  updateSplashControlsVisibility();
+}
+// Prev/Next slide controls (both the dock's compact buttons and the full
+// buttons in the Client Splash card) only make sense while actually showing
+// message slides in manual-advance mode -- hidden otherwise so they can't be
+// clicked to silently nudge an index that isn't currently on screen.
+function updateSplashControlsVisibility() {
+  const show = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
+  if (dock.splashPrev) dock.splashPrev.style.display = show ? "" : "none";
+  if (dock.splashNext) dock.splashNext.style.display = show ? "" : "none";
+  if (els.btnSplashPrev) els.btnSplashPrev.style.display = show ? "" : "none";
+  if (els.btnSplashNext) els.btnSplashNext.style.display = show ? "" : "none";
 }
 dock.magic?.addEventListener("click", () => els.btnSendReveal?.click());
 dock.karaoke?.addEventListener("click", () => els.btnStartKaraoke?.click());
+dock.splashPrev?.addEventListener("click", () => els.btnSplashPrev?.click());
+dock.splashNext?.addEventListener("click", () => els.btnSplashNext?.click());
 dock.review?.addEventListener("click", () => els.btnSendReview?.click());
 dock.reset?.addEventListener("click", () => els.btnResetPhase?.click());
 
@@ -720,6 +773,14 @@ emitHostAction("host:saveSettings", "saveSettings", payloadFromUI());
      ArrowLeft  -> Reset Phase
    Reset All is intentionally NOT on the remote (on-screen button only), so a
    stray Left press can never wipe the show. Ignored while typing in a field.
+
+   Contextual override (v85): while in the review phase with message-slide
+   Manual advance turned on, ArrowRight/ArrowLeft are repurposed to Next/
+   Previous slide instead of Karaoke/Reset Phase -- this is what lets a single
+   presenter-clicker-style remote pace through slides for live commentary.
+   Reverts to normal Karaoke/Reset Phase in every other phase, and immediately
+   once manual advance is off or review ends, so muscle memory for the
+   remote's normal behavior is never permanently changed.
 =================================================================== */
 function isTypingInField() {
   const el = document.activeElement;
@@ -735,9 +796,11 @@ document.addEventListener("keydown", (e) => {
   if (!["ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft"].includes(k)) return;
   e.preventDefault();
 
-  if (k === "ArrowUp") els.btnSendReveal?.click();           // Show Magic
-  else if (k === "ArrowRight") els.btnStartKaraoke?.click(); // Start Karaoke
-  else if (k === "ArrowDown") els.btnSendReview?.click();    // Show Messages / Review
-  else if (k === "ArrowLeft") els.btnResetPhase?.click();    // Reset Phase
+  const splashRemoteActive = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
+
+  if (k === "ArrowUp") els.btnSendReveal?.click();                                    // Show Magic
+  else if (k === "ArrowRight") (splashRemoteActive ? els.btnSplashNext : els.btnStartKaraoke)?.click();
+  else if (k === "ArrowDown") els.btnSendReview?.click();                             // Show Messages / Review
+  else if (k === "ArrowLeft") (splashRemoteActive ? els.btnSplashPrev : els.btnResetPhase)?.click();
 });
 

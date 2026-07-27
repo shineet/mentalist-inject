@@ -126,21 +126,22 @@ After pressing Show Magic, if "iPhone App Launch" is enabled, the host's phone o
 
 **What audience sees — in sequence:**
 
-**Step 1: Text cards (up to 5)**  
-Each non-empty card is shown full-screen, one at a time, with a cinematic fade in/out. Cards use a large, bold font (size configurable via `textSize`, default 6.2vw, capped at 96px). Duration per card: configurable (`clientSplash.durationMs`, default 3000ms, same duration applies to all cards).
+**Step 1: Text cards (any number, since v85)**  
+Each card is shown full-screen, one at a time, with a cinematic fade in/out. Cards use a large, bold font (size configurable via `textSize`, default 6.2vw, capped at 96px). The list is dynamic (host adds/removes slides via "+ Add Slide" in the Client Splash section) -- no fixed count.
 
-The cards are typed by the host in the Host Control Panel with newlines preserved. Example:
-- Card 1: "Hope you enjoyed my show"
-- Card 2: "Let's all wish Kylie a very happy B'Day"
-- Cards 3–5: empty (skipped automatically)
+Two modes, toggled via `clientSplash.manualAdvance`:
+- **Auto-timer (default, `manualAdvance: false`):** each card auto-advances after `clientSplash.durationMs` (default 3000ms), same duration for every card.
+- **Manual advance (`manualAdvance: true`):** no timer at all. The audience shows whatever `clientSplash.currentCardIndex` points to and waits. The host advances with `host:splashNext`/`host:splashPrev` -- via the "◀ Prev Slide" / "Next Slide ▶" buttons in the Client Splash section, the same two buttons appearing in the live-show dock while this mode + phase are active, or the physical remote's Right/Left buttons (see Section 8). This is what lets the host hold on one slide to give live commentary before moving on.
+
+The cards are typed by the host in the Host Control Panel with newlines preserved. Default seed: "Hope you enjoyed my show" / "Let's all wish Kylie a very happy B'Day".
 
 **Step 2: Client photo**  
-A photo of the client (the audience member who participated) is shown full-screen. Below it, a configurable text message appears (e.g., "Thank you — one last quick thing ❤️"). Duration: same `durationMs` as the cards.
+A photo of the client (the audience member who participated) is shown full-screen. Below it, a configurable text message appears (e.g., "Thank you — one last quick thing ❤️"). Duration: same `durationMs` as the cards (auto mode), or the next manual advance (manual mode) -- this step is index `cards.length` in `currentCardIndex` terms.
 
 Photo URL: configurable via "Client Image URL" field (defaults to `/client.png`). A cache-buster `?v=timestamp` is appended automatically to force a fresh load.
 
 **Step 3: Review redirect**  
-Audience is taken to the Google Review screen, then auto-redirected to the Google review URL after a configurable delay (default: 3000ms). A countdown ("Redirecting in 3s…") is shown.
+Audience is taken to the Google Review screen, then auto-redirected to the Google review URL after a configurable delay (default: 3000ms). A countdown ("Redirecting in 3s…") is shown. In manual mode this is reached at `currentCardIndex === cards.length + 1` (one more Next past the photo).
 
 **Background music during review phase:** The review music track plays (configurable URL, default `/review.mp3`).
 
@@ -226,14 +227,14 @@ This is the complete state object maintained per room on the server and broadcas
   
   clientSplash: {
     enabled: true,               // If false, skip all message cards and photo
-    durationMs: 3000,            // Duration per card and photo step (ms)
+    durationMs: 3000,            // Duration per card and photo step (ms) -- auto mode only
     textSize: 6.2,               // Font size for message cards (vw units, 3–10)
-    card1: "...",                // Text for card 1 (newlines preserved)
-    card2: "...",                // Text for card 2
-    card3: "",                   // Text for card 3 (empty = skipped)
-    card4: "",                   // Text for card 4
-    card5: "",                   // Text for card 5
+    cards: ["...", "..."],       // Dynamic list of slide texts (was fixed card1..card5 through v84), newlines preserved
     photoMessage: "...",         // Text shown below client photo
+    manualAdvance: false,        // v85: if true, no auto-timer -- host paces via host:splashNext/Prev
+    currentCardIndex: 0,         // v85: only meaningful when manualAdvance is true. 0..cards.length-1 = a card,
+                                  //   cards.length = the photo step, cards.length+1 = done (show real review screen).
+                                  //   Reset to 0 every time host:sendToReview (re-)enters the review phase.
   },
   
   reviewMode: {
@@ -284,6 +285,8 @@ This is the complete state object maintained per room on the server and broadcas
 | `host:resetPhase` | Return to idle |
 | `host:resetAll` | Full reset (now seeded from `customDefaults`, see Section 5) |
 | `host:saveAsDefault` | Save current revealMusicUrl/reviewMusicUrl/reviewUrl as the new baseline defaults for fresh rooms + future Reset All (in-memory, does not survive a deploy) |
+| `host:splashNext` | v85: advance clientSplash.currentCardIndex by 1 (clamped to cards.length+1), for manual-advance message slides |
+| `host:splashPrev` | v85: move clientSplash.currentCardIndex back by 1 (clamped to 0) |
 | `host:syncCheck` | Health check with callback (returns phase, counts, revision) |
 | `client:keepalive` | Sent every 20s to keep socket alive on mobile |
 
@@ -319,9 +322,11 @@ This is the complete state object maintained per room on the server and broadcas
 | Auto redirect checkbox | `reviewMode.autoRedirect` | |
 | Redirect delay (ms) | `reviewMode.autoRedirectDelayMs` | Default 3000 |
 | Client Splash enabled | `clientSplash.enabled` | |
-| Duration (ms) | `clientSplash.durationMs` | Applies to ALL cards and photo |
+| Manual advance checkbox | `clientSplash.manualAdvance` | v85: off = auto-timer, on = host-paced (remote/on-screen button) |
+| Duration (ms) | `clientSplash.durationMs` | Auto mode only; hidden when Manual advance is on |
 | Text size | `clientSplash.textSize` | vw units, 3–10 |
-| Card 1–5 | `clientSplash.card1`–`card5` | Newlines preserved |
+| Message slides (dynamic list, +Add Slide) | `clientSplash.cards` | Any number (was fixed Card 1–5 through v84), newlines preserved |
+| ◀ Prev Slide / Next Slide ▶ | -- (sends `host:splashPrev`/`host:splashNext`) | Only shown while in review phase + Manual advance on; also mirrored in the live-show dock |
 | Photo message | `clientSplash.photoMessage` | Text under client photo |
 | Reveal Music URL | `revealMusicUrl` | MP3, loops during reveal |
 | Review Music URL | `reviewMusicUrl` | MP3, loops during review |
@@ -343,11 +348,13 @@ The host uses a Bluetooth remote clicker during the show. Arrow keys map to acti
 | Key | Action |
 |---|---|
 | `ArrowUp` | Show Magic (trigger reveal) |
-| `ArrowRight` | Start Karaoke |
+| `ArrowRight` | Start Karaoke — **or Next Slide if in review phase with Manual advance on (v85)** |
 | `ArrowDown` | Show Messages (trigger review flow) |
-| `ArrowLeft` | Reset Phase |
+| `ArrowLeft` | Reset Phase — **or Prev Slide if in review phase with Manual advance on (v85)** |
 
 > **Consolidated in v82-remote-cleanup-persist.** There is now a SINGLE `keydown` listener in `host.js` with the one-action-per-key mapping above (matching the on-screen show dock). The old three overlapping listeners were removed. Reset All is deliberately NOT on the remote (on-screen button only) so a stray `ArrowLeft` can never factory-wipe the show mid-performance.
+
+> **v85 contextual override:** while `currentPhase === "review"` AND the Client Splash "Manual advance" checkbox is on, Right/Left are repurposed to Next/Prev slide instead of Karaoke/Reset Phase -- this is what lets one clicker pace through message slides for live commentary. Reverts to normal behavior immediately once manual advance is off or the phase changes away from review, so the remote's normal mapping is never permanently altered.
 
 > **Show dock:** the host page has a fixed bottom control bar (Magic / Karaoke / Review / Reset Phase + a live phase indicator) so the show triggers are reachable without scrolling. The dock buttons proxy to the real section buttons, so behavior is identical to the remote and to clicking the buttons in their cards.
 

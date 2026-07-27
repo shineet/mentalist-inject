@@ -7,7 +7,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v84-host-settings-cross-device-sync";
+const REVISION = "v85-manual-slide-advance";
 
 // Defaults (edit if you want)
 const DEFAULT_REVIEW_URL = "https://g.page/r/CfEvBpaR9455EAI/review";
@@ -88,6 +88,23 @@ app.post("/api/host/:action", (req, res) => {
 
     if (action === "sendToReview") {
       mergeState(room, payload, { reviewUrl: payload?.reviewUrl ?? getState(room).reviewUrl, phase: "review" });
+      resetSplashIndex(room);
+      broadcastState(room);
+      return res.json({ ok: true, room, state: getState(room) });
+    }
+
+    if (action === "splashNext") {
+      if (splashActionAlreadyApplied(room, payload.clientTs)) return res.json({ ok: true, room, state: getState(room) });
+      const cur = Number(getState(room).clientSplash?.currentCardIndex || 0);
+      mergeState(room, { clientSplash: { currentCardIndex: Math.min(cur + 1, splashMaxIndex(room)) } });
+      broadcastState(room);
+      return res.json({ ok: true, room, state: getState(room) });
+    }
+
+    if (action === "splashPrev") {
+      if (splashActionAlreadyApplied(room, payload.clientTs)) return res.json({ ok: true, room, state: getState(room) });
+      const cur = Number(getState(room).clientSplash?.currentCardIndex || 0);
+      mergeState(room, { clientSplash: { currentCardIndex: Math.max(cur - 1, 0) } });
       broadcastState(room);
       return res.json({ ok: true, room, state: getState(room) });
     }
@@ -153,9 +170,17 @@ const defaultState = () => ({
     enabled: true,
     durationMs: 3000,
     textSize: 6.2,
-    card1: "Hope you enjoyed my show",
-    card2: "Let\\'s all wish Kylie a very happy B'Day",
+    // Dynamic list (was fixed card1..card5 through v84) -- any number of slides.
+    cards: ["Hope you enjoyed my show", "Let\\'s all wish Kylie a very happy B'Day"],
     photoMessage: "Thank you — one last quick thing ❤️",
+    // Manual (host-paced) advance, added v85. When true, the audience does not
+    // auto-cycle on a timer -- it shows whatever currentCardIndex points to and
+    // waits for host:splashNext/host:splashPrev. Index range: 0..cards.length-1
+    // are text cards, cards.length is the photo step, cards.length+1 means
+    // "done, show the real review screen." Reset to 0 whenever review phase is
+    // (re-)entered via host:sendToReview.
+    manualAdvance: false,
+    currentCardIndex: 0,
   },
 
   reviewMode: { autoRedirect: true, autoRedirectDelayMs: 3000, thankTitle: "", thankMessage: "" },
@@ -242,6 +267,36 @@ function allow(socket, key, minMs) {
   return true;
 }
 
+// Highest valid clientSplash.currentCardIndex for a room: one slot per card,
+// plus one for the photo step, plus one terminal value meaning "past the
+// photo -- show the real review screen."
+function splashMaxIndex(room) {
+  const st = getState(room);
+  const cards = Array.isArray(st.clientSplash?.cards) ? st.clientSplash.cards.filter((c) => (c || "").trim()) : [];
+  return cards.length + 1;
+}
+
+function resetSplashIndex(room) {
+  const st = getState(room);
+  setState(room, { ...st, clientSplash: { ...st.clientSplash, currentCardIndex: 0 } });
+}
+
+// Every host action is sent via BOTH the socket AND the HTTP fallback
+// unconditionally (see host.js emitHostAction) as a reliability measure for
+// flaky mobile connections. That's harmless for idempotent actions (e.g.
+// setting phase to a fixed value twice is still just that value), but
+// splashNext/splashPrev are RELATIVE increments -- processing the same click
+// on both channels would advance the index by 2 instead of 1. host.js stamps
+// every action with the same clientTs on both sends; dedupe on that per room.
+const lastSplashActionTs = new Map();
+function splashActionAlreadyApplied(room, clientTs) {
+  if (!clientTs) return false;
+  const key = normalizeRoom(room);
+  if (lastSplashActionTs.get(key) === clientTs) return true;
+  lastSplashActionTs.set(key, clientTs);
+  return false;
+}
+
 function mergeState(room, payload, extra = {}) {
   const current = getState(room);
   return setState(room, {
@@ -326,6 +381,25 @@ io.on("connection", (socket) => {
     if (!allow(socket, "sendToReview", 250)) return;
     const room = joinRoom(socket, roomOfSocket(socket, payload));
     mergeState(room, payload, { reviewUrl: payload?.reviewUrl ?? getState(room).reviewUrl, phase: "review" });
+    resetSplashIndex(room); // always start the message cards from the top on fresh entry
+    broadcastState(room);
+  });
+
+  socket.on("host:splashNext", (payload = {}) => {
+    if (!allow(socket, "splashNext", 200)) return;
+    const room = joinRoom(socket, roomOfSocket(socket, payload));
+    if (splashActionAlreadyApplied(room, payload.clientTs)) return;
+    const cur = Number(getState(room).clientSplash?.currentCardIndex || 0);
+    mergeState(room, { clientSplash: { currentCardIndex: Math.min(cur + 1, splashMaxIndex(room)) } });
+    broadcastState(room);
+  });
+
+  socket.on("host:splashPrev", (payload = {}) => {
+    if (!allow(socket, "splashPrev", 200)) return;
+    const room = joinRoom(socket, roomOfSocket(socket, payload));
+    if (splashActionAlreadyApplied(room, payload.clientTs)) return;
+    const cur = Number(getState(room).clientSplash?.currentCardIndex || 0);
+    mergeState(room, { clientSplash: { currentCardIndex: Math.max(cur - 1, 0) } });
     broadcastState(room);
   });
 
