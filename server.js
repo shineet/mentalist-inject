@@ -1,13 +1,26 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v86-smart-dock-slot";
+const REVISION = "v87-persistent-state";
+
+// Persistence (v87): room settings/messages used to live in memory only, so
+// every deploy (server restart) wiped them back to hardcoded defaults. Now
+// backed by a small file on a mounted Fly volume (see fly.toml [[mounts]],
+// volume "mindgames_data" at /data) so they survive restarts and deploys.
+// DATA_DIR falls back to a local folder for dev machines that don't have the
+// volume mounted -- all file I/O below is try/caught and non-fatal: if disk
+// access ever fails for any reason, the show keeps running in-memory exactly
+// as it always did, it just won't survive the next restart.
+const DATA_DIR = process.env.DATA_DIR || "/data";
+const STATE_FILE = path.join(DATA_DIR, "state.json");
 
 // Defaults (edit if you want)
 const DEFAULT_REVIEW_URL = "https://g.page/r/CfEvBpaR9455EAI/review";
@@ -129,6 +142,7 @@ app.post("/api/host/:action", (req, res) => {
         ...(payload.reviewMusicUrl != null ? { reviewMusicUrl: payload.reviewMusicUrl } : {}),
         ...(payload.reviewUrl != null ? { reviewUrl: payload.reviewUrl } : {}),
       };
+      schedulePersist();
       return res.json({ ok: true, customDefaults });
     }
 
@@ -203,6 +217,47 @@ function seededDefaultState() {
 }
 
 const roomStates = new Map();
+
+// Load persisted state at boot, before anything else touches roomStates/
+// customDefaults -- so a restart resumes from where the show left off
+// instead of hardcoded defaults.
+(function loadPersistedStateAtBoot() {
+  try {
+    if (!fs.existsSync(STATE_FILE)) return;
+    const raw = fs.readFileSync(STATE_FILE, "utf-8");
+    const persisted = JSON.parse(raw);
+    if (persisted?.customDefaults && typeof persisted.customDefaults === "object") {
+      customDefaults = persisted.customDefaults;
+    }
+    if (persisted?.rooms && typeof persisted.rooms === "object") {
+      for (const [room, state] of Object.entries(persisted.rooms)) {
+        if (state && typeof state === "object") roomStates.set(room, state);
+      }
+    }
+    console.log(`Restored persisted state: ${Object.keys(persisted?.rooms || {}).length} room(s), customDefaults keys: ${Object.keys(customDefaults).join(", ") || "none"}`);
+  } catch (e) {
+    console.error("Failed to load persisted state, starting fresh:", e.message);
+  }
+})();
+
+// Debounced disk write -- coalesces rapid-fire changes (e.g. typing in a
+// settings field fires host:saveSettings on every keystroke) into at most
+// one write every 1.5s, so this never becomes a hot path.
+let persistTimer = null;
+function schedulePersist() {
+  if (persistTimer) return;
+  persistTimer = setTimeout(() => {
+    persistTimer = null;
+    try {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
+      const payload = { customDefaults, rooms: Object.fromEntries(roomStates) };
+      fs.writeFileSync(STATE_FILE, JSON.stringify(payload));
+    } catch (e) {
+      console.error("Failed to persist state (non-fatal, show continues normally):", e.message);
+    }
+  }, 1500);
+}
+
 function getState(room) {
   const key = normalizeRoom(room);
   if (!roomStates.has(key)) roomStates.set(key, seededDefaultState());
@@ -211,6 +266,7 @@ function getState(room) {
 function setState(room, nextState) {
   const key = normalizeRoom(room);
   roomStates.set(key, nextState);
+  schedulePersist();
   return nextState;
 }
 
@@ -426,6 +482,7 @@ io.on("connection", (socket) => {
       ...(payload.reviewMusicUrl != null ? { reviewMusicUrl: payload.reviewMusicUrl } : {}),
       ...(payload.reviewUrl != null ? { reviewUrl: payload.reviewUrl } : {}),
     };
+    schedulePersist();
   });
 
   socket.on("host:syncCheck", (payload, cb) => {

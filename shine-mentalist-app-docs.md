@@ -47,7 +47,7 @@ A real-time, multi-device **mentalist show controller**. The host (Shine) runs a
 
 ### Server (`server.js`)
 
-- Maintains **room state** in a `Map<roomName, stateObject>` (in-memory, resets on redeploy)
+- Maintains **room state** in a `Map<roomName, stateObject>` (in-memory for speed, persisted to disk since v87 -- see Section 5 -- so it survives redeploys/restarts)
 - Each room is identified by a URL-safe string (default: `"SHOW"`)
 - State updates are broadcast to all sockets in the room via `io.to(room).emit("state:update", state)`
 - Every state change increments `state.seq` so clients can detect stale updates
@@ -61,7 +61,7 @@ A real-time, multi-device **mentalist show controller**. The host (Shine) runs a
 - Every settings change debounces a `host:saveSettings` emit to keep server state in sync
 - All host actions are sent **both** via WebSocket and HTTP POST for reliability on mobile
 - Bluetooth remote / keyboard arrow keys are mapped to show actions (see Section 8)
-- **Caveat:** room state lives only in the server's in-memory `roomStates` Map (Section 5), not a database -- every deploy (server restart) resets ALL rooms back to defaults, independent of this cross-device sync.
+- **Note:** room state lives in the server's `roomStates` Map (Section 5), persisted to disk since v87 -- survives deploys/restarts now, so this cross-device sync and whatever's configured both carry forward.
 
 ### Client — Audience (`audience.js`)
 - Connects via Socket.IO, announces role `"audience"` with room name
@@ -202,7 +202,9 @@ Automatically transitions to the client photo (same photo used in Path 3A), show
 
 ## 5. Server State Object
 
-**Owner-configurable defaults overlay (since v84):** a separate in-memory `customDefaults` object (`{ revealMusicUrl?, reviewMusicUrl?, reviewUrl? }`), set via the host screen's "💾 Save as Default" button (`host:saveAsDefault`). `seededDefaultState()` = `{ ...defaultState(), ...customDefaults }` is what actually seeds a brand-new room and what Reset All restores -- NOT the raw hardcoded `defaultState()` below once a default has been saved. Like `roomStates`, `customDefaults` is in-memory only and resets to empty on every deploy (so the hardcoded constants below apply again until "Save as Default" is clicked again).
+**Owner-configurable defaults overlay (since v84):** a `customDefaults` object (`{ revealMusicUrl?, reviewMusicUrl?, reviewUrl? }`), set via the host screen's "💾 Save as Default" button (`host:saveAsDefault`). `seededDefaultState()` = `{ ...defaultState(), ...customDefaults }` is what actually seeds a brand-new room and what Reset All restores -- NOT the raw hardcoded `defaultState()` below once a default has been saved.
+
+**Persistence (v87):** `roomStates` and `customDefaults` used to be in-memory only (wiped on every deploy). Now backed by a small JSON file (`/data/state.json`) on a mounted Fly volume (`mindgames_data`, see `fly.toml` `[[mounts]]`) -- loaded at boot, and re-written (debounced, max once per 1.5s) on every `setState()`/`saveAsDefault`. All disk I/O is try/caught and non-fatal: if it ever fails, the show keeps running in-memory exactly as before, it just won't survive the next restart. `DATA_DIR` env var overrides `/data` for local dev machines without the volume mounted.
 
 This is the complete state object maintained per room on the server and broadcast to all clients:
 
@@ -284,7 +286,7 @@ This is the complete state object maintained per room on the server and broadcas
 | `host:sendToReview` | Trigger message cards → photo → review flow |
 | `host:resetPhase` | Return to idle |
 | `host:resetAll` | Full reset (now seeded from `customDefaults`, see Section 5) |
-| `host:saveAsDefault` | Save current revealMusicUrl/reviewMusicUrl/reviewUrl as the new baseline defaults for fresh rooms + future Reset All (in-memory, does not survive a deploy) |
+| `host:saveAsDefault` | Save current revealMusicUrl/reviewMusicUrl/reviewUrl as the new baseline defaults for fresh rooms + future Reset All (persisted to disk since v87, survives deploys) |
 | `host:splashNext` | v85: advance clientSplash.currentCardIndex by 1 (clamped to cards.length+1), for manual-advance message slides |
 | `host:splashPrev` | v85: move clientSplash.currentCardIndex back by 1 (clamped to 0) |
 | `host:syncCheck` | Health check with callback (returns phase, counts, revision) |
@@ -371,7 +373,7 @@ The app supports multiple simultaneous shows by appending `?room=ROOMNAME` to UR
 
 Room names are sanitized to alphanumeric + `_-`, max 40 characters. Default room is `"SHOW"`.
 
-Each room has its own independent state. Rooms are created automatically on first connection and live in memory (lost on server restart/redeploy).
+Each room has its own independent state. Rooms are created automatically on first connection and persist to disk (v87), so they survive a server restart/redeploy.
 
 ---
 
@@ -428,10 +430,12 @@ Defined in both `styles.css` (shared) and inline in `audience.html`/`host.html`:
 ## 13. Deployment
 
 ```bash
-fly deploy
+fly deploy -a mindgames
 ```
 
-The server is always-on (`auto_stop_machines = "off"`, `min_machines_running = 1`). This is intentional — the show cannot afford cold starts. Room state is in-memory and is cleared on every deploy.
+The `-a mindgames` flag is required -- `fly.toml`'s `app =` field still says the stale `mentalist-inject` name, so a bare `fly deploy` targets the wrong app.
+
+The server is always-on (`auto_stop_machines = "off"`, `min_machines_running = 1`). This is intentional — the show cannot afford cold starts. Room state persists across deploys/restarts via the `mindgames_data` Fly volume (v87, see Section 5) -- a deploy that needs to recreate the machine (e.g. first time attaching a new volume) still restores state from disk on boot.
 
 **After deploying:**
 1. Bump `REVISION` in `server.js` before deploying (e.g., `v79-my-feature`)
