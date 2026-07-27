@@ -1183,6 +1183,20 @@ btnKaraokeStart?.addEventListener("click", () => {
   else startKaraokePlayback();
 }, true);
 
+// Highlights any "5 star"/"5-star"/"five stars" style mention in the
+// thank-you message in gold, so the default review-ask reads with real
+// emphasis on the ask ("...a <gold>5 star</gold> review!"). Works on
+// whatever text the host actually typed, not just the exact default wording,
+// so it stays useful if they rephrase it. Escapes the rest of the text first
+// since this renders via innerHTML (host-authored content only, not visitor
+// input, so this is about correct rendering, not an XSS boundary).
+function escapeHtml(s) {
+  return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+function highlightStarRating(text) {
+  return escapeHtml(text).replace(/(\d+[\s-]?stars?)/gi, '<span style="color:#ffd76a">$1</span>');
+}
+
 function startReviewFlow(state) {
   stopRedirectStuff();
   stopBeats();
@@ -1197,7 +1211,7 @@ function startReviewFlow(state) {
   const message = (state.reviewMode?.thankMessage || "").trim();
   if (reviewTitleEl) reviewTitleEl.textContent = title || "Thank you!";
   if (reviewMsgEl) {
-    reviewMsgEl.textContent = message;
+    reviewMsgEl.innerHTML = highlightStarRating(message);
     reviewMsgEl.classList.toggle("hidden", !message);
   }
 

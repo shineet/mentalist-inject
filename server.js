@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v87-persistent-state";
+const REVISION = "v88-default-review-message";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -197,7 +197,7 @@ const defaultState = () => ({
     currentCardIndex: 0,
   },
 
-  reviewMode: { autoRedirect: true, autoRedirectDelayMs: 3000, thankTitle: "", thankMessage: "" },
+  reviewMode: { autoRedirect: true, autoRedirectDelayMs: 3000, thankTitle: "", thankMessage: "If you enjoyed my show, I would love a 5 star review!" },
 
   karaoke: { audioUrl: "", lrcUrl: "", bgUrl: "", title: "" },
 

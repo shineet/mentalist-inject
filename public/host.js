@@ -22,6 +22,7 @@ const DEFAULT_REVEAL_URL = "https://11z.co/12902/cat-houdini01.jpg";
 const DEFAULT_REVEAL_MUSIC_URL = "/music.mp3";
 const DEFAULT_REVIEW_MUSIC_URL = "/review.mp3";
 const DEFAULT_CLIENT_IMAGE_URL = "/client.png";
+const DEFAULT_REVIEW_THANK_MESSAGE = "If you enjoyed my show, I would love a 5 star review!";
 
 function randomRevealUrl() {
   // Unique filename using local date/time on the HOST device: MMDDYYHHMM
@@ -175,7 +176,7 @@ function applySettingsToForm(s) {
   if (els.corporateMode) els.corporateMode.checked = !!s.corporateMode;
   if (els.idleLogoUrl) els.idleLogoUrl.value = s.idleLogoUrl ?? "";
   if (els.reviewThankTitle) els.reviewThankTitle.value = s.reviewThankTitle ?? "";
-  if (els.reviewThankMessage) els.reviewThankMessage.value = s.reviewThankMessage ?? "";
+  if (els.reviewThankMessage) els.reviewThankMessage.value = s.reviewThankMessage ?? DEFAULT_REVIEW_THANK_MESSAGE;
 
   els.clientSplashEnabled.checked = s.clientSplashEnabled ?? true;
   if (els.clientSplashManualAdvance) els.clientSplashManualAdvance.checked = !!s.clientSplashManualAdvance;
@@ -258,7 +259,7 @@ function loadSettings() {
     if (els.corporateMode) els.corporateMode.checked = false;
     if (els.idleLogoUrl) els.idleLogoUrl.value = "";
     if (els.reviewThankTitle) els.reviewThankTitle.value = "";
-    if (els.reviewThankMessage) els.reviewThankMessage.value = "";
+    if (els.reviewThankMessage) els.reviewThankMessage.value = DEFAULT_REVIEW_THANK_MESSAGE;
 
     els.clientSplashEnabled.checked = true;
     if (els.clientSplashManualAdvance) els.clientSplashManualAdvance.checked = false;
