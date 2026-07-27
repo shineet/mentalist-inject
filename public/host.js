@@ -99,6 +99,7 @@ const els = {
   btnSendReview: document.getElementById("btnSendReview"),
   btnResetPhase: document.getElementById("btnResetPhase"),
   btnResetAll: document.getElementById("btnResetAll"),
+  btnSaveAsDefault: document.getElementById("btnSaveAsDefault"),
 
   btnShowQR: document.getElementById("btnShowQR"),
   btnCopyLink: document.getElementById("btnCopyLink"),
@@ -153,6 +154,97 @@ function setSelectedRevealType(value) {
   [...els.revealTypeRadios].forEach((r) => (r.checked = r.value === value));
 }
 
+// Populate the settings form from a flat settings object (the shape saveSettings()
+// writes to localStorage). Shared by loadSettings() (local cache) below.
+function applySettingsToForm(s) {
+  els.revealUrl.value = s.revealUrl ?? randomRevealUrl();
+  els.logoUrl.value = s.logoUrl ?? "";
+  els.skipAnimation.checked = !!s.skipAnimation;
+
+  els.logoMs.value = s.logoMs ?? 4000;
+  els.animationMs.value = s.animationMs ?? 12000;
+
+  els.reviewUrl.value = s.reviewUrl ?? DEFAULT_REVIEW_URL;
+  els.revealMusicUrl.value = s.revealMusicUrl ?? DEFAULT_REVEAL_MUSIC_URL;
+  els.reviewMusicUrl.value = s.reviewMusicUrl ?? DEFAULT_REVIEW_MUSIC_URL;
+  els.clientImageUrl.value = s.clientImageUrl ?? DEFAULT_CLIENT_IMAGE_URL;
+  els.autoRedirect.checked = s.autoRedirect ?? true;
+  els.autoRedirectDelayMs.value = s.autoRedirectDelayMs ?? 3000;
+
+  if (els.corporateMode) els.corporateMode.checked = !!s.corporateMode;
+  if (els.idleLogoUrl) els.idleLogoUrl.value = s.idleLogoUrl ?? "";
+  if (els.reviewThankTitle) els.reviewThankTitle.value = s.reviewThankTitle ?? "";
+  if (els.reviewThankMessage) els.reviewThankMessage.value = s.reviewThankMessage ?? "";
+
+  els.clientSplashEnabled.checked = s.clientSplashEnabled ?? true;
+  els.clientSplashMs.value = s.clientSplashMs ?? 3000;
+  if (els.clientSplashTextSize) els.clientSplashTextSize.value = s.clientSplashTextSize ?? 6.2;
+  els.clientSplashCard1.value = s.clientSplashCard1 ?? "Hope you enjoyed my show";
+  els.clientSplashCard2.value = s.clientSplashCard2 ?? "Let\'s all wish Kylie a very happy B'Day";
+  els.clientSplashCard3.value = s.clientSplashCard3 ?? "";
+  els.clientSplashCard4.value = s.clientSplashCard4 ?? "";
+  els.clientSplashCard5.value = s.clientSplashCard5 ?? "";
+  els.clientSplashMsg.value = s.clientSplashMsg ?? "Thank you — one last quick thing ❤️";
+
+  els.iosLaunchEnabled.checked = s.iosLaunchEnabled ?? false;
+  els.iosLaunchDelayMs.value = s.iosLaunchDelayMs ?? 250;
+  els.iosLaunchUrl.value = s.iosLaunchUrl ?? DEFAULT_IOS_LAUNCH_URL;
+
+  if (els.karaokeAudioUrl) els.karaokeAudioUrl.value = s.karaokeAudioUrl ?? "";
+  if (els.karaokeLrcUrl) els.karaokeLrcUrl.value = s.karaokeLrcUrl ?? "";
+  if (els.karaokeBgUrl) els.karaokeBgUrl.value = s.karaokeBgUrl ?? "";
+  if (els.karaokeTitle) els.karaokeTitle.value = s.karaokeTitle ?? "";
+
+  setSelectedRevealType(s.revealType ?? "page");
+}
+
+// Populate the settings form from the server's authoritative room state (the
+// nested shape broadcast as "state:update" -- see mergeState()/defaultState()
+// in server.js). This is what makes settings configured on one device (e.g.
+// iPhone) show up when the same show URL is opened on another (e.g. laptop):
+// the server, not localStorage, is the shared source of truth across devices.
+// Deliberately does NOT touch iosLaunch* -- that's a per-device Shortcuts/deep
+// link preference, never sent to or stored on the server.
+function applyServerStateToForm(st) {
+  if (!st || typeof st !== "object") return;
+  applySettingsToForm({
+    revealType: st.revealType,
+    revealUrl: st.revealUrl,
+    logoUrl: st.logoUrl,
+    skipAnimation: st.skipAnimation,
+    logoMs: st.timings?.logoMs,
+    animationMs: st.timings?.animationMs,
+    reviewUrl: st.reviewUrl,
+    revealMusicUrl: st.revealMusicUrl,
+    reviewMusicUrl: st.reviewMusicUrl,
+    clientImageUrl: st.clientImageUrl,
+    autoRedirect: st.reviewMode?.autoRedirect,
+    autoRedirectDelayMs: st.reviewMode?.autoRedirectDelayMs,
+    corporateMode: st.corporateMode,
+    idleLogoUrl: st.idleLogoUrl,
+    reviewThankTitle: st.reviewMode?.thankTitle,
+    reviewThankMessage: st.reviewMode?.thankMessage,
+    clientSplashEnabled: st.clientSplash?.enabled,
+    clientSplashMs: st.clientSplash?.durationMs,
+    clientSplashTextSize: st.clientSplash?.textSize,
+    clientSplashCard1: st.clientSplash?.card1,
+    clientSplashCard2: st.clientSplash?.card2,
+    clientSplashCard3: st.clientSplash?.card3,
+    clientSplashCard4: st.clientSplash?.card4,
+    clientSplashCard5: st.clientSplash?.card5,
+    clientSplashMsg: st.clientSplash?.photoMessage,
+    karaokeAudioUrl: st.karaoke?.audioUrl,
+    karaokeLrcUrl: st.karaoke?.lrcUrl,
+    karaokeBgUrl: st.karaoke?.bgUrl,
+    karaokeTitle: st.karaoke?.title,
+    // Preserve whatever iOS-launch values are already in the form (device-local).
+    iosLaunchEnabled: els.iosLaunchEnabled.checked,
+    iosLaunchDelayMs: els.iosLaunchDelayMs.value,
+    iosLaunchUrl: els.iosLaunchUrl.value,
+  });
+  saveSettings(); // keep the local cache in step with what the server just gave us
+}
+
 function loadSettings() {
   const raw = localStorage.getItem(LS_KEY);
   if (!raw) {
@@ -192,46 +284,7 @@ function loadSettings() {
 
   try {
     const s = JSON.parse(raw);
-
-    els.revealUrl.value = s.revealUrl ?? randomRevealUrl();
-    els.logoUrl.value = s.logoUrl ?? "";
-    els.skipAnimation.checked = !!s.skipAnimation;
-
-    els.logoMs.value = s.logoMs ?? 4000;
-    els.animationMs.value = s.animationMs ?? 12000;
-
-    els.reviewUrl.value = s.reviewUrl ?? DEFAULT_REVIEW_URL;
-    els.revealMusicUrl.value = s.revealMusicUrl ?? DEFAULT_REVEAL_MUSIC_URL;
-    els.reviewMusicUrl.value = s.reviewMusicUrl ?? DEFAULT_REVIEW_MUSIC_URL;
-    els.clientImageUrl.value = s.clientImageUrl ?? DEFAULT_CLIENT_IMAGE_URL;
-    els.autoRedirect.checked = s.autoRedirect ?? true;
-    els.autoRedirectDelayMs.value = s.autoRedirectDelayMs ?? 3000;
-
-    if (els.corporateMode) els.corporateMode.checked = !!s.corporateMode;
-    if (els.idleLogoUrl) els.idleLogoUrl.value = s.idleLogoUrl ?? "";
-    if (els.reviewThankTitle) els.reviewThankTitle.value = s.reviewThankTitle ?? "";
-    if (els.reviewThankMessage) els.reviewThankMessage.value = s.reviewThankMessage ?? "";
-
-    els.clientSplashEnabled.checked = s.clientSplashEnabled ?? true;
-    els.clientSplashMs.value = s.clientSplashMs ?? 3000;
-    if (els.clientSplashTextSize) els.clientSplashTextSize.value = s.clientSplashTextSize ?? 6.2;
-    els.clientSplashCard1.value = s.clientSplashCard1 ?? "Hope you enjoyed my show";
-    els.clientSplashCard2.value = s.clientSplashCard2 ?? "Let\'s all wish Kylie a very happy B'Day";
-    els.clientSplashCard3.value = s.clientSplashCard3 ?? "";
-    els.clientSplashCard4.value = s.clientSplashCard4 ?? "";
-    els.clientSplashCard5.value = s.clientSplashCard5 ?? "";
-    els.clientSplashMsg.value = s.clientSplashMsg ?? "Thank you — one last quick thing ❤️";
-
-    els.iosLaunchEnabled.checked = s.iosLaunchEnabled ?? false;
-    els.iosLaunchDelayMs.value = s.iosLaunchDelayMs ?? 250;
-    els.iosLaunchUrl.value = s.iosLaunchUrl ?? DEFAULT_IOS_LAUNCH_URL;
-
-    if (els.karaokeAudioUrl) els.karaokeAudioUrl.value = s.karaokeAudioUrl ?? "";
-    if (els.karaokeLrcUrl) els.karaokeLrcUrl.value = s.karaokeLrcUrl ?? "";
-    if (els.karaokeBgUrl) els.karaokeBgUrl.value = s.karaokeBgUrl ?? "";
-    if (els.karaokeTitle) els.karaokeTitle.value = s.karaokeTitle ?? "";
-
-    setSelectedRevealType(s.revealType ?? "page");
+    applySettingsToForm(s);
   } catch {
     setSelectedRevealType("page");
     els.autoRedirect.checked = true;
@@ -486,6 +539,25 @@ els.btnResetAll.addEventListener("click", () => {
   emitHostAction("host:saveSettings", "saveSettings", payloadFromUI());
 });
 
+// Saves just the two music URLs + review URL as the server's new baseline
+// defaults (server.js customDefaults) -- applied to any brand-new room and
+// to Reset All from now on, until changed again here. Deliberately scoped to
+// these three fields only; everything else (splash cards, karaoke song, the
+// reveal image, corporate mode, etc.) stays per-show / freshly randomized.
+els.btnSaveAsDefault?.addEventListener("click", () => {
+  const payload = {
+    room: ROOM,
+    revealMusicUrl: els.revealMusicUrl.value.trim() || DEFAULT_REVEAL_MUSIC_URL,
+    reviewMusicUrl: els.reviewMusicUrl.value.trim() || DEFAULT_REVIEW_MUSIC_URL,
+    reviewUrl: els.reviewUrl.value.trim() || DEFAULT_REVIEW_URL,
+  };
+  emitHostAction("host:saveAsDefault", "saveAsDefault", payload);
+  const btn = els.btnSaveAsDefault;
+  const original = btn.textContent;
+  btn.textContent = "Saved as default ✓";
+  setTimeout(() => { btn.textContent = original; }, 1600);
+});
+
 els.btnSync.addEventListener("click", () => {
   els.syncLine.textContent = "Sync check: checking…";
   socket.emit("host:syncCheck", { room: ROOM }, (resp) => {
@@ -583,11 +655,25 @@ socket.on("connect", () => {
   });
 });
 
-socket.on("disconnect", () => { els.statusBadge.textContent = "Status: disconnected"; });
+socket.on("disconnect", () => {
+  els.statusBadge.textContent = "Status: disconnected";
+  // Re-hydrate from the server on the next reconnect too, in case another
+  // device changed settings while this one was offline.
+  hasHydratedSettings = false;
+});
 
+// Only hydrate the form from the server once per connection (right after the
+// initial state:update that follows client:role below) -- not on every later
+// broadcast, so a live edit on THIS device (or another) doesn't reset a field
+// the person here is actively mid-typing into.
+let hasHydratedSettings = false;
 socket.on("state:update", (st) => {
   els.stateLine.textContent = `State: ${st.phase} • last update ${new Date(st.lastUpdateTs).toLocaleTimeString()}`;
   updateDockPhase(st.phase);
+  if (!hasHydratedSettings) {
+    hasHydratedSettings = true;
+    applyServerStateToForm(st);
+  }
 });
 
 // ── Live-show control dock ──────────────────────────────────────────────────

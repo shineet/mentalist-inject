@@ -56,10 +56,12 @@ A real-time, multi-device **mentalist show controller**. The host (Shine) runs a
 
 ### Client — Host (`host.js`)
 - Connects via Socket.IO, announces role `"host"` with room name
-- Settings are persisted in `localStorage` (key: `revealReviewHostSettings:v41:{ROOM}`)
+- Settings are persisted in `localStorage` (key: `revealReviewHostSettings:v41:{ROOM}`) purely as a fast local cache for instant paint before the socket connects
+- **Server state is the actual cross-device source of truth** (since v84): on the first `state:update` received after connecting, `applyServerStateToForm()` overwrites the form with whatever's on the server (and re-saves it to localStorage), so opening the same room URL on a different device shows the same configured values, not that device's own local cache. Subsequent `state:update` broadcasts during the same connection do NOT re-touch the form (only phase/dock), so a live edit in progress on this device is never clobbered by another device's save. Exception: `iosLaunch*` fields (iOS Shortcuts deep-link settings) are deliberately per-device and never sent to or read from the server.
 - Every settings change debounces a `host:saveSettings` emit to keep server state in sync
 - All host actions are sent **both** via WebSocket and HTTP POST for reliability on mobile
 - Bluetooth remote / keyboard arrow keys are mapped to show actions (see Section 8)
+- **Caveat:** room state lives only in the server's in-memory `roomStates` Map (Section 5), not a database -- every deploy (server restart) resets ALL rooms back to defaults, independent of this cross-device sync.
 
 ### Client — Audience (`audience.js`)
 - Connects via Socket.IO, announces role `"audience"` with room name
@@ -199,6 +201,8 @@ Automatically transitions to the client photo (same photo used in Path 3A), show
 
 ## 5. Server State Object
 
+**Owner-configurable defaults overlay (since v84):** a separate in-memory `customDefaults` object (`{ revealMusicUrl?, reviewMusicUrl?, reviewUrl? }`), set via the host screen's "💾 Save as Default" button (`host:saveAsDefault`). `seededDefaultState()` = `{ ...defaultState(), ...customDefaults }` is what actually seeds a brand-new room and what Reset All restores -- NOT the raw hardcoded `defaultState()` below once a default has been saved. Like `roomStates`, `customDefaults` is in-memory only and resets to empty on every deploy (so the hardcoded constants below apply again until "Save as Default" is clicked again).
+
 This is the complete state object maintained per room on the server and broadcast to all clients:
 
 ```javascript
@@ -278,7 +282,8 @@ This is the complete state object maintained per room on the server and broadcas
 | `host:startKaraoke` | Begin karaoke playback |
 | `host:sendToReview` | Trigger message cards → photo → review flow |
 | `host:resetPhase` | Return to idle |
-| `host:resetAll` | Full reset |
+| `host:resetAll` | Full reset (now seeded from `customDefaults`, see Section 5) |
+| `host:saveAsDefault` | Save current revealMusicUrl/reviewMusicUrl/reviewUrl as the new baseline defaults for fresh rooms + future Reset All (in-memory, does not survive a deploy) |
 | `host:syncCheck` | Health check with callback (returns phase, counts, revision) |
 | `client:keepalive` | Sent every 20s to keep socket alive on mobile |
 

@@ -7,7 +7,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v83-audience-auto-reload";
+const REVISION = "v84-host-settings-cross-device-sync";
 
 // Defaults (edit if you want)
 const DEFAULT_REVIEW_URL = "https://g.page/r/CfEvBpaR9455EAI/review";
@@ -100,9 +100,19 @@ app.post("/api/host/:action", (req, res) => {
     }
 
     if (action === "resetAll") {
-      setState(room, defaultState());
+      setState(room, seededDefaultState());
       broadcastState(room);
       return res.json({ ok: true, room, state: getState(room) });
+    }
+
+    if (action === "saveAsDefault") {
+      customDefaults = {
+        ...customDefaults,
+        ...(payload.revealMusicUrl != null ? { revealMusicUrl: payload.revealMusicUrl } : {}),
+        ...(payload.reviewMusicUrl != null ? { reviewMusicUrl: payload.reviewMusicUrl } : {}),
+        ...(payload.reviewUrl != null ? { reviewUrl: payload.reviewUrl } : {}),
+      };
+      return res.json({ ok: true, customDefaults });
     }
 
     return res.status(404).json({ ok: false, error: "Unknown action" });
@@ -155,10 +165,22 @@ const defaultState = () => ({
   lastUpdateTs: Date.now(),
 });
 
+// Owner-configurable overlay on top of the hardcoded defaultState() above --
+// set via the host screen's "Save as Default" button (host:saveAsDefault).
+// Scoped deliberately to a few show-level fields that make sense to reuse
+// across shows/rooms (music + review link), not per-client content like
+// splash messages or the karaoke song. In-memory only, like roomStates below
+// -- does not survive a deploy/restart, only Reset All / fresh rooms within
+// the same running server.
+let customDefaults = {};
+function seededDefaultState() {
+  return { ...defaultState(), ...customDefaults };
+}
+
 const roomStates = new Map();
 function getState(room) {
   const key = normalizeRoom(room);
-  if (!roomStates.has(key)) roomStates.set(key, defaultState());
+  if (!roomStates.has(key)) roomStates.set(key, seededDefaultState());
   return roomStates.get(key);
 }
 function setState(room, nextState) {
@@ -318,8 +340,18 @@ io.on("connection", (socket) => {
   socket.on("host:resetAll", (payload = {}) => {
     if (!allow(socket, "resetAll", 800)) return;
     const room = joinRoom(socket, roomOfSocket(socket, payload));
-    setState(room, defaultState());
+    setState(room, seededDefaultState());
     broadcastState(room);
+  });
+
+  socket.on("host:saveAsDefault", (payload = {}) => {
+    if (!allow(socket, "saveAsDefault", 400)) return;
+    customDefaults = {
+      ...customDefaults,
+      ...(payload.revealMusicUrl != null ? { revealMusicUrl: payload.revealMusicUrl } : {}),
+      ...(payload.reviewMusicUrl != null ? { reviewMusicUrl: payload.reviewMusicUrl } : {}),
+      ...(payload.reviewUrl != null ? { reviewUrl: payload.reviewUrl } : {}),
+    };
   });
 
   socket.on("host:syncCheck", (payload, cb) => {
