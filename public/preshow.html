@@ -20,18 +20,34 @@
     text-align: center;
     padding: 0 8vw;
   }
+  /* Display-mode sizing — swapped by the setup screen's Projector/Phone toggle */
+  :root {
+    --main-min: 28px; --main-max: 56px; --main-vw: 5vw;
+    --sub-min: 16px;  --sub-max: 24px;  --sub-vw: 2.2vw;
+    --wheel-vw: 42vw; --wheel-vh: 42vh;
+  }
+  body.mode-projector {
+    --main-min: 38px; --main-max: 100px; --main-vw: 7.2vw;
+    --sub-min: 20px;  --sub-max: 36px;   --sub-vw: 2.9vw;
+    --wheel-vw: 48vw; --wheel-vh: 48vh;
+  }
+  body.mode-phone {
+    --main-min: 22px; --main-max: 34px; --main-vw: 6vw;
+    --sub-min: 13px;  --sub-max: 18px;  --sub-vw: 3vw;
+    --wheel-vw: 55vw; --wheel-vh: 55vh;
+  }
   .line {
     opacity: 0;
     transform: translateY(14px);
     transition: opacity 1.1s ease, transform 1.1s ease;
     color: #f5f0e6;
-    font-size: clamp(28px, 5vw, 56px);
+    font-size: clamp(var(--main-min), var(--main-vw), var(--main-max));
     font-weight: 400;
     letter-spacing: 0.01em;
     line-height: 1.35;
   }
   .line.sub {
-    font-size: clamp(16px, 2.2vw, 24px);
+    font-size: clamp(var(--sub-min), var(--sub-vw), var(--sub-max));
     color: #ffd76a;
     margin-top: 18px;
     font-style: italic;
@@ -50,8 +66,8 @@
   }
   #spiralWrap.show { opacity: 1; }
   #spiral {
-    width: min(42vw, 42vh);
-    height: min(42vw, 42vh);
+    width: min(var(--wheel-vw), var(--wheel-vh));
+    height: min(var(--wheel-vw), var(--wheel-vh));
     border-radius: 50%;
     background: repeating-radial-gradient(
       circle at center,
@@ -68,24 +84,106 @@
     100% { background-size: 130% 130%; }
   }
 
-  /* click-to-start overlay, in case autoplay is blocked or he wants a manual go */
+  /* Setup screen — music URL + display mode, shown before the sequence starts */
   #startOverlay {
     position: fixed; inset: 0;
     background: #000;
     display: flex; align-items: center; justify-content: center;
-    color: #555;
-    font-size: 14px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    cursor: pointer;
+    cursor: auto;
     z-index: 10;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   #startOverlay.hidden { display: none; }
+  #setupPanel {
+    width: 90%; max-width: 420px;
+    text-align: center;
+  }
+  #setupPanel .setupTitle {
+    color: #f5f0e6;
+    font-family: Georgia, serif;
+    font-size: 22px;
+    margin-bottom: 28px;
+  }
+  #setupPanel label {
+    display: block;
+    color: #888;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: left;
+    margin-bottom: 6px;
+  }
+  #musicUrl {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #f5f0e6;
+    font-size: 14px;
+    padding: 11px 12px;
+    margin-bottom: 24px;
+    outline: none;
+  }
+  #musicUrl:focus { border-color: #ffd76a; }
+  #modeToggle {
+    display: flex; gap: 8px;
+    margin-bottom: 28px;
+  }
+  .modeBtn {
+    flex: 1;
+    background: #111;
+    border: 1px solid #333;
+    color: #999;
+    border-radius: 8px;
+    padding: 12px 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .modeBtn.active {
+    background: #2a2308;
+    border-color: #ffd76a;
+    color: #ffd76a;
+  }
+  #beginBtn {
+    width: 100%;
+    background: #ffd76a;
+    color: #1a1400;
+    border: none;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    margin-bottom: 14px;
+  }
+  #setupHint {
+    color: #444;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+  }
 </style>
 </head>
 <body>
 
-<div id="startOverlay">Click / press remote to begin</div>
+<div id="startOverlay">
+  <div id="setupPanel">
+    <div class="setupTitle">Pre-Show Setup</div>
+
+    <label for="musicUrl">Music URL (optional)</label>
+    <input type="text" id="musicUrl" placeholder="Leave blank for default track" autocomplete="off" spellcheck="false" />
+
+    <label>Display</label>
+    <div id="modeToggle">
+      <button type="button" class="modeBtn active" data-mode="projector">🖥 Projector / Big Screen</button>
+      <button type="button" class="modeBtn" data-mode="phone">📱 Phone / Small Screen</button>
+    </div>
+
+    <button id="beginBtn">▶ Begin</button>
+    <div id="setupHint">or press any remote/keyboard key to begin</div>
+  </div>
+</div>
 
 <div id="stage">
   <div id="spiralWrap"><div id="spiral"></div></div>
@@ -118,11 +216,24 @@
   const spiralWrap = document.getElementById('spiralWrap');
   const startOverlay = document.getElementById('startOverlay');
   const bgMusic = document.getElementById('bgMusic');
+  const musicUrlInput = document.getElementById('musicUrl');
+  const modeButtons = document.querySelectorAll('.modeBtn');
+  const beginBtn = document.getElementById('beginBtn');
 
+  // `?music=` still works as a way to preset the field (e.g. a saved link per
+  // show), but the setup screen's input is what actually gets used.
   const musicParam = new URLSearchParams(location.search).get('music');
-  bgMusic.src = musicParam || '/music.mp3';
+  if (musicParam) musicUrlInput.value = musicParam;
   const MUSIC_VOLUME = 0.55;
   bgMusic.volume = MUSIC_VOLUME;
+
+  let selectedMode = 'projector';
+  modeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedMode = btn.dataset.mode;
+      modeButtons.forEach(b => b.classList.toggle('active', b === btn));
+    });
+  });
 
   function setLine(main, sub, gold) {
     mainLine.classList.remove('show');
@@ -144,27 +255,33 @@
   }
 
   const seq = [
-    { t: 500,   fn: () => setLine("In a few minutes, the fun will begin.") },
-    { t: 4700,  fn: () => setLine('But I have a few requests.') },
+    { t: 500,   fn: () => setLine("In a few minutes, the fun will begin") },
+    { t: 4700,  fn: () => setLine('But I have a few requests') },
     { t: 8700,  fn: () => setLine('All of you will be part of this show.', 'Not just one of you — everyone in this room.') },
     { t: 13700, fn: () => setLine('No one will be embarrassed.', "It's all about wonder, not making anyone look foolish.") },
     { t: 18700, fn: () => setLine('Everything I do is for entertainment.', "I'm not a psychic. I'm an entertainer.") },
     { t: 23700, fn: () => setLine('And this one is very important.') },
-    { t: 27200, fn: () => setLine('Please don’t try to figure things out during the show.', "I know you'll be tempted. But solving it ruins it — for you, and for everyone around you.") },
-    { t: 32700, fn: () => setLine('Got questions?', "Find me after the show — I'll be right here.") },
-    { t: 37200, fn: () => setLine('Now, all of you, please focus.', 'Keep looking at the center of the wheel.') },
+    { t: 27200, fn: () => setLine('Please don’t try to figure things out during the show.', "I know you'll be tempted.") },
+    { t: 31700, fn: () => setLine('But trying to solve it ruins it —', 'For you, and for everyone around you.') },
+    { t: 36700, fn: () => setLine('Got questions?', "Find me after the show — I'll be right here.") },
+    { t: 41200, fn: () => setLine('Now, all of you, please focus.', 'Keep looking at the center of the wheel.') },
 
     // Hypnotic wheel — silent, just look. No text over it; the ask comes after.
-    { t: 42200, fn: () => { clearLine(); spiralWrap.classList.add('show'); } },
-    { t: 49200, fn: () => spiralWrap.classList.remove('show') },
+    { t: 46200, fn: () => { clearLine(); spiralWrap.classList.add('show'); } },
+    { t: 53200, fn: () => spiralWrap.classList.remove('show') },
 
-    { t: 50800, fn: () => setLine('Think of a number between 10 and 50.', null, true) },
-    { t: 54800, fn: () => setLine('Lock it in.', "Don't say it out loud. Just remember it.") },
-    { t: 59300, fn: () => setLine('Hold on to that thought.', "You'll understand why, later in the show.") },
+    { t: 54800, fn: () => setLine('Think of a number between 10 and 50.', null, true) },
+    { t: 58800, fn: () => setLine('Lock it in.', "Don't say it out loud. Just remember it.") },
+    { t: 63300, fn: () => setLine('Hold on to that thought.', "You'll understand why, later in the show.") },
 
-    { t: 64300, fn: () => fadeOutMusic(4500) }, // silent by the time you walk out
-    { t: 65300, fn: () => setLine('Are you ready to have some fun?', 'Sit back, relax and enjoy the show.', true) },
-    { t: 70300, fn: () => clearLine() }, // hard black, hold — walk on
+    { t: 68300, fn: () => fadeOutMusic(3500) }, // silent by the time the last beat lands
+    // Rapid cascade to close — quick, one phrase at a time, building toward walk-on.
+    { t: 68800, fn: () => setLine('Now', null, true) },
+    { t: 70500, fn: () => setLine('Sit back', null, true) },
+    { t: 72200, fn: () => setLine('relax', null, true) },
+    { t: 73900, fn: () => setLine('and', null, true) },
+    { t: 75600, fn: () => setLine('enjoy the show', null, true) },
+    { t: 80100, fn: () => clearLine() }, // hard black, hold — walk on
   ];
 
   function fadeOutMusic(ms) {
@@ -180,7 +297,16 @@
   }
 
   let timers = [];
+  let started = false;
   function play() {
+    if (started) return;
+    started = true;
+
+    document.body.classList.add('mode-' + selectedMode);
+
+    const url = musicUrlInput.value.trim();
+    bgMusic.src = url || musicParam || '/music.mp3';
+
     startOverlay.classList.add('hidden');
     bgMusic.volume = MUSIC_VOLUME;
     bgMusic.currentTime = 0;
@@ -189,10 +315,21 @@
     timers = seq.map(step => setTimeout(step.fn, step.t));
   }
 
-  startOverlay.addEventListener('click', play);
-  // Also allow spacebar / any key to start, so a Bluetooth remote button (which
-  // usually emulates a keypress) can trigger it directly without a click.
-  window.addEventListener('keydown', () => { if (!startOverlay.classList.contains('hidden')) play(); });
+  beginBtn.addEventListener('click', play);
+
+  // Enter inside the music URL field also begins — typing there shouldn't
+  // otherwise trigger anything, so plain keydown is ignored while it's focused.
+  musicUrlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') play();
+  });
+
+  // Any key starts the show, so a Bluetooth remote button (which usually
+  // emulates a keypress) can trigger it directly — but not while the user
+  // is actively typing a URL into the field.
+  window.addEventListener('keydown', (e) => {
+    if (document.activeElement === musicUrlInput) return;
+    if (!startOverlay.classList.contains('hidden')) play();
+  });
 </script>
 
 </body>
