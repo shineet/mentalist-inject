@@ -226,6 +226,7 @@
 </div>
 
 <audio id="bgMusic" preload="auto" loop></audio>
+<audio id="announcerVoice" preload="auto" src="/announcer.mp3"></audio>
 
 <script>
   // ── Rules of Engagement + Hypnotic Wheel pre-show sequence ──────────────
@@ -251,6 +252,7 @@
   const startOverlay = document.getElementById('startOverlay');
   const setupPanel = document.getElementById('setupPanel');
   const bgMusic = document.getElementById('bgMusic');
+  const announcerVoice = document.getElementById('announcerVoice');
   const musicUrlInput = document.getElementById('musicUrl');
   const useDefaultCheckbox = document.getElementById('useDefaultMusic');
   const modeButtons = document.querySelectorAll('.modeBtn');
@@ -368,7 +370,11 @@
     // finishing right as the screen cuts to black.
     { t: 65300, fn: () => setLine('The show has already begun.', 'Remember your number.', true) },
     { t: 70800, fn: () => fadeOutMusic(3000) },
-    { t: 73800, fn: () => clearLine() }, // hard black, hold — walk on
+    { t: 73800, fn: () => clearLine() }, // hard black — music has fully finished its own ending here
+
+    // Walk-on announcement — plays alone in the dark, after a brief pause,
+    // once the music's own ending has fully played out and gone silent.
+    { t: 74100, fn: () => { announcerVoice.volume = 1; announcerVoice.play().catch(() => {}); } },
   ];
 
   function fadeOutMusic(ms) {
