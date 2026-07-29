@@ -144,30 +144,27 @@
   }
 
   const seq = [
-    { t: 500,   fn: () => setLine("In a few minutes, I'll be out there.") },
-    { t: 4200,  fn: () => setLine('I have a few requests.') },
-    { t: 7700,  fn: () => setLine('Put your phone away.', "Not because I said so — because you'll want your eyes on this.") },
-    { t: 12700, fn: () => setLine('All of you will be part of this show.', 'Not just one of you — everyone in this room.') },
-    { t: 17700, fn: () => setLine('No one will be embarrassed.', "Tonight's about wonder, not making anyone look foolish.") },
-    { t: 22700, fn: () => setLine('Everything tonight is for entertainment.', "I'm not a psychic. I'm an entertainer.") },
-    { t: 27700, fn: () => setLine('Please don’t try to figure things out during the show.', "I know you'll be tempted. But solving it ruins it — for you, and for everyone around you.") },
-    { t: 33200, fn: () => setLine('Got questions?', "Find me after the show — I'll be right here.") },
-    { t: 37700, fn: () => setLine('Whatever you’re about to think —', "think it clearly. I'm paying attention.") },
-
-    { t: 42700, fn: () => setLine('All of you, please focus.', 'Keep looking at the center of the wheel.') },
+    { t: 500,   fn: () => setLine("In a few minutes, the fun will begin.") },
+    { t: 4700,  fn: () => setLine('But I have a few requests.') },
+    { t: 8700,  fn: () => setLine('All of you will be part of this show.', 'Not just one of you — everyone in this room.') },
+    { t: 13700, fn: () => setLine('No one will be embarrassed.', "It's all about wonder, not making anyone look foolish.") },
+    { t: 18700, fn: () => setLine('Everything I do is for entertainment.', "I'm not a psychic. I'm an entertainer.") },
+    { t: 23700, fn: () => setLine('And this one is very important.') },
+    { t: 27200, fn: () => setLine('Please don’t try to figure things out during the show.', "I know you'll be tempted. But solving it ruins it — for you, and for everyone around you.") },
+    { t: 32700, fn: () => setLine('Got questions?', "Find me after the show — I'll be right here.") },
+    { t: 37200, fn: () => setLine('Now, all of you, please focus.', 'Keep looking at the center of the wheel.') },
 
     // Hypnotic wheel — silent, just look. No text over it; the ask comes after.
-    { t: 47200, fn: () => { clearLine(); spiralWrap.classList.add('show'); } },
-    { t: 54200, fn: () => spiralWrap.classList.remove('show') },
+    { t: 42200, fn: () => { clearLine(); spiralWrap.classList.add('show'); } },
+    { t: 49200, fn: () => spiralWrap.classList.remove('show') },
 
-    { t: 55800, fn: () => setLine('Think of a number between 1 and 50.', null, true) },
-    { t: 59800, fn: () => setLine('Lock it in.', "Don't say it out loud. Just remember it.") },
-    { t: 64300, fn: () => setLine('Hold on to that thought.', "You'll understand why, later tonight.") },
+    { t: 50800, fn: () => setLine('Think of a number between 10 and 50.', null, true) },
+    { t: 54800, fn: () => setLine('Lock it in.', "Don't say it out loud. Just remember it.") },
+    { t: 59300, fn: () => setLine('Hold on to that thought.', "You'll understand why, later in the show.") },
 
-    { t: 69800, fn: () => setLine('Tonight, reality gets a little less certain.', null, true) },
-    { t: 73300, fn: () => fadeOutMusic(4500) }, // silent by the time you walk out
-    { t: 74300, fn: () => setLine('Please welcome to the stage —', null, true) },
-    { t: 78300, fn: () => clearLine() }, // hard black, hold — walk on
+    { t: 64300, fn: () => fadeOutMusic(4500) }, // silent by the time you walk out
+    { t: 65300, fn: () => setLine('Are you ready to have some fun?', 'Sit back, relax and enjoy the show.', true) },
+    { t: 70300, fn: () => clearLine() }, // hard black, hold — walk on
   ];
 
   function fadeOutMusic(ms) {
