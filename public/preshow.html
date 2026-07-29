@@ -276,13 +276,15 @@
     { t: 58800, fn: () => setLine('Lock it in.', "Don't say it out loud. Just remember it.") },
     { t: 63300, fn: () => setLine('Hold on to that thought.', "You'll understand why, later in the show.") },
 
-    { t: 68300, fn: () => fadeOutMusic(3500) }, // silent by the time the last beat lands
     // Rapid cascade to close — quick, one phrase at a time, building toward walk-on.
+    // Music plays through the whole cascade and only fades in the last ~3s,
+    // finishing right as the screen cuts to black.
     { t: 68800, fn: () => setLine('Now', null, true) },
     { t: 70500, fn: () => setLine('Sit back', null, true) },
     { t: 72200, fn: () => setLine('relax', null, true) },
     { t: 73900, fn: () => setLine('and', null, true) },
     { t: 75600, fn: () => setLine('enjoy the show', null, true) },
+    { t: 77100, fn: () => fadeOutMusic(3000) },
     { t: 80100, fn: () => clearLine() }, // hard black, hold — walk on
   ];
 
