@@ -164,6 +164,15 @@
     border-color: #ffd76a;
     color: #ffd76a;
   }
+  #readyStatus {
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 14px;
+    letter-spacing: 0.02em;
+  }
+  #readyStatus.status-checking { color: #888; }
+  #readyStatus.status-ready { color: #7ed17e; }
+  #readyStatus.status-error { color: #e0715a; }
   #beginBtn {
     width: 100%;
     background: #ffd76a;
@@ -202,6 +211,8 @@
       <button type="button" class="modeBtn active" data-mode="projector">🖥 Projector / Big Screen</button>
       <button type="button" class="modeBtn" data-mode="phone">📱 Phone / Small Screen</button>
     </div>
+
+    <div id="readyStatus" class="status-checking">⏳ Checking track...</div>
 
     <button id="beginBtn">▶ Begin</button>
     <div id="setupHint">or press any remote/keyboard key to begin</div>
@@ -268,7 +279,40 @@
   });
   useDefaultCheckbox.addEventListener('change', () => {
     localStorage.setItem('preshowUseDefaultMusic', useDefaultCheckbox.checked);
+    checkReadiness();
   });
+
+  // Setup-screen-only readiness check: this app needs internet to load the
+  // page and buffer the music track, but has no offline caching after that.
+  // This gives Shine a visual "safe to walk away from WiFi now" signal by
+  // fully preloading whichever track is currently selected — separate Audio
+  // object, never touches bgMusic or actual playback.
+  const readyStatus = document.getElementById('readyStatus');
+  const readinessAudio = new Audio();
+  readinessAudio.preload = 'auto';
+  readinessAudio.addEventListener('canplaythrough', () => {
+    readyStatus.textContent = '✅ Ready — fully loaded, safe to go offline';
+    readyStatus.className = 'status-ready';
+  });
+  readinessAudio.addEventListener('error', () => {
+    readyStatus.textContent = "⚠️ Couldn't load this track — check the URL";
+    readyStatus.className = 'status-error';
+  });
+
+  let readinessDebounce;
+  function checkReadiness() {
+    clearTimeout(readinessDebounce);
+    readinessDebounce = setTimeout(() => {
+      const url = musicUrlInput.value.trim();
+      const src = (useDefaultCheckbox.checked || !url) ? '/music.mp3' : url;
+      readyStatus.textContent = '⏳ Checking track...';
+      readyStatus.className = 'status-checking';
+      readinessAudio.src = src;
+      readinessAudio.load();
+    }, 500);
+  }
+  musicUrlInput.addEventListener('input', checkReadiness);
+  checkReadiness();
 
   const MUSIC_VOLUME = 0.55;
   bgMusic.volume = MUSIC_VOLUME;
