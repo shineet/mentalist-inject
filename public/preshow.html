@@ -122,25 +122,28 @@
     color: #f5f0e6;
     font-size: 14px;
     padding: 11px 12px;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
     outline: none;
   }
   #musicUrl:focus { border-color: #ffd76a; }
-  #previewDefaultBtn {
-    display: block;
-    width: 100%;
-    background: none;
-    border: none;
-    color: #888;
-    font-size: 12px;
-    font-family: inherit;
+  #setupPanel label.checkboxRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     text-align: left;
-    text-decoration: underline;
+    text-transform: none;
+    letter-spacing: normal;
+    color: #aaa;
+    font-size: 13px;
     cursor: pointer;
-    padding: 0 0 24px 0;
+    margin-bottom: 24px;
   }
-  #previewDefaultBtn:hover { color: #ffd76a; }
-  #previewDefaultBtn.playing { color: #ffd76a; }
+  .checkboxRow input[type="checkbox"] {
+    width: 16px; height: 16px;
+    accent-color: #ffd76a;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
   #modeToggle {
     display: flex; gap: 8px;
     margin-bottom: 28px;
@@ -187,9 +190,12 @@
   <div id="setupPanel">
     <div class="setupTitle">Pre-Show Setup</div>
 
-    <label for="musicUrl">Music URL (optional)</label>
-    <input type="text" id="musicUrl" placeholder="Leave blank for default track" autocomplete="off" spellcheck="false" />
-    <button type="button" id="previewDefaultBtn">▶ Preview default track</button>
+    <label for="musicUrl">Music URL</label>
+    <input type="text" id="musicUrl" placeholder="Paste a music URL" autocomplete="off" spellcheck="false" />
+    <label class="checkboxRow" for="useDefaultMusic">
+      <input type="checkbox" id="useDefaultMusic" />
+      <span>Use default track instead</span>
+    </label>
 
     <label>Display</label>
     <div id="modeToggle">
@@ -235,33 +241,37 @@
   const setupPanel = document.getElementById('setupPanel');
   const bgMusic = document.getElementById('bgMusic');
   const musicUrlInput = document.getElementById('musicUrl');
+  const useDefaultCheckbox = document.getElementById('useDefaultMusic');
   const modeButtons = document.querySelectorAll('.modeBtn');
   const beginBtn = document.getElementById('beginBtn');
-  const previewDefaultBtn = document.getElementById('previewDefaultBtn');
 
-  // `?music=` still works as a way to preset the field (e.g. a saved link per
-  // show), but the setup screen's input is what actually gets used.
+  // `?music=` still works as a per-show link override, taking priority over
+  // whatever's saved from last time. Otherwise, restore the last URL Shine
+  // typed (and whether he had "use default" checked) from localStorage, so
+  // he doesn't have to re-paste it every time he loads this page.
   const musicParam = new URLSearchParams(location.search).get('music');
-  if (musicParam) musicUrlInput.value = musicParam;
+  const savedUrl = localStorage.getItem('preshowMusicUrl') || '';
+  if (musicParam) {
+    musicUrlInput.value = musicParam;
+    useDefaultCheckbox.checked = false;
+  } else {
+    musicUrlInput.value = savedUrl;
+    useDefaultCheckbox.checked = localStorage.getItem('preshowUseDefaultMusic') === 'true' || !savedUrl;
+  }
+
+  musicUrlInput.addEventListener('input', () => {
+    if (musicUrlInput.value.trim()) {
+      useDefaultCheckbox.checked = false;
+      localStorage.setItem('preshowUseDefaultMusic', 'false');
+    }
+    localStorage.setItem('preshowMusicUrl', musicUrlInput.value);
+  });
+  useDefaultCheckbox.addEventListener('change', () => {
+    localStorage.setItem('preshowUseDefaultMusic', useDefaultCheckbox.checked);
+  });
+
   const MUSIC_VOLUME = 0.55;
   bgMusic.volume = MUSIC_VOLUME;
-
-  // Setup-screen-only preview of the default track — separate Audio object so
-  // it never touches bgMusic or the actual show timing/state.
-  const previewAudio = new Audio('/music.mp3');
-  previewAudio.loop = true;
-  previewAudio.volume = MUSIC_VOLUME;
-  previewDefaultBtn.addEventListener('click', () => {
-    if (previewAudio.paused) {
-      previewAudio.play().catch(() => {});
-      previewDefaultBtn.textContent = '⏸ Stop preview';
-      previewDefaultBtn.classList.add('playing');
-    } else {
-      previewAudio.pause();
-      previewDefaultBtn.textContent = '▶ Preview default track';
-      previewDefaultBtn.classList.remove('playing');
-    }
-  });
 
   let selectedMode = 'projector';
   modeButtons.forEach(btn => {
@@ -340,11 +350,9 @@
     if (state !== 'setup') return;
     state = 'armed';
 
-    previewAudio.pause(); // never let the preview overlap the real playback
-
     document.body.classList.add('mode-' + selectedMode);
     const url = musicUrlInput.value.trim();
-    bgMusic.src = url || musicParam || '/music.mp3';
+    bgMusic.src = (!useDefaultCheckbox.checked && url) ? url : '/music.mp3';
 
     setupPanel.classList.add('hidden');
     startOverlay.style.cursor = 'none';
@@ -378,7 +386,7 @@
   // the user is actively typing a URL into the field.
   window.addEventListener('keydown', (e) => {
     if (document.activeElement === musicUrlInput) return;
-    if (document.activeElement === previewDefaultBtn) return; // don't arm while toggling preview via keyboard
+    if (document.activeElement === useDefaultCheckbox) return; // don't arm while toggling the checkbox via keyboard
     if (state === 'setup') arm();
     else if (state === 'armed') startSequence();
   });
