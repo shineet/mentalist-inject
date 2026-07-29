@@ -98,6 +98,7 @@
     width: 90%; max-width: 420px;
     text-align: center;
   }
+  #setupPanel.hidden { display: none; }
   #setupPanel .setupTitle {
     color: #f5f0e6;
     font-family: Georgia, serif;
@@ -215,6 +216,7 @@
   const subLine  = document.getElementById('subLine');
   const spiralWrap = document.getElementById('spiralWrap');
   const startOverlay = document.getElementById('startOverlay');
+  const setupPanel = document.getElementById('setupPanel');
   const bgMusic = document.getElementById('bgMusic');
   const musicUrlInput = document.getElementById('musicUrl');
   const modeButtons = document.querySelectorAll('.modeBtn');
@@ -296,16 +298,29 @@
     }, stepMs);
   }
 
+  // Two-step flow: Begin only ARMS the show — it locks in the music/mode
+  // choices and drops to a blank black screen, so the audience never sees
+  // the config panel. The actual timed sequence only starts on the NEXT
+  // trigger (remote press, Enter, or a click), whenever Shine is ready to
+  // walk out and actually project it.
   let timers = [];
-  let started = false;
-  function play() {
-    if (started) return;
-    started = true;
+  let state = 'setup'; // 'setup' -> 'armed' -> 'running'
+
+  function arm() {
+    if (state !== 'setup') return;
+    state = 'armed';
 
     document.body.classList.add('mode-' + selectedMode);
-
     const url = musicUrlInput.value.trim();
     bgMusic.src = url || musicParam || '/music.mp3';
+
+    setupPanel.classList.add('hidden');
+    startOverlay.style.cursor = 'none';
+  }
+
+  function startSequence() {
+    if (state !== 'armed') return;
+    state = 'running';
 
     startOverlay.classList.add('hidden');
     bgMusic.volume = MUSIC_VOLUME;
@@ -315,20 +330,29 @@
     timers = seq.map(step => setTimeout(step.fn, step.t));
   }
 
-  beginBtn.addEventListener('click', play);
-
-  // Enter inside the music URL field also begins — typing there shouldn't
-  // otherwise trigger anything, so plain keydown is ignored while it's focused.
-  musicUrlInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') play();
+  beginBtn.addEventListener('click', (e) => {
+    e.stopPropagation(); // don't let this click bubble up to startOverlay and immediately start too
+    arm();
   });
 
-  // Any key starts the show, so a Bluetooth remote button (which usually
-  // emulates a keypress) can trigger it directly — but not while the user
-  // is actively typing a URL into the field.
+  // Enter inside the music URL field also arms — typing there shouldn't
+  // otherwise trigger anything, so plain keydown is ignored while it's focused.
+  musicUrlInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') arm();
+  });
+
+  // Any key (a Bluetooth remote button usually emulates a keypress) either
+  // arms the show or, if already armed, actually starts it — but not while
+  // the user is actively typing a URL into the field.
   window.addEventListener('keydown', (e) => {
     if (document.activeElement === musicUrlInput) return;
-    if (!startOverlay.classList.contains('hidden')) play();
+    if (state === 'setup') arm();
+    else if (state === 'armed') startSequence();
+  });
+
+  // A click also starts it once armed (blank screen has no visible button).
+  startOverlay.addEventListener('click', () => {
+    if (state === 'armed') startSequence();
   });
 </script>
 
