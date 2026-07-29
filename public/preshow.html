@@ -68,15 +68,6 @@
     100% { background-size: 130% 130%; }
   }
 
-  #spiralText {
-    position: fixed;
-    left: 0; right: 0;
-    bottom: 8vh;
-    z-index: 2;
-    text-align: center;
-    padding: 0 8vw;
-  }
-
   /* click-to-start overlay, in case autoplay is blocked or he wants a manual go */
   #startOverlay {
     position: fixed; inset: 0;
@@ -98,7 +89,6 @@
 
 <div id="stage">
   <div id="spiralWrap"><div id="spiral"></div></div>
-  <div id="spiralText"></div>
   <div class="line" id="mainLine"></div>
   <div class="line sub" id="subLine"></div>
 </div>
@@ -115,7 +105,6 @@
   const mainLine = document.getElementById('mainLine');
   const subLine  = document.getElementById('subLine');
   const spiralWrap = document.getElementById('spiralWrap');
-  const spiralText  = document.getElementById('spiralText');
   const startOverlay = document.getElementById('startOverlay');
 
   function setLine(main, sub, gold) {
@@ -137,29 +126,28 @@
     subLine.classList.remove('show');
   }
 
-  function setSpiralText(text) {
-    spiralText.innerHTML = text
-      ? `<div class="line gold show" style="position:relative">${text}</div>`
-      : '';
-  }
-
   const seq = [
-    { t: 500,   fn: () => setLine('Before Shine takes the stage tonight —') },
-    { t: 4200,  fn: () => setLine('there are a few rules.') },
-    { t: 8200,  fn: () => setLine('Put your phone away.', "Not because we said so — because you'll want your eyes on this.") },
-    { t: 13200, fn: () => setLine('Someone in this room will be chosen tonight.', 'It might be you.') },
-    { t: 18200, fn: () => setLine('Whatever you’re about to think —', 'think it clearly. He’s paying attention.') },
+    { t: 500,   fn: () => setLine("In a few minutes, I'll be out there.") },
+    { t: 4200,  fn: () => setLine('I have a few requests.') },
+    { t: 7700,  fn: () => setLine('Put your phone away.', "Not because I said so — because you'll want your eyes on this.") },
+    { t: 12700, fn: () => setLine('Someone in this room will be chosen tonight.', 'It might be you.') },
+    { t: 17700, fn: () => setLine('No one will be embarrassed.', "Tonight's about wonder, not making anyone look foolish.") },
+    { t: 22700, fn: () => setLine('Everything tonight is for entertainment.', "I'm not a psychic. I'm an entertainer.") },
+    { t: 27700, fn: () => setLine("Don't try to figure it out.", "I know you'll be tempted. But solving it ruins it — for you, and for everyone around you.") },
+    { t: 33200, fn: () => setLine('Got questions?', "Find me after the show — I'll be right here.") },
+    { t: 37700, fn: () => setLine('Whatever you’re about to think —', "think it clearly. I'm paying attention.") },
 
-    { t: 23200, fn: () => { clearLine(); spiralWrap.classList.add('show'); } },
-    { t: 24700, fn: () => setSpiralText('Right now — before anything else happens —') },
-    { t: 28700, fn: () => setSpiralText('think of a number between 1 and 50.') },
-    { t: 35500, fn: () => setSpiralText('Lock it in.<br><span style="font-size:0.55em;font-style:italic;opacity:.85">Don’t say it out loud. Just remember it.</span>') },
-    { t: 40500, fn: () => setSpiralText('Hold on to that thought.<br><span style="font-size:0.55em;font-style:italic;opacity:.85">You’ll understand why, later tonight.</span>') },
+    // Hypnotic wheel — silent, just look. No text over it; the ask comes after.
+    { t: 42700, fn: () => { clearLine(); spiralWrap.classList.add('show'); } },
+    { t: 49700, fn: () => spiralWrap.classList.remove('show') },
 
-    { t: 45500, fn: () => { setSpiralText(''); spiralWrap.classList.remove('show'); } },
-    { t: 47000, fn: () => setLine('Tonight, reality gets a little less certain.', null, true) },
-    { t: 51500, fn: () => setLine('Please welcome to the stage —', null, true) },
-    { t: 55500, fn: () => clearLine() }, // hard black, hold — walk on
+    { t: 51300, fn: () => setLine('Think of a number between 1 and 50.', null, true) },
+    { t: 55300, fn: () => setLine('Lock it in.', "Don't say it out loud. Just remember it.") },
+    { t: 59800, fn: () => setLine('Hold on to that thought.', "You'll understand why, later tonight.") },
+
+    { t: 65300, fn: () => setLine('Tonight, reality gets a little less certain.', null, true) },
+    { t: 69800, fn: () => setLine('Please welcome to the stage —', null, true) },
+    { t: 73800, fn: () => clearLine() }, // hard black, hold — walk on
   ];
 
   let timers = [];
