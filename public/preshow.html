@@ -122,10 +122,25 @@
     color: #f5f0e6;
     font-size: 14px;
     padding: 11px 12px;
-    margin-bottom: 24px;
+    margin-bottom: 8px;
     outline: none;
   }
   #musicUrl:focus { border-color: #ffd76a; }
+  #previewDefaultBtn {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 12px;
+    font-family: inherit;
+    text-align: left;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0 0 24px 0;
+  }
+  #previewDefaultBtn:hover { color: #ffd76a; }
+  #previewDefaultBtn.playing { color: #ffd76a; }
   #modeToggle {
     display: flex; gap: 8px;
     margin-bottom: 28px;
@@ -174,6 +189,7 @@
 
     <label for="musicUrl">Music URL (optional)</label>
     <input type="text" id="musicUrl" placeholder="Leave blank for default track" autocomplete="off" spellcheck="false" />
+    <button type="button" id="previewDefaultBtn">▶ Preview default track</button>
 
     <label>Display</label>
     <div id="modeToggle">
@@ -221,6 +237,7 @@
   const musicUrlInput = document.getElementById('musicUrl');
   const modeButtons = document.querySelectorAll('.modeBtn');
   const beginBtn = document.getElementById('beginBtn');
+  const previewDefaultBtn = document.getElementById('previewDefaultBtn');
 
   // `?music=` still works as a way to preset the field (e.g. a saved link per
   // show), but the setup screen's input is what actually gets used.
@@ -228,6 +245,23 @@
   if (musicParam) musicUrlInput.value = musicParam;
   const MUSIC_VOLUME = 0.55;
   bgMusic.volume = MUSIC_VOLUME;
+
+  // Setup-screen-only preview of the default track — separate Audio object so
+  // it never touches bgMusic or the actual show timing/state.
+  const previewAudio = new Audio('/music.mp3');
+  previewAudio.loop = true;
+  previewAudio.volume = MUSIC_VOLUME;
+  previewDefaultBtn.addEventListener('click', () => {
+    if (previewAudio.paused) {
+      previewAudio.play().catch(() => {});
+      previewDefaultBtn.textContent = '⏸ Stop preview';
+      previewDefaultBtn.classList.add('playing');
+    } else {
+      previewAudio.pause();
+      previewDefaultBtn.textContent = '▶ Preview default track';
+      previewDefaultBtn.classList.remove('playing');
+    }
+  });
 
   let selectedMode = 'projector';
   modeButtons.forEach(btn => {
@@ -306,6 +340,8 @@
     if (state !== 'setup') return;
     state = 'armed';
 
+    previewAudio.pause(); // never let the preview overlap the real playback
+
     document.body.classList.add('mode-' + selectedMode);
     const url = musicUrlInput.value.trim();
     bgMusic.src = url || musicParam || '/music.mp3';
@@ -342,6 +378,7 @@
   // the user is actively typing a URL into the field.
   window.addEventListener('keydown', (e) => {
     if (document.activeElement === musicUrlInput) return;
+    if (document.activeElement === previewDefaultBtn) return; // don't arm while toggling preview via keyboard
     if (state === 'setup') arm();
     else if (state === 'armed') startSequence();
   });
