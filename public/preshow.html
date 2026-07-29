@@ -93,19 +93,36 @@
   <div class="line sub" id="subLine"></div>
 </div>
 
+<audio id="bgMusic" preload="auto" loop></audio>
+
 <script>
   // ── Rules of Engagement + Hypnotic Wheel pre-show sequence ──────────────
-  // Silent by design — Solo Studio on the iPad carries intro music underneath
-  // this, same as everything else in the show. Just open this page full-screen
-  // (Cmd+Ctrl+F in most browsers) and either click, or wire a remote/Hammerspoon
-  // key to click #startOverlay to kick it off on cue.
+  // Open this page full-screen (Cmd+Ctrl+F in most browsers) and either
+  // click, or wire a remote/Hammerspoon key to click #startOverlay to kick
+  // it off on cue. Ends on a hard black screen and stays there — that's
+  // the walk-on cue.
   //
-  // Ends on a hard black screen and stays there — that's the walk-on cue.
+  // MUSIC: same pattern as the main host panel's Media URLs — paste your
+  // own track per-show via a `music` link param instead of hardcoding a
+  // file, e.g.:
+  //   preshow.html?music=https://your-supabase-url/intro-track.mp3
+  // Falls back to /music.mp3 (the generic fallback track already in this
+  // repo) if no param is given. Plays through the Mac's audio output —
+  // if you're on the Bigfoot 2 cable setup, that means this track comes
+  // out over the Line In channel, not Solo Studio's Bluetooth channel, so
+  // there's nothing to double up on. Fades out over the last few seconds
+  // so it's silent by the time you walk out.
 
   const mainLine = document.getElementById('mainLine');
   const subLine  = document.getElementById('subLine');
   const spiralWrap = document.getElementById('spiralWrap');
   const startOverlay = document.getElementById('startOverlay');
+  const bgMusic = document.getElementById('bgMusic');
+
+  const musicParam = new URLSearchParams(location.search).get('music');
+  bgMusic.src = musicParam || '/music.mp3';
+  const MUSIC_VOLUME = 0.55;
+  bgMusic.volume = MUSIC_VOLUME;
 
   function setLine(main, sub, gold) {
     mainLine.classList.remove('show');
@@ -130,29 +147,47 @@
     { t: 500,   fn: () => setLine("In a few minutes, I'll be out there.") },
     { t: 4200,  fn: () => setLine('I have a few requests.') },
     { t: 7700,  fn: () => setLine('Put your phone away.', "Not because I said so — because you'll want your eyes on this.") },
-    { t: 12700, fn: () => setLine('Someone in this room will be chosen tonight.', 'It might be you.') },
+    { t: 12700, fn: () => setLine('All of you will be part of this show.', 'Not just one of you — everyone in this room.') },
     { t: 17700, fn: () => setLine('No one will be embarrassed.', "Tonight's about wonder, not making anyone look foolish.") },
     { t: 22700, fn: () => setLine('Everything tonight is for entertainment.', "I'm not a psychic. I'm an entertainer.") },
-    { t: 27700, fn: () => setLine("Don't try to figure it out.", "I know you'll be tempted. But solving it ruins it — for you, and for everyone around you.") },
+    { t: 27700, fn: () => setLine('Please don’t try to figure things out during the show.', "I know you'll be tempted. But solving it ruins it — for you, and for everyone around you.") },
     { t: 33200, fn: () => setLine('Got questions?', "Find me after the show — I'll be right here.") },
     { t: 37700, fn: () => setLine('Whatever you’re about to think —', "think it clearly. I'm paying attention.") },
 
+    { t: 42700, fn: () => setLine('All of you, please focus.', 'Keep looking at the center of the wheel.') },
+
     // Hypnotic wheel — silent, just look. No text over it; the ask comes after.
-    { t: 42700, fn: () => { clearLine(); spiralWrap.classList.add('show'); } },
-    { t: 49700, fn: () => spiralWrap.classList.remove('show') },
+    { t: 47200, fn: () => { clearLine(); spiralWrap.classList.add('show'); } },
+    { t: 54200, fn: () => spiralWrap.classList.remove('show') },
 
-    { t: 51300, fn: () => setLine('Think of a number between 1 and 50.', null, true) },
-    { t: 55300, fn: () => setLine('Lock it in.', "Don't say it out loud. Just remember it.") },
-    { t: 59800, fn: () => setLine('Hold on to that thought.', "You'll understand why, later tonight.") },
+    { t: 55800, fn: () => setLine('Think of a number between 1 and 50.', null, true) },
+    { t: 59800, fn: () => setLine('Lock it in.', "Don't say it out loud. Just remember it.") },
+    { t: 64300, fn: () => setLine('Hold on to that thought.', "You'll understand why, later tonight.") },
 
-    { t: 65300, fn: () => setLine('Tonight, reality gets a little less certain.', null, true) },
-    { t: 69800, fn: () => setLine('Please welcome to the stage —', null, true) },
-    { t: 73800, fn: () => clearLine() }, // hard black, hold — walk on
+    { t: 69800, fn: () => setLine('Tonight, reality gets a little less certain.', null, true) },
+    { t: 73300, fn: () => fadeOutMusic(4500) }, // silent by the time you walk out
+    { t: 74300, fn: () => setLine('Please welcome to the stage —', null, true) },
+    { t: 78300, fn: () => clearLine() }, // hard black, hold — walk on
   ];
+
+  function fadeOutMusic(ms) {
+    const steps = 30;
+    const stepMs = ms / steps;
+    const startVol = bgMusic.volume;
+    let i = 0;
+    const iv = setInterval(() => {
+      i++;
+      bgMusic.volume = Math.max(0, startVol * (1 - i / steps));
+      if (i >= steps) { clearInterval(iv); bgMusic.pause(); }
+    }, stepMs);
+  }
 
   let timers = [];
   function play() {
     startOverlay.classList.add('hidden');
+    bgMusic.volume = MUSIC_VOLUME;
+    bgMusic.currentTime = 0;
+    bgMusic.play().catch(() => {}); // fails silently if music file 404s — sequence still runs
     timers.forEach(clearTimeout);
     timers = seq.map(step => setTimeout(step.fn, step.t));
   }
