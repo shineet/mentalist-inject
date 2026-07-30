@@ -116,6 +116,7 @@ function unlockAudio() {
 
   primeMediaEl(revealMusic);
   primeMediaEl(reviewMusic);
+  primeMediaEl(karaokeMusic);
 
   audioUnlocked = true;
   hideAudioEnableButton();
