@@ -775,20 +775,63 @@ function cleanLyricText(raw) {
   return t.trim();
 }
 
+// Like cleanLyricText, but leaves <mm:ss.xx> word-timing tags (Enhanced LRC)
+// alone so parseLrcText can read them before they'd otherwise be stripped as
+// if they were stray HTML.
+function cleanLyricTextKeepWordTags(raw) {
+  let t = String(raw || "");
+  t = t.replace(/<\s*br\s*\/?>/gi, "\n");
+  t = t.replace(/<(?!\d{1,2}:\d{2})[^>]*>/g, "");
+  t = t.replace(/&nbsp;/gi, " ");
+  t = t.replace(/&amp;/gi, "&");
+  t = t.replace(/&lt;/gi, "<");
+  t = t.replace(/&gt;/gi, ">");
+  t = t.replace(/&quot;/gi, '"');
+  t = t.replace(/&#39;/g, "'");
+  t = t.replace(/\s+\n/g, "\n").replace(/\n\s+/g, "\n").replace(/[ \t]{2,}/g, " ");
+  return t.trim();
+}
+
 function parseLrcText(text) {
   const out = [];
-  const normalized = cleanLyricText(text);
-  const lines = String(normalized || "").split(/\r?\n/);
-  for (const line of lines) {
+  const lines = String(text || "").replace(/<\s*br\s*\/?>/gi, "\n").split(/\r?\n/);
+  for (const rawLine of lines) {
+    const line = cleanLyricTextKeepWordTags(rawLine);
     const tags = [...line.matchAll(/\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/g)];
     if (!tags.length) continue;
-    const lyric = cleanLyricText(line.replace(/\[[^\]]+\]/g, "")).replace(/\n+/g, " ").trim();
-    if (!lyric) continue;
+    const rest = line.replace(/\[[^\]]+\]/g, "");
+
+    // Enhanced LRC: inline <mm:ss.xx> tags marking when each word starts,
+    // e.g. [00:12.00]<00:12.00>Welcome <00:12.30>home. Falls back to plain
+    // line-level timing (below) when a line has no word tags at all.
+    const wordMatches = [...rest.matchAll(/<(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?>([^<]*)/g)];
+    let words = null;
+    if (wordMatches.length) {
+      words = wordMatches
+        .map((m) => {
+          const w = m[4].replace(/\n+/g, " ").trim();
+          if (!w) return null;
+          const min = Number(m[1] || 0);
+          const sec = Number(m[2] || 0);
+          const frac = String(m[3] || "0").padEnd(3, "0").slice(0, 3);
+          return { time: min * 60 + sec + Number(frac) / 1000, text: w };
+        })
+        .filter(Boolean);
+      if (!words.length) words = null;
+    }
+
+    const lyric = rest.replace(/<[^>]*>/g, "").replace(/\n+/g, " ").trim();
+    if (!lyric && !words) continue;
+
     for (const tag of tags) {
       const min = Number(tag[1] || 0);
       const sec = Number(tag[2] || 0);
       const frac = String(tag[3] || "0").padEnd(3, "0").slice(0, 3);
-      out.push({ time: min * 60 + sec + Number(frac) / 1000, text: lyric });
+      out.push({
+        time: min * 60 + sec + Number(frac) / 1000,
+        text: lyric || words.map((w) => w.text).join(" "),
+        words,
+      });
     }
   }
   return out.sort((a, b) => a.time - b.time);
@@ -803,8 +846,17 @@ function renderKaraokeLine() {
     else break;
   }
   karaokePrev.textContent = idx > 0 ? karaokeLines[idx - 1].text : "";
-  karaokeCurrent.textContent = karaokeLines[idx]?.text || "";
   karaokeNext.textContent = idx < karaokeLines.length - 1 ? karaokeLines[idx + 1].text : "";
+
+  const cur = karaokeLines[idx];
+  if (cur && cur.words && cur.words.length) {
+    // Enhanced LRC: progressively highlight each word as its timestamp passes.
+    karaokeCurrent.innerHTML = cur.words
+      .map((w) => `<span class="${t + 0.08 >= w.time ? "wordSung" : "wordUpcoming"}">${escapeHtml(w.text)}</span>`)
+      .join(" ");
+  } else {
+    karaokeCurrent.textContent = cur?.text || "";
+  }
 }
 
 

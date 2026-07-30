@@ -172,12 +172,23 @@ When the host presses "Show Magic" (Phase 2), if karaoke URLs are configured, th
 **After the song ends:**  
 Automatically transitions to the client photo (same photo used in Path 3A), shown with "Thank you!" text, for the configured duration. Then redirects to Google Review.
 
-**LRC format expected:**
+**LRC format expected (standard, line-level):**
 ```
 [00:03.10] First line of lyrics
 [00:07.45] Second line of lyrics
 [00:12.20] Chorus line
 ```
+
+**Enhanced LRC also supported (v107+), word-level:**
+```
+[00:12.00]<00:12.00>Welcome <00:12.40>home, <00:12.90>Jacquie
+```
+When a line has inline `<mm:ss.xx>` word tags, the karaoke screen progressively
+highlights each word as its timestamp passes (bright green = sung, dim white =
+upcoming) instead of just showing the whole line at once. Falls back to plain
+line-level display automatically for lines with no word tags -- the two
+formats can be mixed within the same file. Parsing lives in `parseLrcText()`
+in `audience.js`.
 
 ---
 
