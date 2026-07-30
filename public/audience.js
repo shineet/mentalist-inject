@@ -189,6 +189,7 @@ const karaokeTitleEl = document.getElementById("karaokeTitleEl");
 const karaokePrev = document.getElementById("karaokePrev");
 const karaokeCurrent = document.getElementById("karaokeCurrent");
 const karaokeNext = document.getElementById("karaokeNext");
+const karaokeReadyMsg = document.getElementById("karaokeReadyMsg");
 const btnKaraokeStart = document.getElementById("btnKaraokeStart");
 const karaokeStatus = document.getElementById("karaokeStatus");
 let karaokeLines = [];
@@ -994,14 +995,11 @@ async function prepareKaraoke(state, shouldAutoStart = false) {
 
   // Only show the faint "Ready" confirmation once BOTH the song has loaded
   // AND this phone's audio is actually unlocked -- Shine can then ask the
-  // room "does everyone see Ready?" as a manual roll-call before starting.
-  if (karaokeReady) {
-    karaokeCurrent.textContent = "Ready";
-    karaokeCurrent.classList.add("readyFaint");
-  } else {
-    karaokeCurrent.textContent = "";
-    karaokeCurrent.classList.remove("readyFaint");
-  }
+  // room "does everyone see Ready at the bottom?" as a manual roll-call
+  // before starting. Shown at the bottom of the screen, well away from the
+  // lyric display, so it can't be mistaken for part of a lyric.
+  karaokeCurrent.textContent = "";
+  if (karaokeReadyMsg) karaokeReadyMsg.textContent = karaokeReady ? "Ready" : "";
   karaokeStatus.textContent = karaokeReady
     ? "Waiting for Shine to start…"
     : "Tap once now to unlock sound. Then wait for Shine to start.";
@@ -1026,10 +1024,7 @@ async function unlockKaraokeForLater() {
     karaokeUserStarted = true;
     karaokeReady = true;
     hideAudioEnableButton();
-    if (karaokeCurrent) {
-      karaokeCurrent.textContent = "Ready";
-      karaokeCurrent.classList.add("readyFaint");
-    }
+    if (karaokeReadyMsg) karaokeReadyMsg.textContent = "Ready";
     if (karaokeStatus) karaokeStatus.textContent = "Waiting for Shine to start…";
   } catch (err) {
     if (btnKaraokeStart) btnKaraokeStart.classList.remove("hidden");
@@ -1220,7 +1215,7 @@ async function startKaraokePlayback() {
     audioUnlocked = true;
     hideAudioEnableButton();
     if (karaokeStatus) karaokeStatus.textContent = "";
-    karaokeCurrent.classList.remove("readyFaint");
+    if (karaokeReadyMsg) karaokeReadyMsg.textContent = "";
     renderKaraokeLine();
     if (karaokeTimer) clearInterval(karaokeTimer);
     karaokeTimer = setInterval(renderKaraokeLine, 90);
