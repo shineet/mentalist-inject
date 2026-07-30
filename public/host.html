@@ -160,7 +160,7 @@
 
     <section class="card">
       <h2>Spotify Style Karaoke</h2>
-      <p class="hint">Optional alternative to the custom message cards. Paste the MP3 URL and .LRC lyrics URL. The app will preload karaoke files automatically when you click Show Magic, then click Start Karaoke when you are ready. This does not change the normal Show Magic or Show Messages flow.</p>
+      <p class="hint">Optional alternative to the custom message cards. Paste the MP3 URL and .LRC lyrics URL. Two-step start: click <strong>Prepare Karaoke</strong> first -- every phone loads the song and background photo and shows "Enable Sound" if needed, but nothing plays yet. Once everyone's ready, click <strong>Start Karaoke</strong> to begin perfectly in sync. This does not change the normal Show Magic or Show Messages flow.</p>
       <div class="grid">
         <div><label>Karaoke MP3 URL</label><input id="karaokeAudioUrl" type="url" placeholder="https://.../song.mp3" /></div>
         <div><label>Karaoke Lyrics .LRC URL</label><input id="karaokeLrcUrl" type="url" placeholder="https://.../song.lrc" /></div>
@@ -168,7 +168,8 @@
         <div><label>Karaoke Title</label><input id="karaokeTitle" type="text" placeholder="Sophia's Song" /></div>
       </div>
       <div class="actions">
-        <button id="btnStartKaraoke">Start Karaoke</button>
+        <button id="btnKaraokePrepareStep" class="secondary">1. Prepare Karaoke</button>
+        <button id="btnStartKaraoke">2. Start Karaoke</button>
         <button id="btnStopKaraoke" class="secondary">Stop Karaoke</button>
       </div>
     </section>

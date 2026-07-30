@@ -94,6 +94,7 @@ const els = {
   karaokeLrcUrl: document.getElementById("karaokeLrcUrl"),
   karaokeBgUrl: document.getElementById("karaokeBgUrl"),
   karaokeTitle: document.getElementById("karaokeTitle"),
+  btnKaraokePrepareStep: document.getElementById("btnKaraokePrepareStep"),
   btnStartKaraoke: document.getElementById("btnStartKaraoke"),
   btnStopKaraoke: document.getElementById("btnStopKaraoke"),
 
@@ -509,6 +510,16 @@ function preloadKaraokeIfConfigured(p) {
   }
 }
 
+els.btnKaraokePrepareStep?.addEventListener("click", () => {
+  const p = payloadFromUI();
+  if (!p.karaoke?.audioUrl) return alert("Please enter a Karaoke MP3 URL first.");
+  if (!p.karaoke?.lrcUrl) return alert("Please enter a Karaoke .LRC Lyrics URL first.");
+  p.karaokeEndPhotoUrl = getBestKaraokeEndPhotoUrlFromUI();
+  if (!p.karaoke) p.karaoke = {};
+  if (!p.karaoke.endPhotoUrl) p.karaoke.endPhotoUrl = p.karaokeEndPhotoUrl;
+  emitHostAction("host:prepareKaraoke", "prepareKaraoke", p);
+});
+
 els.btnStartKaraoke?.addEventListener("click", () => {
   const p = payloadFromUI();
   if (!p.karaoke?.audioUrl) return alert("Please enter a Karaoke MP3 URL first.");
@@ -738,6 +749,7 @@ function updateDockPhase(phase) {
   currentPhase = phase;
   if (dock.phase) dock.phase.textContent = DOCK_PHASE_LABELS[phase] || String(phase || "—").toUpperCase();
   updateSplashControlsVisibility();
+  updateDockKaraokeSlot();
 }
 // The dock's 2nd slot is one button that reflects whichever alternate path
 // this show is actually set up for, instead of always showing "Karaoke" even
@@ -750,7 +762,14 @@ function karaokeConfigured() {
 }
 function updateDockKaraokeSlot() {
   if (!dock.karaoke) return;
-  dock.karaoke.textContent = karaokeConfigured() ? "🎤 Karaoke" : "💬 Messages";
+  if (!karaokeConfigured()) {
+    dock.karaoke.textContent = "💬 Messages";
+    return;
+  }
+  // Two-step: first press prepares (loads the screen on every phone, shows
+  // Enable Sound, nothing plays yet); once everyone's confirmed ready, the
+  // same button's second press actually starts it, perfectly in sync.
+  dock.karaoke.textContent = currentPhase === "karaoke_prepare" ? "▶ Start Karaoke" : "🎤 Prepare Karaoke";
 }
 // Prev/Next slide controls (both the dock's compact buttons and the full
 // buttons in the Client Splash card) only make sense while actually showing
@@ -764,7 +783,10 @@ function updateSplashControlsVisibility() {
   if (els.btnSplashNext) els.btnSplashNext.style.display = show ? "" : "none";
 }
 dock.magic?.addEventListener("click", () => els.btnSendReveal?.click());
-dock.karaoke?.addEventListener("click", () => (karaokeConfigured() ? els.btnStartKaraoke : els.btnSendReview)?.click());
+dock.karaoke?.addEventListener("click", () => {
+  if (!karaokeConfigured()) { els.btnSendReview?.click(); return; }
+  (currentPhase === "karaoke_prepare" ? els.btnStartKaraoke : els.btnKaraokePrepareStep)?.click();
+});
 dock.splashPrev?.addEventListener("click", () => els.btnSplashPrev?.click());
 dock.splashNext?.addEventListener("click", () => els.btnSplashNext?.click());
 dock.reset?.addEventListener("click", () => els.btnResetPhase?.click());
@@ -782,7 +804,7 @@ emitHostAction("host:saveSettings", "saveSettings", payloadFromUI());
 /* ================== REMOTE HOTKEYS (consolidated) ==================
    Single keydown listener, one action per key, matching the show dock:
      ArrowUp    -> Show Magic
-     ArrowRight -> Start Karaoke
+     ArrowRight -> Prepare Karaoke, then Start Karaoke on the next press (v111 two-step)
      ArrowDown  -> Show Messages / Review
      ArrowLeft  -> Reset Phase
    Reset All is intentionally NOT on the remote (on-screen button only), so a
@@ -813,7 +835,7 @@ document.addEventListener("keydown", (e) => {
   const splashRemoteActive = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
 
   if (k === "ArrowUp") els.btnSendReveal?.click();                                    // Show Magic
-  else if (k === "ArrowRight") (splashRemoteActive ? els.btnSplashNext : els.btnStartKaraoke)?.click();
+  else if (k === "ArrowRight") (splashRemoteActive ? els.btnSplashNext : (currentPhase === "karaoke_prepare" ? els.btnStartKaraoke : els.btnKaraokePrepareStep))?.click();
   else if (k === "ArrowDown") els.btnSendReview?.click();                             // Show Messages / Review
   else if (k === "ArrowLeft") (splashRemoteActive ? els.btnSplashPrev : els.btnResetPhase)?.click();
 });

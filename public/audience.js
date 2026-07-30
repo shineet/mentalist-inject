@@ -926,7 +926,8 @@ async function prepareKaraoke(state, shouldAutoStart = false) {
     karaokeBg.style.backgroundSize = "cover";
     karaokeBg.style.backgroundPosition = "center center";
     karaokeBg.style.backgroundRepeat = "no-repeat";
-    karaokeBg.style.opacity = "0.6";
+    // Opacity is intentionally left to the #karaokeBg CSS rule (v109), not
+    // set here -- an inline style here would silently override that fix.
     if (bgUrl) {
       try { const img = new Image(); img.src = bgUrl; } catch {}
     }
@@ -991,9 +992,18 @@ async function prepareKaraoke(state, shouldAutoStart = false) {
     return;
   }
 
-  karaokeCurrent.textContent = "Karaoke Ready";
+  // Only show the faint "Ready" confirmation once BOTH the song has loaded
+  // AND this phone's audio is actually unlocked -- Shine can then ask the
+  // room "does everyone see Ready?" as a manual roll-call before starting.
+  if (karaokeReady) {
+    karaokeCurrent.textContent = "Ready";
+    karaokeCurrent.classList.add("readyFaint");
+  } else {
+    karaokeCurrent.textContent = "";
+    karaokeCurrent.classList.remove("readyFaint");
+  }
   karaokeStatus.textContent = karaokeReady
-    ? "Ready. Wait for Shine to start."
+    ? "Waiting for Shine to start…"
     : "Tap once now to unlock sound. Then wait for Shine to start.";
   btnKaraokeStart.textContent = karaokeReady ? "Ready" : "Enable Sound & Ready";
   btnKaraokeStart.classList.toggle("hidden", karaokeReady);
@@ -1016,8 +1026,11 @@ async function unlockKaraokeForLater() {
     karaokeUserStarted = true;
     karaokeReady = true;
     hideAudioEnableButton();
-    if (karaokeCurrent) karaokeCurrent.textContent = "Karaoke Ready";
-    if (karaokeStatus) karaokeStatus.textContent = "Ready. Wait for Shine to start.";
+    if (karaokeCurrent) {
+      karaokeCurrent.textContent = "Ready";
+      karaokeCurrent.classList.add("readyFaint");
+    }
+    if (karaokeStatus) karaokeStatus.textContent = "Waiting for Shine to start…";
   } catch (err) {
     if (btnKaraokeStart) btnKaraokeStart.classList.remove("hidden");
     const detail = err && (err.name || err.message) ? ` (${err.name || err.message})` : "";
@@ -1207,6 +1220,7 @@ async function startKaraokePlayback() {
     audioUnlocked = true;
     hideAudioEnableButton();
     if (karaokeStatus) karaokeStatus.textContent = "";
+    karaokeCurrent.classList.remove("readyFaint");
     renderKaraokeLine();
     if (karaokeTimer) clearInterval(karaokeTimer);
     karaokeTimer = setInterval(renderKaraokeLine, 90);
