@@ -42,25 +42,27 @@
     details.card[open] > summary h2::before { content:"▾"; }
     details.card[open] > summary { margin-bottom:12px; }
     body.perform-mode .card, body.perform-mode .groupHead { display:none !important; }
-    body.perform-mode .top, body.perform-mode #btnResetPhase, body.perform-mode #showDock { display:none !important; }
-    body.perform-mode { padding-bottom: 24px; }
+    body.perform-mode .top, body.perform-mode #btnResetPhase, body.perform-mode #showDock, body.perform-mode h1 { display:none !important; }
+    body.perform-mode { padding-bottom: 24px; min-height:100vh; display:flex; flex-direction:column; }
+    body.perform-mode .wrap { flex:1 1 auto; display:flex; flex-direction:column; }
+    body.perform-mode .dpad { margin-top:auto; margin-bottom:auto; }
     #btnPerformMode.active { background:var(--accent); }
 
     /* Perform Mode's on-screen D-pad -- a touch stand-in for the physical
        Bluetooth remote's 4 arrow keys, for when Shine doesn't have the
        clicker in hand. Hidden outside Perform Mode. */
-    .dpad { display:none; position:relative; width:min(78vw, 260px); height:min(78vw, 260px); margin:28px auto 8px; border-radius:50%; background:radial-gradient(circle at 50% 45%, #1c1c34, #101020 78%); border:2px solid var(--line); box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.03); }
+    .dpad { display:none; position:relative; width:min(92vw, 82vh, 520px); height:min(92vw, 82vh, 520px); margin:28px auto 8px; border-radius:50%; background:radial-gradient(circle at 50% 45%, #1c1c34, #101020 78%); border:2px solid var(--line); box-shadow:0 20px 60px rgba(0,0,0,.45), inset 0 0 0 1px rgba(255,255,255,.03); flex:0 0 auto; }
     body.perform-mode .dpad { display:block; }
-    .dpadBtn { position:absolute; width:30%; height:30%; border-radius:18px; background:#2b2b46; color:#fff; border:0; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; font-weight:800; }
-    .dpadBtn .ic { font-size:20px; line-height:1; }
-    .dpadBtn .lb { font-size:10px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); max-width:90%; text-align:center; }
+    .dpadBtn { position:absolute; width:30%; height:30%; border-radius:18px; background:#2b2b46; color:#fff; border:0; cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-weight:800; }
+    .dpadBtn .ic { font-size:clamp(20px, 7vw, 40px); line-height:1; }
+    .dpadBtn .lb { font-size:clamp(10px, 2.6vw, 16px); text-transform:uppercase; letter-spacing:.04em; color:var(--muted); max-width:90%; text-align:center; }
     .dpadUp { top:6%; left:50%; transform:translateX(-50%); }
     .dpadDown { bottom:6%; left:50%; transform:translateX(-50%); }
     .dpadLeft { left:6%; top:50%; transform:translateY(-50%); }
     .dpadRight { right:6%; top:50%; transform:translateY(-50%); }
     .dpadBtn.next { background:var(--accent); }
     .dpadBtn.next .lb { color:#0b0b14; }
-    .dpadCenter { position:absolute; left:50%; top:50%; width:26%; height:26%; transform:translate(-50%, -50%); border-radius:50%; background:#0b0b14; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:900; color:var(--muted); text-transform:uppercase; text-align:center; padding:4px; pointer-events:none; }
+    .dpadCenter { position:absolute; left:50%; top:50%; width:26%; height:26%; transform:translate(-50%, -50%); border-radius:50%; background:#0b0b14; border:1px solid var(--line); display:flex; align-items:center; justify-content:center; font-size:clamp(11px, 3vw, 18px); font-weight:900; color:var(--muted); text-transform:uppercase; text-align:center; padding:4px; pointer-events:none; }
     .qrOverlay { position:fixed; inset:0; background:rgba(0,0,0,.78); display:none; align-items:center; justify-content:center; z-index:999; padding:18px; }
     .qrOverlay.show { display:flex; }
     .overlayCard { background:#fff; color:#111; border-radius:24px; padding:18px; width:min(92vw, 520px); text-align:center; }
