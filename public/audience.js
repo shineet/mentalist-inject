@@ -1482,6 +1482,15 @@ socket.on("state:update", async (state) => {
   await handleStateUpdate(state);
 });
 
+// Manual "go to the Google review page right now" trigger (for when Auto
+// redirect is off) -- a direct navigate, deliberately outside the phase/
+// state:update system so it can't restart or interrupt whatever's currently
+// on screen.
+socket.on("audience:goToReview", (payload) => {
+  const url = (payload?.reviewUrl || "").trim();
+  if (url) window.location.href = url;
+});
+
 async function handleStateUpdate(state) {
   if (state?.room && String(state.room).toUpperCase() !== String(ROOM).toUpperCase()) return;
 

@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v131-host-only-revealed-status-timer";
+const REVISION = "v132-manual-send-to-review-plus-remote-stage";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -104,6 +104,18 @@ app.post("/api/host/:action", (req, res) => {
       resetSplashIndex(room);
       broadcastState(room);
       return res.json({ ok: true, room, state: getState(room) });
+    }
+
+    // Manual "go to the Google review page right now" trigger, for when Auto
+    // redirect is off. Deliberately does NOT touch phase/mergeState/
+    // broadcastState -- every audience phone is mid-whatever-content it's on
+    // (Messages slide, Karaoke, Cinematic...), and re-broadcasting a phase
+    // change here would re-run that phone's phase dispatch and could restart
+    // or interrupt it. This is just a direct "navigate now" signal, same
+    // spirit as the existing karaoke:preload broadcast below.
+    if (action === "goToReview") {
+      io.to(room).emit("audience:goToReview", { reviewUrl: getState(room).reviewUrl });
+      return res.json({ ok: true, room });
     }
 
     if (action === "splashNext") {
@@ -524,6 +536,14 @@ io.on("connection", (socket) => {
     mergeState(room, payload, { reviewUrl: payload?.reviewUrl ?? getState(room).reviewUrl, phase: "review" });
     resetSplashIndex(room); // always start the message cards from the top on fresh entry
     broadcastState(room);
+  });
+
+  // See the matching HTTP fallback ("goToReview" above) for why this is a
+  // plain broadcast and not a phase/mergeState change.
+  socket.on("host:goToReview", (payload = {}) => {
+    if (!allow(socket, "goToReview", 250)) return;
+    const room = joinRoom(socket, roomOfSocket(socket, payload));
+    io.to(room).emit("audience:goToReview", { reviewUrl: getState(room).reviewUrl });
   });
 
   socket.on("host:splashNext", (payload = {}) => {

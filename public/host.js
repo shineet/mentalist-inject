@@ -94,6 +94,7 @@ const els = {
   btnUpdateCinematicPage: document.getElementById("btnUpdateCinematicPage"),
 
   reviewUrl: document.getElementById("reviewUrl"),
+  btnGoToReview: document.getElementById("btnGoToReview"),
   revealMusicUrl: document.getElementById("revealMusicUrl"),
   reviewMusicUrl: document.getElementById("reviewMusicUrl"),
   clientImageUrl: document.getElementById("clientImageUrl"),
@@ -552,12 +553,20 @@ els.btnSendReview.addEventListener("click", () => {
   const p = payloadFromUI();
   if (!p.reviewUrl) return alert("Please enter a Review URL first.");
   emitHostAction("host:sendToReview", "sendToReview", p);
+  markContentTriggered();
 });
 
 els.btnSendSchoolShow?.addEventListener("click", () => {
   const p = payloadFromUI();
   if (!p.schoolShow?.slides?.length) return alert("Please add at least one School Show slide first.");
   emitHostAction("host:sendToSchoolShow", "sendToSchoolShow", p);
+  markContentTriggered();
+});
+
+els.btnGoToReview?.addEventListener("click", () => {
+  const p = payloadFromUI();
+  if (!p.reviewUrl) return alert("Please enter a Review URL first.");
+  emitHostAction("host:goToReview", "goToReview", { reviewUrl: p.reviewUrl });
 });
 
 
@@ -631,6 +640,7 @@ els.btnStartKaraoke?.addEventListener("click", () => {
   if (!p.karaoke) p.karaoke = {};
   if (!p.karaoke.endPhotoUrl) p.karaoke.endPhotoUrl = p.karaokeEndPhotoUrl;
   emitHostAction("host:startKaraoke", "startKaraoke", p);
+  markContentTriggered();
 });
 
 els.btnStopKaraoke?.addEventListener("click", () => {
@@ -908,13 +918,28 @@ function scheduleRevealVisuallyDone() {
   }, logoMs + animationMs + 300);
 }
 
+// Tracks whether the actual content for this run (Messages sent, Karaoke
+// actually STARTED -- not just prepared, or Cinematic sent) has been
+// triggered yet. Once true, Right/Down on the remote/D-pad switch from
+// "trigger the Show Format action" to "send everyone to the review page
+// now" (see triggerRemoteDirection below) -- lets a single remote press
+// take the audience straight to Google review once the thank-you content
+// has run, instead of re-triggering the same content again.
+let contentStageTriggered = false;
+function markContentTriggered() {
+  contentStageTriggered = true;
+  updateRemoteLabels();
+}
+
 function updateDockPhase(phase) {
   if (phase === "reveal_sequence" && currentPhase !== "reveal_sequence") {
     scheduleRevealVisuallyDone();
+    contentStageTriggered = false; // fresh Magic press -- back to square one
   } else if (phase !== "reveal_sequence") {
     if (revealTimerHandle) { clearTimeout(revealTimerHandle); revealTimerHandle = null; }
     revealVisuallyDone = false;
   }
+  if (phase === "idle") contentStageTriggered = false; // Reset Phase
   currentPhase = phase;
   const displayPhase = phase === "reveal_sequence" && revealVisuallyDone ? "revealed" : phase;
   const label = DOCK_PHASE_LABELS[displayPhase] || String(displayPhase || "—").toUpperCase();
@@ -926,16 +951,17 @@ function updateDockPhase(phase) {
 }
 // Keeps the D-pad's Right/Down/Left labels (and the physical remote's actual
 // behavior, since both share triggerRemoteDirection()) in sync with Show
-// Format and with the manual-advance contextual override described in the
-// REMOTE HOTKEYS comment below. Also highlights whichever button is the
-// logical NEXT thing to press, so the highlight moves off Magic once it's
-// actually been used instead of staying stuck there for the whole show.
+// Format, contentStageTriggered, and the manual-advance contextual override
+// described in the REMOTE HOTKEYS comment below. Also highlights whichever
+// button is the logical NEXT thing to press, so the highlight moves off
+// Magic once it's actually been used instead of staying stuck there.
 function updateRemoteLabels() {
   const splashRemoteActive = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
   const choice = getSelectedDockAltAction();
   const formatLabel = choice === "cinematic" ? "Cinematic" : choice === "karaoke" ? (currentPhase === "karaoke_prepare" ? "Start Karaoke" : "Karaoke") : "Messages";
-  if (dpad.rightLabel) dpad.rightLabel.textContent = splashRemoteActive ? "Next Slide" : formatLabel;
-  if (dpad.downLabel) dpad.downLabel.textContent = formatLabel;
+  const rightDefaultLabel = contentStageTriggered ? "Send to Review" : formatLabel;
+  if (dpad.rightLabel) dpad.rightLabel.textContent = splashRemoteActive ? "Next Slide" : rightDefaultLabel;
+  if (dpad.downLabel) dpad.downLabel.textContent = contentStageTriggered ? "Send to Review" : formatLabel;
   if (dpad.leftLabel) dpad.leftLabel.textContent = splashRemoteActive ? "Prev Slide" : "Reset";
 
   // "revealed" is basically never reached in real use -- audience.js plays
@@ -944,8 +970,8 @@ function updateRemoteLabels() {
   // until the next format is triggered. Treat it the same as "revealed" here
   // so the highlight actually moves off Magic once Magic's been pressed.
   let next = [];
-  if (splashRemoteActive) next = ["right"];
-  else if (currentPhase === "idle") next = ["up"];
+  if (currentPhase === "idle") next = ["up"];
+  else if (contentStageTriggered) next = ["right", "down"];
   else if (currentPhase === "reveal_sequence" || currentPhase === "revealed" || currentPhase === "karaoke_prepare") next = ["right", "down"];
   dpad.up?.classList.toggle("next", next.includes("up"));
   dpad.right?.classList.toggle("next", next.includes("right"));
@@ -1091,6 +1117,15 @@ const CARD_STATE_KEY = `hostCardOpen:${ROOM}`;
    button already used, so the remote always agrees with whatever Show
    Format is selected. Confirmed with Shine before changing since it does
    change the remote's existing muscle-memory behavior.
+
+   v132: once the content stage has actually been triggered this run
+   (contentStageTriggered -- Messages sent, Karaoke actually started, or
+   Cinematic sent), ArrowRight/ArrowDown switch AGAIN, from the Show Format
+   action to "send everyone to the review page now" (host:goToReview). For
+   Auto Redirect being off in Review Settings: the review/thank-you screen
+   no longer auto-advances to the Google review link on its own, so this is
+   what lets one more remote press take the whole audience there without
+   waiting on each phone's own on-screen review button.
 =================================================================== */
 function isTypingInField() {
   const el = document.activeElement;
@@ -1111,8 +1146,15 @@ function triggerRemoteDirection(dir) {
   const splashRemoteActive = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
 
   if (dir === "up") els.btnSendReveal?.click();                                       // Show Magic
-  else if (dir === "right") (splashRemoteActive ? els.btnSplashNext?.click() : triggerShowFormatAction());
-  else if (dir === "down") triggerShowFormatAction();
+  else if (dir === "right") {
+    if (splashRemoteActive) els.btnSplashNext?.click();
+    else if (contentStageTriggered) els.btnGoToReview?.click();
+    else triggerShowFormatAction();
+  }
+  else if (dir === "down") {
+    if (contentStageTriggered) els.btnGoToReview?.click();
+    else triggerShowFormatAction();
+  }
   else if (dir === "left") (splashRemoteActive ? els.btnSplashPrev : els.btnResetPhase)?.click();
 }
 
