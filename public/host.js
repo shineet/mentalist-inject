@@ -894,7 +894,9 @@ function updateDockPhase(phase) {
 // Keeps the D-pad's Right/Down/Left labels (and the physical remote's actual
 // behavior, since both share triggerRemoteDirection()) in sync with Show
 // Format and with the manual-advance contextual override described in the
-// REMOTE HOTKEYS comment below.
+// REMOTE HOTKEYS comment below. Also highlights whichever button is the
+// logical NEXT thing to press, so the highlight moves off Magic once it's
+// actually been used instead of staying stuck there for the whole show.
 function updateRemoteLabels() {
   const splashRemoteActive = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
   const choice = getSelectedDockAltAction();
@@ -902,6 +904,15 @@ function updateRemoteLabels() {
   if (dpad.rightLabel) dpad.rightLabel.textContent = splashRemoteActive ? "Next Slide" : formatLabel;
   if (dpad.downLabel) dpad.downLabel.textContent = formatLabel;
   if (dpad.leftLabel) dpad.leftLabel.textContent = splashRemoteActive ? "Prev Slide" : "Reset";
+
+  let next = [];
+  if (splashRemoteActive) next = ["right"];
+  else if (currentPhase === "idle") next = ["up"];
+  else if (currentPhase === "revealed" || currentPhase === "karaoke_prepare") next = ["right", "down"];
+  dpad.up?.classList.toggle("next", next.includes("up"));
+  dpad.right?.classList.toggle("next", next.includes("right"));
+  dpad.down?.classList.toggle("next", next.includes("down"));
+  dpad.left?.classList.toggle("next", next.includes("left"));
 }
 // The dock's 2nd slot is one button whose meaning is set explicitly by the
 // "Show Format" radio group (Messages / Karaoke / Cinematic), not derived
@@ -964,6 +975,7 @@ socket.on("counts:update", (c) => {
 
 
 loadSettings();
+updateRemoteLabels(); // paints the D-pad's initial "next" highlight before the first server round-trip
 
 // Push this browser's local settings cache to the server ONLY if the
 // server's real state doesn't show up in time (e.g. a genuinely brand-new
