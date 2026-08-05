@@ -860,6 +860,7 @@ const DOCK_PHASE_LABELS = {
   karaoke_prepare: "KARAOKE…",
   karaoke: "KARAOKE",
   review: "REVIEW",
+  school_show: "CINEMATIC",
 };
 // Tracked so the keydown remote handler (below) knows whether Right/Left
 // should be repurposed for slide advance instead of Karaoke/Reset Phase.
