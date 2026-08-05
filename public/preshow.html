@@ -45,6 +45,7 @@
     font-weight: 400;
     letter-spacing: 0.01em;
     line-height: 1.35;
+    white-space: pre-line;
   }
   .line.sub {
     font-size: clamp(var(--sub-min), var(--sub-vw), var(--sub-max));
@@ -374,8 +375,48 @@
 
     // Walk-on announcement — plays alone in the dark, after a brief pause,
     // once the music's own ending has fully played out and gone silent.
-    { t: 74100, fn: () => { announcerVoice.volume = 1; announcerVoice.play().catch(() => {}); } },
+    // Also hands off from the timed sequence to click-through message mode
+    // (see MESSAGES below) -- from here on, clicking/pressing a key steps
+    // through the messages instead of doing nothing.
+    { t: 74100, fn: () => {
+        announcerVoice.volume = 1;
+        announcerVoice.play().catch(() => {});
+        state = 'messages';
+        msgIndex = 0;
+      }
+    },
   ];
+
+  // ── Click-through messages, appended after the timed pre-show sequence ──
+  // Stays on a hard black screen once the sequence above finishes; clicking
+  // (or any key) then reveals these one at a time, each alone on screen with
+  // a blank black screen in between -- same pattern as the standalone
+  // click-messages.html, just folded into the end of this file so there's
+  // only one page to open. To reuse with different messages, edit this array.
+  const MESSAGES = [
+    'Power of\nINFLUENCE',
+    'Say “NOT TODAY”\nto\nFailure',
+    '"Empathy"',
+    'Two heads\nare\nbetter\nthan One',
+    'Time\nis\nNOW',
+  ];
+  const MSG_STATES = [''];
+  for (const m of MESSAGES) { MSG_STATES.push(m); MSG_STATES.push(''); }
+  let msgIndex = 0;
+
+  function renderMessage() {
+    setLine(MSG_STATES[msgIndex] || null, null, true);
+  }
+  function nextMessage() {
+    if (msgIndex >= MSG_STATES.length - 1) return;
+    msgIndex++;
+    renderMessage();
+  }
+  function prevMessage() {
+    if (msgIndex <= 0) return;
+    msgIndex--;
+    renderMessage();
+  }
 
   function fadeOutMusic(ms) {
     const steps = 30;
@@ -395,7 +436,7 @@
   // trigger (remote press, Enter, or a click), whenever Shine is ready to
   // walk out and actually project it.
   let timers = [];
-  let state = 'setup'; // 'setup' -> 'armed' -> 'running'
+  let state = 'setup'; // 'setup' -> 'armed' -> 'running' -> 'messages'
 
   function arm() {
     if (state !== 'setup') return;
@@ -433,18 +474,29 @@
   });
 
   // Any key (a Bluetooth remote button usually emulates a keypress) either
-  // arms the show or, if already armed, actually starts it — but not while
-  // the user is actively typing a URL into the field.
+  // arms the show, actually starts it once armed, or — once the timed
+  // sequence has finished — steps through the click-through messages.
+  // Not while the user is actively typing a URL into the field.
   window.addEventListener('keydown', (e) => {
     if (document.activeElement === musicUrlInput) return;
     if (document.activeElement === useDefaultCheckbox) return; // don't arm while toggling the checkbox via keyboard
     if (state === 'setup') arm();
     else if (state === 'armed') startSequence();
+    else if (state === 'messages') {
+      if (e.key === 'ArrowLeft' || e.key === 'Backspace') { e.preventDefault(); prevMessage(); }
+      else nextMessage();
+    }
   });
 
   // A click also starts it once armed (blank screen has no visible button).
   startOverlay.addEventListener('click', () => {
     if (state === 'armed') startSequence();
+  });
+
+  // Once in message mode, a click anywhere advances to the next message
+  // (startOverlay is display:none by then, so this is a separate listener).
+  document.addEventListener('click', () => {
+    if (state === 'messages') nextMessage();
   });
 </script>
 
