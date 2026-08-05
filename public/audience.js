@@ -22,7 +22,7 @@ try { document.title = `Audience - ${ROOM}`; } catch {}
 // We unlock audio on the first user interaction anywhere on the page.
 const revealMusic = new Audio("/music.mp3");
 const reviewMusic = new Audio("/review.mp3");
-const schoolShowMusic = new Audio(); // no default track -- Custom Slides is silent unless a URL is set
+const schoolShowMusic = new Audio(); // no default track -- Cinematic is silent unless a URL is set
 const karaokeMusic = new Audio();
 karaokeMusic.preload = "auto";
 karaokeMusic.volume = 1.0;
@@ -77,7 +77,7 @@ function setAudioSource(audio, url) {
     // Explicit clear -- only relevant for schoolShowMusic, which has no
     // fallback default (reveal/review always pass a non-empty URL, so this
     // branch is a no-op for them). Without this, removing a previously-set
-    // Custom Slides music URL would leave the old track cached and playable.
+    // Cinematic music URL would leave the old track cached and playable.
     if (audio.src) {
       try { audio.pause(); audio.currentTime = 0; } catch {}
       audio.removeAttribute("src");
@@ -94,7 +94,7 @@ function setAudioSource(audio, url) {
 function updateMediaSources(state) {
   setAudioSource(revealMusic, state?.revealMusicUrl || state?.musicUrl || "/music.mp3");
   setAudioSource(reviewMusic, state?.reviewMusicUrl || state?.reviewAudioUrl || "/review.mp3");
-  // No fallback path here (unlike reveal/review above) -- Custom Slides
+  // No fallback path here (unlike reveal/review above) -- Cinematic
   // stays silent unless Shine explicitly sets a music URL for it.
   setAudioSource(schoolShowMusic, state?.schoolShow?.musicUrl || "");
 }
