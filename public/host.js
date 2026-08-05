@@ -875,6 +875,7 @@ const dpad = {
   down: document.getElementById("dpadDown"),
   left: document.getElementById("dpadLeft"),
   rightLabel: document.getElementById("dpadRightLabel"),
+  downLabel: document.getElementById("dpadDownLabel"),
   leftLabel: document.getElementById("dpadLeftLabel"),
   center: document.getElementById("dpadCenter"),
 };
@@ -890,12 +891,16 @@ function updateDockPhase(phase) {
   updateDockKaraokeSlot();
   updateRemoteLabels();
 }
-// Keeps the D-pad's Right/Left labels (and the physical remote's actual
-// behavior, since both share triggerRemoteDirection()) in sync with the
-// same contextual override described in the REMOTE HOTKEYS comment below.
+// Keeps the D-pad's Right/Down/Left labels (and the physical remote's actual
+// behavior, since both share triggerRemoteDirection()) in sync with Show
+// Format and with the manual-advance contextual override described in the
+// REMOTE HOTKEYS comment below.
 function updateRemoteLabels() {
   const splashRemoteActive = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
-  if (dpad.rightLabel) dpad.rightLabel.textContent = splashRemoteActive ? "Next Slide" : (currentPhase === "karaoke_prepare" ? "Start Karaoke" : "Karaoke");
+  const choice = getSelectedDockAltAction();
+  const formatLabel = choice === "cinematic" ? "Cinematic" : choice === "karaoke" ? (currentPhase === "karaoke_prepare" ? "Start Karaoke" : "Karaoke") : "Messages";
+  if (dpad.rightLabel) dpad.rightLabel.textContent = splashRemoteActive ? "Next Slide" : formatLabel;
+  if (dpad.downLabel) dpad.downLabel.textContent = formatLabel;
   if (dpad.leftLabel) dpad.leftLabel.textContent = splashRemoteActive ? "Prev Slide" : "Reset";
 }
 // The dock's 2nd slot is one button whose meaning is set explicitly by the
@@ -932,7 +937,12 @@ function updateSplashControlsVisibility() {
   if (els.btnSplashNext) els.btnSplashNext.style.display = show ? "" : "none";
 }
 dock.magic?.addEventListener("click", () => els.btnSendReveal?.click());
-dock.karaoke?.addEventListener("click", () => {
+// Single source of truth for "do whatever the Show Format selector currently
+// points at" -- used by the dock's alt-slot button AND (as of v127) the
+// remote/D-pad's Right and Down directions, so all three always agree with
+// each other and with Show Format, instead of Right/Down being hardcoded to
+// Karaoke/Messages the way they were before Cinematic existed.
+function triggerShowFormatAction() {
   const choice = getSelectedDockAltAction();
   if (choice === "cinematic") { els.btnSendSchoolShow?.click(); return; }
   if (choice === "karaoke") {
@@ -940,11 +950,12 @@ dock.karaoke?.addEventListener("click", () => {
     return;
   }
   els.btnSendReview?.click();
-});
+}
+dock.karaoke?.addEventListener("click", triggerShowFormatAction);
 dock.splashPrev?.addEventListener("click", () => els.btnSplashPrev?.click());
 dock.splashNext?.addEventListener("click", () => els.btnSplashNext?.click());
 dock.reset?.addEventListener("click", () => els.btnResetPhase?.click());
-els.dockAltActionRadios?.forEach((r) => r.addEventListener("change", updateDockKaraokeSlot));
+els.dockAltActionRadios?.forEach((r) => r.addEventListener("change", () => { updateDockKaraokeSlot(); updateRemoteLabels(); }));
 
 socket.on("counts:update", (c) => {
   els.countBadge.textContent = `Audience: ${c.audience} • Hosts: ${c.hosts} • Total: ${c.total}`;
@@ -1007,19 +1018,29 @@ const CARD_STATE_KEY = `hostCardOpen:${ROOM}`;
 /* ================== REMOTE HOTKEYS (consolidated) ==================
    Single keydown listener, one action per key, matching the show dock:
      ArrowUp    -> Show Magic
-     ArrowRight -> Prepare Karaoke, then Start Karaoke on the next press (v111 two-step)
-     ArrowDown  -> Show Messages / Review
+     ArrowRight -> Whichever Show Format is selected (Messages/Karaoke/
+                   Cinematic) -- Karaoke is a two-step Prepare-then-Start
+                   (v111); repeat presses toggle between the two.
+     ArrowDown  -> Same Show Format action as ArrowRight (v127 -- see below)
      ArrowLeft  -> Reset Phase
    Reset All is intentionally NOT on the remote (on-screen button only), so a
    stray Left press can never wipe the show. Ignored while typing in a field.
 
    Contextual override (v85): while in the review phase with message-slide
    Manual advance turned on, ArrowRight/ArrowLeft are repurposed to Next/
-   Previous slide instead of Karaoke/Reset Phase -- this is what lets a single
-   presenter-clicker-style remote pace through slides for live commentary.
-   Reverts to normal Karaoke/Reset Phase in every other phase, and immediately
-   once manual advance is off or review ends, so muscle memory for the
-   remote's normal behavior is never permanently changed.
+   Previous slide instead of the Show Format action/Reset Phase -- this is
+   what lets a single presenter-clicker-style remote pace through slides for
+   live commentary. Reverts to normal behavior in every other phase, and
+   immediately once manual advance is off or review ends, so muscle memory
+   for the remote's normal behavior is never permanently changed.
+
+   v127: ArrowRight and ArrowDown used to be hardcoded to Karaoke and
+   Messages respectively, predating the Show Format selector (v119) and
+   Cinematic (v113+) -- so neither key could ever reach Cinematic. Both now
+   route through the same triggerShowFormatAction() the dock's alt-slot
+   button already used, so the remote always agrees with whatever Show
+   Format is selected. Confirmed with Shine before changing since it does
+   change the remote's existing muscle-memory behavior.
 =================================================================== */
 function isTypingInField() {
   const el = document.activeElement;
@@ -1031,12 +1052,17 @@ function isTypingInField() {
 // Single source of truth for what each of the 4 directions does -- shared by
 // the physical/Bluetooth remote's keydown handler below AND the on-screen
 // Perform Mode D-pad, so a tap and a real remote press are always identical.
+// v127: Right and Down now both route through triggerShowFormatAction() --
+// whichever of Messages/Karaoke/Cinematic is selected in Show Format -- so
+// they finally reach Cinematic instead of being hardcoded to Karaoke/
+// Messages from before Cinematic existed. Manual-advance slide stepping
+// still takes priority on Right/Left while actively in that mode.
 function triggerRemoteDirection(dir) {
   const splashRemoteActive = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
 
   if (dir === "up") els.btnSendReveal?.click();                                       // Show Magic
-  else if (dir === "right") (splashRemoteActive ? els.btnSplashNext : (currentPhase === "karaoke_prepare" ? els.btnStartKaraoke : els.btnKaraokePrepareStep))?.click();
-  else if (dir === "down") els.btnSendReview?.click();                                // Show Messages / Review
+  else if (dir === "right") (splashRemoteActive ? els.btnSplashNext?.click() : triggerShowFormatAction());
+  else if (dir === "down") triggerShowFormatAction();
   else if (dir === "left") (splashRemoteActive ? els.btnSplashPrev : els.btnResetPhase)?.click();
 }
 
