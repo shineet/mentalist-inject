@@ -1533,6 +1533,16 @@ async function handleStateUpdate(state) {
   // freeze the visual sequence on the logo screen.
   try { setMusicForPhase(phase); } catch {}
 
+  // The idle heartbeat should only ever play on the idle screen. Individual
+  // phase branches below used to each need their own stopBeats() call (some
+  // had it, some -- review, school_show, karaoke_prepare/karaoke -- didn't),
+  // which meant the heartbeat kept playing underneath review/Cinematic/
+  // karaoke music whenever a phase was entered directly from idle (e.g. the
+  // dock's alternate-path button right after Reset Phase, skipping the
+  // reveal step). Stopping it once here, generically, for any non-idle
+  // phase is correct and safe -- stopBeats() is a no-op if already stopped.
+  if (phase !== "idle") stopBeats();
+
   if (phase === "idle") {
     running = false;
     stopKaraoke();
