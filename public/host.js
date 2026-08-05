@@ -825,15 +825,25 @@ function updateDockPhase(phase) {
 }
 // The dock's 2nd slot is one button that reflects whichever alternate path
 // this show is actually set up for, instead of always showing "Karaoke" even
-// when no karaoke files are configured. Shows Karaoke only once an MP3 URL is
-// pasted in; otherwise it's the Messages trigger (same action as "Show
-// Messages" in the Client Splash card / the old separate Review dock button,
-// which this replaces).
+// when no karaoke files are configured. Priority: Cinematic (if enabled and
+// has at least one slide) beats Karaoke (if an MP3 URL is pasted in) beats
+// the Messages trigger (same action as "Show Messages" in the Client Splash
+// card / the old separate Review dock button, which this replaces) as the
+// fallback. Cinematic wins the top slot because filling it in is a deliberate
+// choice for that specific show, same as pasting a karaoke URL is.
 function karaokeConfigured() {
   return !!(els.karaokeAudioUrl?.value || "").trim();
 }
+function cinematicConfigured() {
+  if (!els.schoolShowEnabled?.checked) return false;
+  return parseSchoolShowSlides(els.schoolShowSlidesText?.value || "").length > 0;
+}
 function updateDockKaraokeSlot() {
   if (!dock.karaoke) return;
+  if (cinematicConfigured()) {
+    dock.karaoke.textContent = "🎬 Cinematic";
+    return;
+  }
   if (!karaokeConfigured()) {
     dock.karaoke.textContent = "💬 Messages";
     return;
@@ -856,6 +866,7 @@ function updateSplashControlsVisibility() {
 }
 dock.magic?.addEventListener("click", () => els.btnSendReveal?.click());
 dock.karaoke?.addEventListener("click", () => {
+  if (cinematicConfigured()) { els.btnSendSchoolShow?.click(); return; }
   if (!karaokeConfigured()) { els.btnSendReview?.click(); return; }
   (currentPhase === "karaoke_prepare" ? els.btnStartKaraoke : els.btnKaraokePrepareStep)?.click();
 });
@@ -863,6 +874,8 @@ dock.splashPrev?.addEventListener("click", () => els.btnSplashPrev?.click());
 dock.splashNext?.addEventListener("click", () => els.btnSplashNext?.click());
 dock.reset?.addEventListener("click", () => els.btnResetPhase?.click());
 els.karaokeAudioUrl?.addEventListener("input", updateDockKaraokeSlot);
+els.schoolShowSlidesText?.addEventListener("input", updateDockKaraokeSlot);
+els.schoolShowEnabled?.addEventListener("change", updateDockKaraokeSlot);
 
 socket.on("counts:update", (c) => {
   els.countBadge.textContent = `Audience: ${c.audience} • Hosts: ${c.hosts} • Total: ${c.total}`;
