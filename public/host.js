@@ -837,6 +837,7 @@ socket.on("state:update", (st) => {
   if (!hasHydratedSettings) {
     hasHydratedSettings = true;
     applyServerStateToForm(st);
+    initialPushDone = true; // real state already hydrated the form -- no blind push needed
   }
 });
 
@@ -924,7 +925,25 @@ socket.on("counts:update", (c) => {
 
 
 loadSettings();
-emitHostAction("host:saveSettings", "saveSettings", payloadFromUI());
+
+// Push this browser's local settings cache to the server ONLY if the
+// server's real state doesn't show up in time (e.g. a genuinely brand-new
+// room). Pushing unconditionally on every load was a real bug: if this
+// particular browser's local cache was stale or missing a field that had
+// only ever been set from a DIFFERENT device (e.g. Cinematic slides typed
+// in on the laptop, then the host panel opened fresh on the phone), the
+// blind push fired before the server's real "state:update" arrived and
+// silently overwrote the live show's real content with this browser's
+// stale/empty local copy. See the state:update handler below -- once the
+// real state hydrates the form, that hydration wins and this fallback
+// becomes a no-op.
+let initialPushDone = false;
+function pushInitialSettingsIfNeeded() {
+  if (initialPushDone) return;
+  initialPushDone = true;
+  emitHostAction("host:saveSettings", "saveSettings", payloadFromUI());
+}
+setTimeout(pushInitialSettingsIfNeeded, 2500);
 
 /* ================== PERFORM MODE ==================
    Hides every settings card (and group headers) during a live show, leaving
