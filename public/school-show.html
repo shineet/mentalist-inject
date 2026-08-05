@@ -198,7 +198,7 @@
 
 <div id="qrStage">
   <div id="qrCard"><div id="qrTarget"></div></div>
-  <div id="qrCaption">Scan to join the show</div>
+  <div id="qrCaption">Scan to be amazed</div>
 </div>
 
 <audio id="bgMusic" preload="auto" loop></audio>
@@ -214,11 +214,17 @@
   // most browsers); a remote/keyboard press first arms it, a second press
   // actually starts the sequence.
   //
-  // Content is 9 fixed slides (heading + body, **word** renders gold/bold).
-  // Ends on a QR code linking to the live audience join page (see
-  // showQrEnding below) instead of staying on a hard black screen.
+  // Content is fetched live from the same server state the host panel's
+  // Cinematic card saves to (see loadLiveSlides below) -- editing slides in
+  // the host panel and clicking "Update Cinematic Page" (or just waiting a
+  // moment for its normal auto-save) is reflected here next time this page
+  // is opened, no manual copy-paste needed. DEFAULT_SLIDES below is only a
+  // fallback if that fetch fails (offline, server unreachable, or a room
+  // with nothing configured yet) -- heading + body, **word** renders
+  // gold/bold. Ends on a QR code linking to the live audience join page
+  // (see showQrEnding below) instead of staying on a hard black screen.
 
-  const SLIDES = [
+  const DEFAULT_SLIDES = [
     {
       heading: "TODAY YOU SAW...",
       body: "✨ The impossible become possible.\n\n🤝 Strangers become teammates.\n\n💡 Ordinary people do extraordinary things."
@@ -257,6 +263,11 @@
     }
   ];
 
+  // Swapped out for the live-fetched slides once loadLiveSlides() resolves,
+  // if the room actually has any configured -- stays as DEFAULT_SLIDES
+  // otherwise (fetch failed, or an empty/never-configured room).
+  let ACTIVE_SLIDES = DEFAULT_SLIDES;
+
   // Reading-time pacing: base hold + per-word time, generous enough for a
   // room to read comfortably out loud in their head, not rushed.
   const FADE_MS = 1100;
@@ -285,6 +296,37 @@
     url.searchParams.set('room', getRoom());
     return url.toString();
   }
+
+  // Pulls the live Cinematic content Shine last saved in the host panel
+  // (same /state.json the host UI itself reads from) so this page never
+  // needs manual copy-paste again. Called once on page load; startSequence
+  // awaits it so a slow network doesn't race the actual arm/start presses.
+  // Falls back to DEFAULT_SLIDES (and leaves the music/mode fields at
+  // whatever's already in the form) on any failure -- this page still has
+  // to work if the server's briefly unreachable right before a show.
+  async function loadLiveSlides() {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 4000); // never block the show on a hung network
+      const res = await fetch(`/state.json?room=${encodeURIComponent(getRoom())}`, { cache: 'no-store', signal: controller.signal });
+      clearTimeout(timeout);
+      const data = await res.json();
+      const cfg = data?.state?.schoolShow;
+      const slides = Array.isArray(cfg?.slides) ? cfg.slides.filter((s) => s && (s.heading || s.body)) : [];
+      if (slides.length) ACTIVE_SLIDES = slides;
+      if (cfg?.musicUrl && !musicUrlInput.value.trim()) {
+        musicUrlInput.value = cfg.musicUrl;
+        noMusicCheckbox.checked = false;
+      }
+      if (cfg?.mode === 'phone' || cfg?.mode === 'projector') {
+        selectedMode = cfg.mode;
+        modeButtons.forEach((b) => b.classList.toggle('active', b.dataset.mode === selectedMode));
+      }
+    } catch (err) {
+      // Offline, unreachable, or timed out -- DEFAULT_SLIDES already in place, fine.
+    }
+  }
+  const liveSlidesPromise = loadLiveSlides();
   const qrStage = document.getElementById('qrStage');
   const qrTarget = document.getElementById('qrTarget');
   function showQrEnding() {
@@ -349,8 +391,8 @@
   }
 
   function runSequence(i) {
-    if (i >= SLIDES.length) { showQrEnding(); return; }
-    showSlide(SLIDES[i], () => runSequence(i + 1));
+    if (i >= ACTIVE_SLIDES.length) { showQrEnding(); return; }
+    showSlide(ACTIVE_SLIDES[i], () => runSequence(i + 1));
   }
 
   function fadeOutMusic(ms) {
@@ -368,9 +410,17 @@
   let timers = [];
   let state = 'setup'; // 'setup' -> 'armed' -> 'running'
 
-  function arm() {
+  // Both arm() and startSequence() wait for the live fetch first (it's
+  // already in flight from page load and typically resolves in well under a
+  // second on any real connection, long before a human reaches for the first
+  // keypress) -- guarantees the setup screen reflects the actually-saved
+  // music/mode, and the sequence itself uses the freshest slides, without
+  // racing the fetch on a very fast first press. Bounded by loadLiveSlides'
+  // own internal timeout either way.
+  async function arm() {
     if (state !== 'setup') return;
     state = 'armed';
+    await liveSlidesPromise;
 
     document.body.classList.add('mode-' + selectedMode);
     const url = musicUrlInput.value.trim();
@@ -380,9 +430,10 @@
     startOverlay.style.cursor = 'none';
   }
 
-  function startSequence() {
+  async function startSequence() {
     if (state !== 'armed') return;
     state = 'running';
+    await liveSlidesPromise;
 
     startOverlay.classList.add('hidden');
     if (bgMusic.src) {
@@ -390,7 +441,7 @@
       bgMusic.play().catch(() => {});
       // Fade the music out well before the last slide's tribute lands, so
       // "THANK YOU" plays in near-silence rather than under a loop cut.
-      const totalMs = SLIDES.reduce((sum, s) => sum + FADE_MS + holdDurationFor(s) + FADE_MS + GAP_MS, 0);
+      const totalMs = ACTIVE_SLIDES.reduce((sum, s) => sum + FADE_MS + holdDurationFor(s) + FADE_MS + GAP_MS, 0);
       timers.push(setTimeout(() => fadeOutMusic(2500), Math.max(0, totalMs - 6000)));
     }
     runSequence(0);

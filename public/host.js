@@ -88,6 +88,7 @@ const els = {
   btnSendSchoolShow: document.getElementById("btnSendSchoolShow"),
   btnSchoolShowPrev: document.getElementById("btnSchoolShowPrev"),
   btnSchoolShowNext: document.getElementById("btnSchoolShowNext"),
+  btnUpdateCinematicPage: document.getElementById("btnUpdateCinematicPage"),
 
   reviewUrl: document.getElementById("reviewUrl"),
   revealMusicUrl: document.getElementById("revealMusicUrl"),
@@ -649,6 +650,19 @@ els.btnSplashNext?.addEventListener("click", () => emitHostAction("host:splashNe
 els.btnSplashPrev?.addEventListener("click", () => emitHostAction("host:splashPrev", "splashPrev", { room: ROOM }));
 els.btnSchoolShowNext?.addEventListener("click", () => emitHostAction("host:schoolShowNext", "schoolShowNext", { room: ROOM }));
 els.btnSchoolShowPrev?.addEventListener("click", () => emitHostAction("host:schoolShowPrev", "schoolShowPrev", { room: ROOM }));
+
+// The standalone Cinematic page (school-show.html) always fetches this
+// room's current saved slides itself, so this button doesn't need to
+// "push" anything separately -- the routine 180ms auto-save already covers
+// that. This just forces an explicit save right now and gives Shine a
+// visible confirmation, same UX pattern as "Save as Default" above.
+els.btnUpdateCinematicPage?.addEventListener("click", () => {
+  emitHostAction("host:saveSettings", "saveSettings", payloadFromUI());
+  const btn = els.btnUpdateCinematicPage;
+  const original = btn.textContent;
+  btn.textContent = "Updated ✓";
+  setTimeout(() => { btn.textContent = original; }, 1600);
+});
 
 els.clientSplashManualAdvance?.addEventListener("change", () => {
   if (els.clientSplashDurationField) els.clientSplashDurationField.style.display = els.clientSplashManualAdvance.checked ? "none" : "";
