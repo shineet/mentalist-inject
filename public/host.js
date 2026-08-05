@@ -882,9 +882,42 @@ const dpad = {
 // Tracked so the keydown remote handler (below) knows whether Right/Left
 // should be repurposed for slide advance instead of Karaoke/Reset Phase.
 let currentPhase = "idle";
+
+// The real server phase deliberately never leaves "reveal_sequence" on its
+// own -- see audience.js's runRevealSequence comment: broadcasting a global
+// "revealed" phase change would cut off any OTHER phone still mid-animation,
+// since every phone runs the reveal locally and finishes at a slightly
+// different time. That's correct and must not change. This timer is purely
+// local to the host's OWN browser, never touches server state, and never
+// broadcasts anything -- it just corrects the host's own status pill/D-pad
+// readout from a permanent "REVEALING" to "REVEALED" once enough time has
+// passed for the reveal to realistically be done, using the same
+// logo/animation durations every phone is already using.
+let revealTimerHandle = null;
+let revealVisuallyDone = false;
+function scheduleRevealVisuallyDone() {
+  if (revealTimerHandle) { clearTimeout(revealTimerHandle); revealTimerHandle = null; }
+  revealVisuallyDone = !!els.skipAnimation?.checked;
+  if (revealVisuallyDone) return;
+  const logoMs = Number(els.logoMs?.value || 4000);
+  const animationMs = Number(els.animationMs?.value || 12000);
+  revealTimerHandle = setTimeout(() => {
+    revealTimerHandle = null;
+    revealVisuallyDone = true;
+    updateDockPhase(currentPhase);
+  }, logoMs + animationMs + 300);
+}
+
 function updateDockPhase(phase) {
+  if (phase === "reveal_sequence" && currentPhase !== "reveal_sequence") {
+    scheduleRevealVisuallyDone();
+  } else if (phase !== "reveal_sequence") {
+    if (revealTimerHandle) { clearTimeout(revealTimerHandle); revealTimerHandle = null; }
+    revealVisuallyDone = false;
+  }
   currentPhase = phase;
-  const label = DOCK_PHASE_LABELS[phase] || String(phase || "—").toUpperCase();
+  const displayPhase = phase === "reveal_sequence" && revealVisuallyDone ? "revealed" : phase;
+  const label = DOCK_PHASE_LABELS[displayPhase] || String(displayPhase || "—").toUpperCase();
   if (dock.phase) dock.phase.textContent = label;
   if (dpad.center) dpad.center.textContent = label;
   updateSplashControlsVisibility();
