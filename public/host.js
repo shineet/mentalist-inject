@@ -687,6 +687,7 @@ els.btnUpdateCinematicPage?.addEventListener("click", () => {
 els.clientSplashManualAdvance?.addEventListener("change", () => {
   if (els.clientSplashDurationField) els.clientSplashDurationField.style.display = els.clientSplashManualAdvance.checked ? "none" : "";
   updateSplashControlsVisibility();
+  updateRemoteLabels();
 });
 
 // ── Message slides: dynamic list (add/remove any number of slides) ─────────
@@ -862,14 +863,40 @@ const DOCK_PHASE_LABELS = {
   review: "REVIEW",
   school_show: "CINEMATIC",
 };
+
+// Perform Mode's on-screen D-pad -- a touch stand-in for the physical
+// Bluetooth remote's 4 arrow keys (see REMOTE HOTKEYS below), for when Shine
+// doesn't have the clicker in hand. Both call the same triggerRemoteDirection()
+// so a tap and a real remote press always do exactly the same thing.
+const dpad = {
+  root: document.getElementById("dpad"),
+  up: document.getElementById("dpadUp"),
+  right: document.getElementById("dpadRight"),
+  down: document.getElementById("dpadDown"),
+  left: document.getElementById("dpadLeft"),
+  rightLabel: document.getElementById("dpadRightLabel"),
+  leftLabel: document.getElementById("dpadLeftLabel"),
+  center: document.getElementById("dpadCenter"),
+};
 // Tracked so the keydown remote handler (below) knows whether Right/Left
 // should be repurposed for slide advance instead of Karaoke/Reset Phase.
 let currentPhase = "idle";
 function updateDockPhase(phase) {
   currentPhase = phase;
-  if (dock.phase) dock.phase.textContent = DOCK_PHASE_LABELS[phase] || String(phase || "—").toUpperCase();
+  const label = DOCK_PHASE_LABELS[phase] || String(phase || "—").toUpperCase();
+  if (dock.phase) dock.phase.textContent = label;
+  if (dpad.center) dpad.center.textContent = label;
   updateSplashControlsVisibility();
   updateDockKaraokeSlot();
+  updateRemoteLabels();
+}
+// Keeps the D-pad's Right/Left labels (and the physical remote's actual
+// behavior, since both share triggerRemoteDirection()) in sync with the
+// same contextual override described in the REMOTE HOTKEYS comment below.
+function updateRemoteLabels() {
+  const splashRemoteActive = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
+  if (dpad.rightLabel) dpad.rightLabel.textContent = splashRemoteActive ? "Next Slide" : (currentPhase === "karaoke_prepare" ? "Start Karaoke" : "Karaoke");
+  if (dpad.leftLabel) dpad.leftLabel.textContent = splashRemoteActive ? "Prev Slide" : "Reset";
 }
 // The dock's 2nd slot is one button whose meaning is set explicitly by the
 // "Show Format" radio group (Messages / Karaoke / Cinematic), not derived
@@ -1001,18 +1028,30 @@ function isTypingInField() {
   return tag === "input" || tag === "textarea" || el.isContentEditable;
 }
 
+// Single source of truth for what each of the 4 directions does -- shared by
+// the physical/Bluetooth remote's keydown handler below AND the on-screen
+// Perform Mode D-pad, so a tap and a real remote press are always identical.
+function triggerRemoteDirection(dir) {
+  const splashRemoteActive = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
+
+  if (dir === "up") els.btnSendReveal?.click();                                       // Show Magic
+  else if (dir === "right") (splashRemoteActive ? els.btnSplashNext : (currentPhase === "karaoke_prepare" ? els.btnStartKaraoke : els.btnKaraokePrepareStep))?.click();
+  else if (dir === "down") els.btnSendReview?.click();                                // Show Messages / Review
+  else if (dir === "left") (splashRemoteActive ? els.btnSplashPrev : els.btnResetPhase)?.click();
+}
+
 document.addEventListener("keydown", (e) => {
   if (e.repeat) return;
   if (isTypingInField()) return;
-  const k = e.key;
-  if (!["ArrowUp", "ArrowRight", "ArrowDown", "ArrowLeft"].includes(k)) return;
+  const DIR_BY_KEY = { ArrowUp: "up", ArrowRight: "right", ArrowDown: "down", ArrowLeft: "left" };
+  const dir = DIR_BY_KEY[e.key];
+  if (!dir) return;
   e.preventDefault();
-
-  const splashRemoteActive = currentPhase === "review" && !!els.clientSplashManualAdvance?.checked;
-
-  if (k === "ArrowUp") els.btnSendReveal?.click();                                    // Show Magic
-  else if (k === "ArrowRight") (splashRemoteActive ? els.btnSplashNext : (currentPhase === "karaoke_prepare" ? els.btnStartKaraoke : els.btnKaraokePrepareStep))?.click();
-  else if (k === "ArrowDown") els.btnSendReview?.click();                             // Show Messages / Review
-  else if (k === "ArrowLeft") (splashRemoteActive ? els.btnSplashPrev : els.btnResetPhase)?.click();
+  triggerRemoteDirection(dir);
 });
+
+dpad.up?.addEventListener("click", () => triggerRemoteDirection("up"));
+dpad.right?.addEventListener("click", () => triggerRemoteDirection("right"));
+dpad.down?.addEventListener("click", () => triggerRemoteDirection("down"));
+dpad.left?.addEventListener("click", () => triggerRemoteDirection("left"));
 
