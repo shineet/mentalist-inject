@@ -905,10 +905,15 @@ function updateRemoteLabels() {
   if (dpad.downLabel) dpad.downLabel.textContent = formatLabel;
   if (dpad.leftLabel) dpad.leftLabel.textContent = splashRemoteActive ? "Prev Slide" : "Reset";
 
+  // "revealed" is basically never reached in real use -- audience.js plays
+  // the reveal animation entirely client-side and never reports back, so the
+  // server-side phase just stays "reveal_sequence" for the rest of the show
+  // until the next format is triggered. Treat it the same as "revealed" here
+  // so the highlight actually moves off Magic once Magic's been pressed.
   let next = [];
   if (splashRemoteActive) next = ["right"];
   else if (currentPhase === "idle") next = ["up"];
-  else if (currentPhase === "revealed" || currentPhase === "karaoke_prepare") next = ["right", "down"];
+  else if (currentPhase === "reveal_sequence" || currentPhase === "revealed" || currentPhase === "karaoke_prepare") next = ["right", "down"];
   dpad.up?.classList.toggle("next", next.includes("up"));
   dpad.right?.classList.toggle("next", next.includes("right"));
   dpad.down?.classList.toggle("next", next.includes("down"));
