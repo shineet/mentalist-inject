@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v118-cinematic-in-dock";
+const REVISION = "v119-explicit-show-format-selector";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -202,6 +202,13 @@ const defaultState = () => ({
   // below. All default-empty/false so the private-party flow is unchanged.
   corporateMode: false,
   idleLogoUrl: "",
+
+  // Which alternate post-reveal experience the host dock's 2nd button (and
+  // remote ArrowRight) triggers for this show -- "messages" | "karaoke" |
+  // "cinematic". Explicit choice, not derived from what's filled in, so
+  // Shine can keep more than one configured at once and just flip this
+  // between shows. Host-only field (audience.js never reads it).
+  dockAltAction: "messages",
 
   clientSplash: {
     enabled: true,

@@ -56,6 +56,7 @@ const els = {
 
   revealUrl: document.getElementById("revealUrl"),
   revealTypeRadios: document.querySelectorAll('input[name="revealType"]'),
+  dockAltActionRadios: document.querySelectorAll('input[name="dockAltAction"]'),
   logoUrl: document.getElementById("logoUrl"),
   skipAnimation: document.getElementById("skipAnimation"),
 
@@ -167,6 +168,13 @@ function setSelectedRevealType(value) {
   [...els.revealTypeRadios].forEach((r) => (r.checked = r.value === value));
 }
 
+function getSelectedDockAltAction() {
+  return [...els.dockAltActionRadios].find((r) => r.checked)?.value || "messages";
+}
+function setSelectedDockAltAction(value) {
+  [...els.dockAltActionRadios].forEach((r) => (r.checked = r.value === (value || "messages")));
+}
+
 // Populate the settings form from a flat settings object (the shape saveSettings()
 // writes to localStorage). Shared by loadSettings() (local cache) below.
 function applySettingsToForm(s) {
@@ -216,9 +224,10 @@ function applySettingsToForm(s) {
   if (els.karaokeLrcUrl) els.karaokeLrcUrl.value = s.karaokeLrcUrl ?? "";
   if (els.karaokeBgUrl) els.karaokeBgUrl.value = s.karaokeBgUrl ?? "";
   if (els.karaokeTitle) els.karaokeTitle.value = s.karaokeTitle ?? "";
-  updateDockKaraokeSlot();
 
   setSelectedRevealType(s.revealType ?? "page");
+  setSelectedDockAltAction(s.dockAltAction ?? "messages");
+  updateDockKaraokeSlot();
 }
 
 // Populate the settings form from the server's authoritative room state (the
@@ -232,6 +241,7 @@ function applyServerStateToForm(st) {
   if (!st || typeof st !== "object") return;
   applySettingsToForm({
     revealType: st.revealType,
+    dockAltAction: st.dockAltAction,
     revealUrl: st.revealUrl,
     logoUrl: st.logoUrl,
     skipAnimation: st.skipAnimation,
@@ -351,6 +361,7 @@ function parseSchoolShowSlides(text) {
 function saveSettings() {
   const s = {
     revealType: getSelectedRevealType(),
+    dockAltAction: getSelectedDockAltAction(),
     revealUrl: els.revealUrl.value.trim() || randomRevealUrl(),
     logoUrl: els.logoUrl.value.trim(),
     skipAnimation: !!els.skipAnimation.checked,
@@ -402,6 +413,7 @@ function payloadFromUI() {
   return {
     room: ROOM,
     revealType: s.revealType,
+    dockAltAction: s.dockAltAction,
     revealUrl: s.revealUrl,
     logoUrl: s.logoUrl,
     skipAnimation: s.skipAnimation,
@@ -823,35 +835,27 @@ function updateDockPhase(phase) {
   updateSplashControlsVisibility();
   updateDockKaraokeSlot();
 }
-// The dock's 2nd slot is one button that reflects whichever alternate path
-// this show is actually set up for, instead of always showing "Karaoke" even
-// when no karaoke files are configured. Priority: Cinematic (if enabled and
-// has at least one slide) beats Karaoke (if an MP3 URL is pasted in) beats
-// the Messages trigger (same action as "Show Messages" in the Client Splash
-// card / the old separate Review dock button, which this replaces) as the
-// fallback. Cinematic wins the top slot because filling it in is a deliberate
-// choice for that specific show, same as pasting a karaoke URL is.
-function karaokeConfigured() {
-  return !!(els.karaokeAudioUrl?.value || "").trim();
-}
-function cinematicConfigured() {
-  if (!els.schoolShowEnabled?.checked) return false;
-  return parseSchoolShowSlides(els.schoolShowSlidesText?.value || "").length > 0;
-}
+// The dock's 2nd slot is one button whose meaning is set explicitly by the
+// "Show Format" radio group (Messages / Karaoke / Cinematic), not derived
+// from which content happens to be filled in -- lets Shine keep Karaoke
+// AND Cinematic both loaded and configured at once (e.g. one for an evening
+// show, one for a morning show) and just flip the selection between shows
+// without clearing anything out.
 function updateDockKaraokeSlot() {
   if (!dock.karaoke) return;
-  if (cinematicConfigured()) {
+  const choice = getSelectedDockAltAction();
+  if (choice === "cinematic") {
     dock.karaoke.textContent = "🎬 Cinematic";
     return;
   }
-  if (!karaokeConfigured()) {
-    dock.karaoke.textContent = "💬 Messages";
+  if (choice === "karaoke") {
+    // Two-step: first press prepares (loads the screen on every phone, shows
+    // Enable Sound, nothing plays yet); once everyone's confirmed ready, the
+    // same button's second press actually starts it, perfectly in sync.
+    dock.karaoke.textContent = currentPhase === "karaoke_prepare" ? "▶ Start Karaoke" : "🎤 Prepare Karaoke";
     return;
   }
-  // Two-step: first press prepares (loads the screen on every phone, shows
-  // Enable Sound, nothing plays yet); once everyone's confirmed ready, the
-  // same button's second press actually starts it, perfectly in sync.
-  dock.karaoke.textContent = currentPhase === "karaoke_prepare" ? "▶ Start Karaoke" : "🎤 Prepare Karaoke";
+  dock.karaoke.textContent = "💬 Messages";
 }
 // Prev/Next slide controls (both the dock's compact buttons and the full
 // buttons in the Client Splash card) only make sense while actually showing
@@ -866,16 +870,18 @@ function updateSplashControlsVisibility() {
 }
 dock.magic?.addEventListener("click", () => els.btnSendReveal?.click());
 dock.karaoke?.addEventListener("click", () => {
-  if (cinematicConfigured()) { els.btnSendSchoolShow?.click(); return; }
-  if (!karaokeConfigured()) { els.btnSendReview?.click(); return; }
-  (currentPhase === "karaoke_prepare" ? els.btnStartKaraoke : els.btnKaraokePrepareStep)?.click();
+  const choice = getSelectedDockAltAction();
+  if (choice === "cinematic") { els.btnSendSchoolShow?.click(); return; }
+  if (choice === "karaoke") {
+    (currentPhase === "karaoke_prepare" ? els.btnStartKaraoke : els.btnKaraokePrepareStep)?.click();
+    return;
+  }
+  els.btnSendReview?.click();
 });
 dock.splashPrev?.addEventListener("click", () => els.btnSplashPrev?.click());
 dock.splashNext?.addEventListener("click", () => els.btnSplashNext?.click());
 dock.reset?.addEventListener("click", () => els.btnResetPhase?.click());
-els.karaokeAudioUrl?.addEventListener("input", updateDockKaraokeSlot);
-els.schoolShowSlidesText?.addEventListener("input", updateDockKaraokeSlot);
-els.schoolShowEnabled?.addEventListener("change", updateDockKaraokeSlot);
+els.dockAltActionRadios?.forEach((r) => r.addEventListener("change", updateDockKaraokeSlot));
 
 socket.on("counts:update", (c) => {
   els.countBadge.textContent = `Audience: ${c.audience} • Hosts: ${c.hosts} • Total: ${c.total}`;

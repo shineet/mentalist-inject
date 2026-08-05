@@ -96,6 +96,16 @@
     </section>
 
     <section class="card">
+      <h2>Show Format</h2>
+      <p class="hint">Which alternate experience the dock's second button (and remote ArrowRight) triggers for this show. Messages, Karaoke, and Cinematic can all stay loaded and configured at once -- this just picks which one is live right now, so you can flip it between shows without clearing anything out.</p>
+      <div class="radioRow">
+        <label><input type="radio" name="dockAltAction" id="dockAltMessages" value="messages" checked />💬 Messages</label>
+        <label><input type="radio" name="dockAltAction" id="dockAltKaraoke" value="karaoke" />🎤 Karaoke</label>
+        <label><input type="radio" name="dockAltAction" id="dockAltCinematic" value="cinematic" />🎬 Cinematic</label>
+      </div>
+    </section>
+
+    <section class="card">
       <h2>Corporate Mode (table hopping)</h2>
       <p class="hint">One switch for corporate gigs. When on: the waiting screen shows your company logo instead of the heart (and the heartbeat goes silent), the personal message cards and karaoke are skipped, and "Show Messages" goes straight to the thank-you / review screen below. Turn off to return to the normal private-party show. Auto-saves; no redeploy needed.</p>
       <label class="checkrow"><input id="corporateMode" type="checkbox" />Corporate Mode ON</label>
