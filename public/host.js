@@ -651,7 +651,7 @@ els.btnSplashPrev?.addEventListener("click", () => emitHostAction("host:splashPr
 els.btnSchoolShowNext?.addEventListener("click", () => emitHostAction("host:schoolShowNext", "schoolShowNext", { room: ROOM }));
 els.btnSchoolShowPrev?.addEventListener("click", () => emitHostAction("host:schoolShowPrev", "schoolShowPrev", { room: ROOM }));
 
-// The standalone Cinematic page (school-show.html) always fetches this
+// The standalone Cinematic page (cinematic.html) always fetches this
 // room's current saved slides itself, so this button doesn't need to
 // "push" anything separately -- the routine 180ms auto-save already covers
 // that. This just forces an explicit save right now and gives Shine a
