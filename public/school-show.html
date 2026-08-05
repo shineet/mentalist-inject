@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-<title>School Show — Teacher Tribute</title>
+<title>Custom Slides</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
@@ -171,7 +171,7 @@
 
 <div id="startOverlay">
   <div id="setupPanel">
-    <div class="setupTitle">School Show Setup</div>
+    <div class="setupTitle">Custom Slides Setup</div>
 
     <label for="musicUrl">Music URL (optional)</label>
     <input type="text" id="musicUrl" placeholder="Paste a music URL" autocomplete="off" spellcheck="false" />
@@ -205,16 +205,18 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
-  // ── School Show / Teacher Tribute sequence ──────────────────────────────
-  // Sibling to preshow.html -- same visual language (dark, serif, gold
-  // accent), same setup screen (music URL / projector-phone mode toggle),
-  // same two-step arm-then-start flow so the audience never sees the config
-  // panel. Open full-screen (Cmd+Ctrl+F in most browsers); a remote/keyboard
-  // press first arms it, a second press actually starts the sequence.
+  // ── Custom Slides sequence (occasion-agnostic -- teacher tribute today,
+  // could be a corporate/client tribute tomorrow, content is fully
+  // configurable below). Sibling to preshow.html -- same visual language
+  // (dark, serif, gold accent), same setup screen (music URL /
+  // projector-phone mode toggle), same two-step arm-then-start flow so the
+  // audience never sees the config panel. Open full-screen (Cmd+Ctrl+F in
+  // most browsers); a remote/keyboard press first arms it, a second press
+  // actually starts the sequence.
   //
   // Content is 9 fixed slides (heading + body, **word** renders gold/bold).
-  // Ends on a hard black screen and stays there, same walk-on-cue convention
-  // as preshow.html.
+  // Ends on a QR code linking to the live audience join page (see
+  // showQrEnding below) instead of staying on a hard black screen.
 
   const SLIDES = [
     {
