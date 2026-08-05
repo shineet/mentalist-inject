@@ -170,6 +170,7 @@ const views = {
   anim: document.getElementById("viewAnim"),
   reveal: document.getElementById("viewReveal"),
   client: document.getElementById("viewClient"),
+  schoolShow: document.getElementById("viewSchoolShow"),
   review: document.getElementById("viewReview"),
   karaoke: document.getElementById("viewKaraoke"),
 };
@@ -183,6 +184,9 @@ const btnOpenReveal = document.getElementById("btnOpenReveal");
 const clientCard = document.getElementById("clientCard");
 const clientImg = document.getElementById("clientImg");
 const clientMsg = document.getElementById("clientMsg");
+
+const schoolShowHeadingEl = document.getElementById("schoolShowHeading");
+const schoolShowBodyEl = document.getElementById("schoolShowBody");
 
 const karaokeBg = document.getElementById("karaokeBg");
 const karaokeTitleEl = document.getElementById("karaokeTitleEl");
@@ -723,6 +727,141 @@ async function renderManualSplashStep({ text, isPhoto, state }) {
 
   views.client.classList.add("show");
   manualSplashShowing = true;
+}
+
+// ── School Show (third post-show option, alongside Messages/Karaoke) ──────
+// Same auto/manual split as clientSplash above, but each slide is a
+// heading + body (body may contain **bold** spans) instead of one flat
+// string, and hold duration is computed per-slide from word count rather
+// than a single fixed durationMs, since slide length varies far more here
+// than clientSplash's short one-liners.
+const SCHOOL_SHOW_FADE_MS = 700; // must match the CSS transition duration in audience.html
+const SCHOOL_SHOW_HOLD_BASE_MS = 2200;
+const SCHOOL_SHOW_HOLD_PER_WORD_MS = 320;
+
+function schoolShowWordCount(s) {
+  return String(s || "").replace(/\*\*/g, "").split(/\s+/).filter(Boolean).length;
+}
+function schoolShowHoldMs(slide) {
+  const words = schoolShowWordCount(slide.heading) + schoolShowWordCount(slide.body);
+  return SCHOOL_SHOW_HOLD_BASE_MS + words * SCHOOL_SHOW_HOLD_PER_WORD_MS;
+}
+function schoolShowRenderBold(text) {
+  return String(text || "").replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+function applySchoolShowMode(state) {
+  const mode = state.schoolShow?.mode === "phone" ? "phone" : "projector";
+  document.body.classList.toggle("schoolShow-phone", mode === "phone");
+}
+function validSchoolShowSlides(cfg) {
+  return Array.isArray(cfg?.slides) ? cfg.slides.filter((s) => s && (s.heading || s.body)) : [];
+}
+
+async function renderSchoolShowSlide(slide, holdMs) {
+  if (!views.schoolShow) return;
+  showOnly("schoolShow");
+  if (schoolShowHeadingEl) schoolShowHeadingEl.textContent = slide.heading || "";
+  if (schoolShowBodyEl) schoolShowBodyEl.innerHTML = schoolShowRenderBold(slide.body);
+  requestAnimationFrame(() => {
+    schoolShowHeadingEl?.classList.add("show");
+    schoolShowBodyEl?.classList.add("show");
+  });
+  await wait(SCHOOL_SHOW_FADE_MS + holdMs);
+  schoolShowHeadingEl?.classList.remove("show");
+  schoolShowBodyEl?.classList.remove("show");
+  await wait(SCHOOL_SHOW_FADE_MS + 40);
+}
+
+// Auto-timer path: each phone independently advances through its own copy
+// of the slide data on a local timer -- same "no server-driven per-step
+// sync" approach clientSplash's auto path already uses (see
+// showClientSplashIfPresent above).
+async function showSchoolShowIfPresent(state, token) {
+  const cfg = state.schoolShow || {};
+  if (cfg.enabled === false) return false;
+  const slides = validSchoolShowSlides(cfg);
+  if (!slides.length) return false;
+
+  applySchoolShowMode(state);
+  for (const slide of slides) {
+    await renderSchoolShowSlide(slide, schoolShowHoldMs(slide));
+    if (token && !isCurrentRun(token)) return false;
+  }
+  return true;
+}
+
+// ── Manual (host-paced) advance ── mirrors runManualSplash/driveManualSplash
+// above exactly (see clientSplash's version for the reentrancy rationale).
+let manualSchoolShowLastRendered = -1;
+let manualSchoolShowDesiredIndex = null;
+let manualSchoolShowBusy = false;
+let manualSchoolShowLatestState = null;
+let manualSchoolShowShowing = false;
+let manualSchoolShowToken = null;
+let manualSchoolShowDoneCb = null;
+
+function resetManualSchoolShowTracking() {
+  manualSchoolShowLastRendered = -1;
+  manualSchoolShowDesiredIndex = null;
+  manualSchoolShowShowing = false;
+}
+
+function runManualSchoolShow(state, token, onDone) {
+  const cfg = state.schoolShow || {};
+  if (cfg.enabled === false) { onDone(); return; }
+  const slides = validSchoolShowSlides(cfg);
+  if (!slides.length) { onDone(); return; }
+  const maxIdx = slides.length - 1;
+  const idx = Math.max(0, Math.min(Number(cfg.currentCardIndex || 0), maxIdx));
+
+  applySchoolShowMode(state);
+  manualSchoolShowLatestState = state;
+  manualSchoolShowDesiredIndex = idx;
+  manualSchoolShowToken = token;
+  manualSchoolShowDoneCb = onDone;
+  if (!manualSchoolShowBusy) driveManualSchoolShow();
+}
+
+async function driveManualSchoolShow() {
+  manualSchoolShowBusy = true;
+  while (manualSchoolShowDesiredIndex !== null && manualSchoolShowDesiredIndex !== manualSchoolShowLastRendered) {
+    const idx = manualSchoolShowDesiredIndex;
+    const token = manualSchoolShowToken;
+    const state = manualSchoolShowLatestState;
+    const cfg = state.schoolShow || {};
+    const slides = validSchoolShowSlides(cfg);
+    manualSchoolShowLastRendered = idx;
+
+    if (!slides.length || idx > slides.length - 1) {
+      if (manualSchoolShowShowing) {
+        schoolShowHeadingEl?.classList.remove("show");
+        schoolShowBodyEl?.classList.remove("show");
+        await wait(SCHOOL_SHOW_FADE_MS + 40);
+        manualSchoolShowShowing = false;
+      }
+      manualSchoolShowBusy = false;
+      if (token && !isCurrentRun(token)) return;
+      manualSchoolShowDoneCb?.();
+      return;
+    }
+
+    if (manualSchoolShowShowing) {
+      schoolShowHeadingEl?.classList.remove("show");
+      schoolShowBodyEl?.classList.remove("show");
+      await wait(SCHOOL_SHOW_FADE_MS + 40);
+    }
+    if (token && !isCurrentRun(token)) { manualSchoolShowBusy = false; return; }
+
+    showOnly("schoolShow");
+    if (schoolShowHeadingEl) schoolShowHeadingEl.textContent = slides[idx].heading || "";
+    if (schoolShowBodyEl) schoolShowBodyEl.innerHTML = schoolShowRenderBold(slides[idx].body);
+    requestAnimationFrame(() => {
+      schoolShowHeadingEl?.classList.add("show");
+      schoolShowBodyEl?.classList.add("show");
+    });
+    manualSchoolShowShowing = true;
+  }
+  manualSchoolShowBusy = false;
 }
 
 async function runRevealSequence(state, token) {
@@ -1400,6 +1539,25 @@ async function handleStateUpdate(state) {
 
   if (phase === "karaoke") {
     await prepareKaraoke(state, true);
+    return;
+  }
+
+  if (phase === "school_show") {
+    stopKaraoke();
+
+    if (state.schoolShow?.manualAdvance) {
+      if (phaseChanged) resetManualSchoolShowTracking();
+      const schoolShowRun = runToken;
+      runManualSchoolShow(state, schoolShowRun, () => { startReviewFlow(state); });
+      return;
+    }
+
+    if (!phaseChanged) return; // avoid restarting the auto-cycle on an unrelated re-broadcast
+    const schoolShowRun = ++runToken;
+    showSchoolShowIfPresent(state, schoolShowRun).then(() => {
+      if (!isCurrentRun(schoolShowRun)) return;
+      startReviewFlow(state);
+    });
     return;
   }
 

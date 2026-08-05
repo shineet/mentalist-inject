@@ -78,6 +78,15 @@ const els = {
   btnSplashPrev: document.getElementById("btnSplashPrev"),
   btnSplashNext: document.getElementById("btnSplashNext"),
 
+  schoolShowEnabled: document.getElementById("schoolShowEnabled"),
+  schoolShowManualAdvance: document.getElementById("schoolShowManualAdvance"),
+  schoolShowModeProjector: document.getElementById("schoolShowModeProjector"),
+  schoolShowModePhone: document.getElementById("schoolShowModePhone"),
+  schoolShowSlidesText: document.getElementById("schoolShowSlidesText"),
+  btnSendSchoolShow: document.getElementById("btnSendSchoolShow"),
+  btnSchoolShowPrev: document.getElementById("btnSchoolShowPrev"),
+  btnSchoolShowNext: document.getElementById("btnSchoolShowNext"),
+
   reviewUrl: document.getElementById("reviewUrl"),
   revealMusicUrl: document.getElementById("revealMusicUrl"),
   reviewMusicUrl: document.getElementById("reviewMusicUrl"),
@@ -188,6 +197,15 @@ function applySettingsToForm(s) {
   els.clientSplashMsg.value = s.clientSplashMsg ?? "Thank you — one last quick thing ❤️";
   updateSplashControlsVisibility();
 
+  if (els.schoolShowEnabled) els.schoolShowEnabled.checked = s.schoolShowEnabled ?? true;
+  if (els.schoolShowManualAdvance) els.schoolShowManualAdvance.checked = !!s.schoolShowManualAdvance;
+  if (els.schoolShowModeProjector && els.schoolShowModePhone) {
+    const isPhone = s.schoolShowMode === "phone";
+    els.schoolShowModePhone.checked = isPhone;
+    els.schoolShowModeProjector.checked = !isPhone;
+  }
+  if (els.schoolShowSlidesText) els.schoolShowSlidesText.value = s.schoolShowSlidesText ?? "";
+
   els.iosLaunchEnabled.checked = s.iosLaunchEnabled ?? false;
   els.iosLaunchDelayMs.value = s.iosLaunchDelayMs ?? 250;
   els.iosLaunchUrl.value = s.iosLaunchUrl ?? DEFAULT_IOS_LAUNCH_URL;
@@ -233,6 +251,10 @@ function applyServerStateToForm(st) {
     clientSplashTextSize: st.clientSplash?.textSize,
     clientSplashCards: st.clientSplash?.cards,
     clientSplashMsg: st.clientSplash?.photoMessage,
+    schoolShowEnabled: st.schoolShow?.enabled,
+    schoolShowManualAdvance: st.schoolShow?.manualAdvance,
+    schoolShowMode: st.schoolShow?.mode,
+    schoolShowSlidesText: st.schoolShow?.slidesText,
     karaokeAudioUrl: st.karaoke?.audioUrl,
     karaokeLrcUrl: st.karaoke?.lrcUrl,
     karaokeBgUrl: st.karaoke?.bgUrl,
@@ -302,6 +324,27 @@ function loadSettings() {
   }
 }
 
+// Parses the School Show markdown textarea into [{heading, body}] slides.
+// Lines starting with "#" are heading lines (multiple "#" lines join into a
+// multi-line heading); a standalone "---" line separates slides; everything
+// else is body text (blank lines preserved as paragraph breaks). **word**
+// is left as-is -- audience.js renders that as bold, not this parser.
+function parseSchoolShowSlides(text) {
+  const blocks = String(text || "").split(/^\s*---\s*$/m);
+  return blocks
+    .map((block) => {
+      const headingLines = [];
+      const bodyLines = [];
+      for (const line of block.split("\n")) {
+        const trimmed = line.trim();
+        if (trimmed.startsWith("#")) headingLines.push(trimmed.replace(/^#+\s*/, ""));
+        else bodyLines.push(line);
+      }
+      return { heading: headingLines.join("\n").trim(), body: bodyLines.join("\n").trim() };
+    })
+    .filter((s) => s.heading || s.body);
+}
+
 function saveSettings() {
   const s = {
     revealType: getSelectedRevealType(),
@@ -330,6 +373,11 @@ function saveSettings() {
     clientSplashTextSize: Number(els.clientSplashTextSize?.value || 6.2),
     clientSplashCards: getCardsFromUI(),
     clientSplashMsg: (els.clientSplashMsg.value || "").trim(),
+
+    schoolShowEnabled: !!els.schoolShowEnabled?.checked,
+    schoolShowManualAdvance: !!els.schoolShowManualAdvance?.checked,
+    schoolShowMode: els.schoolShowModePhone?.checked ? "phone" : "projector",
+    schoolShowSlidesText: (els.schoolShowSlidesText?.value || "").trim(),
 
     iosLaunchEnabled: !!els.iosLaunchEnabled.checked,
     iosLaunchDelayMs: Number(els.iosLaunchDelayMs.value || 0),
@@ -385,6 +433,17 @@ function payloadFromUI() {
       lrcUrl: s.karaokeLrcUrl,
       bgUrl: s.karaokeBgUrl,
       title: s.karaokeTitle,
+    },
+
+    schoolShow: {
+      enabled: s.schoolShowEnabled,
+      manualAdvance: s.schoolShowManualAdvance,
+      mode: s.schoolShowMode,
+      slidesText: s.schoolShowSlidesText,
+      slides: parseSchoolShowSlides(s.schoolShowSlidesText),
+      // currentCardIndex deliberately omitted -- only host:schoolShowNext/
+      // Prev/sendToSchoolShow change it; a routine settings save must never
+      // reset it (same rationale as clientSplash's currentCardIndex above).
     },
   };
 }
@@ -455,6 +514,12 @@ els.btnSendReview.addEventListener("click", () => {
   const p = payloadFromUI();
   if (!p.reviewUrl) return alert("Please enter a Review URL first.");
   emitHostAction("host:sendToReview", "sendToReview", p);
+});
+
+els.btnSendSchoolShow?.addEventListener("click", () => {
+  const p = payloadFromUI();
+  if (!p.schoolShow?.slides?.length) return alert("Please add at least one School Show slide first.");
+  emitHostAction("host:sendToSchoolShow", "sendToSchoolShow", p);
 });
 
 
@@ -565,6 +630,8 @@ els.btnSaveAsDefault?.addEventListener("click", () => {
 // ── Message slides: advance controls (manual-advance mode) ─────────────────
 els.btnSplashNext?.addEventListener("click", () => emitHostAction("host:splashNext", "splashNext", { room: ROOM }));
 els.btnSplashPrev?.addEventListener("click", () => emitHostAction("host:splashPrev", "splashPrev", { room: ROOM }));
+els.btnSchoolShowNext?.addEventListener("click", () => emitHostAction("host:schoolShowNext", "schoolShowNext", { room: ROOM }));
+els.btnSchoolShowPrev?.addEventListener("click", () => emitHostAction("host:schoolShowPrev", "schoolShowPrev", { room: ROOM }));
 
 els.clientSplashManualAdvance?.addEventListener("change", () => {
   if (els.clientSplashDurationField) els.clientSplashDurationField.style.display = els.clientSplashManualAdvance.checked ? "none" : "";

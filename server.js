@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v113-school-show-tribute";
+const REVISION = "v114-school-show-native-phase-and-qr-ending";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -122,6 +122,29 @@ app.post("/api/host/:action", (req, res) => {
       return res.json({ ok: true, room, state: getState(room) });
     }
 
+    if (action === "sendToSchoolShow") {
+      mergeState(room, payload, { phase: "school_show" });
+      resetSchoolShowIndex(room);
+      broadcastState(room);
+      return res.json({ ok: true, room, state: getState(room) });
+    }
+
+    if (action === "schoolShowNext") {
+      if (schoolShowActionAlreadyApplied(room, payload.clientTs)) return res.json({ ok: true, room, state: getState(room) });
+      const cur = Number(getState(room).schoolShow?.currentCardIndex || 0);
+      mergeState(room, { schoolShow: { currentCardIndex: Math.min(cur + 1, schoolShowMaxIndex(room)) } });
+      broadcastState(room);
+      return res.json({ ok: true, room, state: getState(room) });
+    }
+
+    if (action === "schoolShowPrev") {
+      if (schoolShowActionAlreadyApplied(room, payload.clientTs)) return res.json({ ok: true, room, state: getState(room) });
+      const cur = Number(getState(room).schoolShow?.currentCardIndex || 0);
+      mergeState(room, { schoolShow: { currentCardIndex: Math.max(cur - 1, 0) } });
+      broadcastState(room);
+      return res.json({ ok: true, room, state: getState(room) });
+    }
+
     if (action === "resetPhase") {
       const state = getState(room);
       setState(room, { ...state, phase: "idle" });
@@ -200,6 +223,20 @@ const defaultState = () => ({
   reviewMode: { autoRedirect: true, autoRedirectDelayMs: 3000, thankTitle: "", thankMessage: "If you enjoyed my show, I would love a 5 star review!" },
 
   karaoke: { audioUrl: "", lrcUrl: "", bgUrl: "", title: "" },
+
+  // Third post-show option alongside clientSplash (Messages) and karaoke --
+  // same manual/auto-advance shape as clientSplash, but slides carry a
+  // heading + body instead of one flat string, parsed host-side from
+  // slidesText (the raw markdown Shine pastes, kept around so re-opening
+  // Settings shows his original text back rather than a re-serialized copy).
+  schoolShow: {
+    enabled: true,
+    mode: "projector", // "projector" | "phone" -- audience text sizing
+    manualAdvance: false,
+    slidesText: "",
+    slides: [], // [{ heading, body }], body may contain **bold** spans
+    currentCardIndex: 0,
+  },
 
   lastUpdateTs: Date.now(),
 });
@@ -337,6 +374,17 @@ function resetSplashIndex(room) {
   setState(room, { ...st, clientSplash: { ...st.clientSplash, currentCardIndex: 0 } });
 }
 
+function schoolShowMaxIndex(room) {
+  const st = getState(room);
+  const slides = Array.isArray(st.schoolShow?.slides) ? st.schoolShow.slides : [];
+  return Math.max(0, slides.length - 1);
+}
+
+function resetSchoolShowIndex(room) {
+  const st = getState(room);
+  setState(room, { ...st, schoolShow: { ...st.schoolShow, currentCardIndex: 0 } });
+}
+
 // Every host action is sent via BOTH the socket AND the HTTP fallback
 // unconditionally (see host.js emitHostAction) as a reliability measure for
 // flaky mobile connections. That's harmless for idempotent actions (e.g.
@@ -345,11 +393,20 @@ function resetSplashIndex(room) {
 // on both channels would advance the index by 2 instead of 1. host.js stamps
 // every action with the same clientTs on both sends; dedupe on that per room.
 const lastSplashActionTs = new Map();
+const lastSchoolShowActionTs = new Map();
 function splashActionAlreadyApplied(room, clientTs) {
   if (!clientTs) return false;
   const key = normalizeRoom(room);
   if (lastSplashActionTs.get(key) === clientTs) return true;
   lastSplashActionTs.set(key, clientTs);
+  return false;
+}
+
+function schoolShowActionAlreadyApplied(room, clientTs) {
+  if (!clientTs) return false;
+  const key = normalizeRoom(room);
+  if (lastSchoolShowActionTs.get(key) === clientTs) return true;
+  lastSchoolShowActionTs.set(key, clientTs);
   return false;
 }
 
@@ -364,6 +421,7 @@ function mergeState(room, payload, extra = {}) {
     reviewMode: { ...current.reviewMode, ...(payload?.reviewMode || {}) },
     clientSplash: { ...current.clientSplash, ...(payload?.clientSplash || {}) },
     karaoke: { ...current.karaoke, ...(payload?.karaoke || {}) },
+    schoolShow: { ...current.schoolShow, ...(payload?.schoolShow || {}) },
   });
 }
 
@@ -456,6 +514,32 @@ io.on("connection", (socket) => {
     if (splashActionAlreadyApplied(room, payload.clientTs)) return;
     const cur = Number(getState(room).clientSplash?.currentCardIndex || 0);
     mergeState(room, { clientSplash: { currentCardIndex: Math.max(cur - 1, 0) } });
+    broadcastState(room);
+  });
+
+  socket.on("host:sendToSchoolShow", (payload = {}) => {
+    if (!allow(socket, "sendToSchoolShow", 250)) return;
+    const room = joinRoom(socket, roomOfSocket(socket, payload));
+    mergeState(room, payload, { phase: "school_show" });
+    resetSchoolShowIndex(room); // always start from the top on fresh entry
+    broadcastState(room);
+  });
+
+  socket.on("host:schoolShowNext", (payload = {}) => {
+    if (!allow(socket, "schoolShowNext", 200)) return;
+    const room = joinRoom(socket, roomOfSocket(socket, payload));
+    if (schoolShowActionAlreadyApplied(room, payload.clientTs)) return;
+    const cur = Number(getState(room).schoolShow?.currentCardIndex || 0);
+    mergeState(room, { schoolShow: { currentCardIndex: Math.min(cur + 1, schoolShowMaxIndex(room)) } });
+    broadcastState(room);
+  });
+
+  socket.on("host:schoolShowPrev", (payload = {}) => {
+    if (!allow(socket, "schoolShowPrev", 200)) return;
+    const room = joinRoom(socket, roomOfSocket(socket, payload));
+    if (schoolShowActionAlreadyApplied(room, payload.clientTs)) return;
+    const cur = Number(getState(room).schoolShow?.currentCardIndex || 0);
+    mergeState(room, { schoolShow: { currentCardIndex: Math.max(cur - 1, 0) } });
     broadcastState(room);
   });
 

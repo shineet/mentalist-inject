@@ -148,6 +148,29 @@
     </section>
 
     <section class="card">
+      <h2>School Show (before review)</h2>
+      <p class="hint">Third option alongside Client Splash and Karaoke. Paste your slides below -- <code># Heading</code> (repeat <code>#</code> for a 2-line heading), a blank line before each body paragraph, <code>**word**</code> for emphasis, and a line with just <code>---</code> between slides.</p>
+      <div class="grid">
+        <label class="checkrow"><input id="schoolShowEnabled" type="checkbox" />Enable</label>
+        <label class="checkrow"><input id="schoolShowManualAdvance" type="checkbox" />Manual advance (control with remote / on-screen button instead of a timer)</label>
+        <div>
+          <label>Display</label>
+          <label class="checkrow"><input id="schoolShowModeProjector" type="radio" name="schoolShowMode" value="projector" checked />Projector / Big Screen</label>
+          <label class="checkrow"><input id="schoolShowModePhone" type="radio" name="schoolShowMode" value="phone" />Phone / Small Screen</label>
+        </div>
+        <div style="grid-column:1/-1">
+          <label>Slides (paste as markdown -- see format above)</label>
+          <textarea id="schoolShowSlidesText" rows="14" placeholder="# TODAY YOU SAW...&#10;&#10;The impossible become possible.&#10;&#10;---&#10;&#10;# NEXT HEADING&#10;&#10;Body text here."></textarea>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnSendSchoolShow">Show School Show</button>
+        <button id="btnSchoolShowPrev" class="secondary" type="button">◀ Prev Slide</button>
+        <button id="btnSchoolShowNext" class="secondary" type="button">Next Slide ▶</button>
+      </div>
+    </section>
+
+    <section class="card">
       <h2>Media URLs</h2>
       <p class="hint">Paste your Supabase links here. These auto-save in this browser and can be changed without another Fly deploy.</p>
       <div class="grid">

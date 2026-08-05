@@ -138,6 +138,33 @@
     margin-bottom: 14px;
   }
   #setupHint { color: #444; font-size: 11px; letter-spacing: 0.06em; }
+
+  /* Final QR screen -- shown after the last slide instead of staying black */
+  #qrStage {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 1.4s ease;
+    pointer-events: none;
+  }
+  #qrStage.show { opacity: 1; pointer-events: auto; }
+  #qrCard {
+    background: #fff;
+    border-radius: 24px;
+    padding: 22px;
+    box-shadow: 0 0 60px rgba(255, 215, 106, 0.25);
+    display: inline-grid;
+    place-items: center;
+  }
+  #qrCaption {
+    margin-top: 26px;
+    color: #ffd76a;
+    font-size: clamp(18px, 3vw, 30px);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
 </style>
 </head>
 <body>
@@ -169,7 +196,13 @@
   <div class="body" id="bodyLine"></div>
 </div>
 
+<div id="qrStage">
+  <div id="qrCard"><div id="qrTarget"></div></div>
+  <div id="qrCaption">Scan to join the show</div>
+</div>
+
 <audio id="bgMusic" preload="auto" loop></audio>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
   // ── School Show / Teacher Tribute sequence ──────────────────────────────
@@ -236,6 +269,34 @@
     const words = wordCount(slide.heading) + wordCount(slide.body);
     return HOLD_BASE_MS + words * HOLD_PER_WORD_MS;
   }
+  // ── QR ending -- shown after the last slide instead of staying black.
+  // Room defaults to "SHINE" (Shine's regular live-show room) but can be
+  // overridden per use with ?room=, same convention as host.html/audience.html.
+  function getRoom() {
+    const raw = (new URLSearchParams(location.search).get('room') || 'SHINE').trim();
+    return raw.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'SHINE';
+  }
+  function getAudienceUrl() {
+    const url = new URL(location.href);
+    url.pathname = '/audience.html';
+    url.search = '';
+    url.searchParams.set('room', getRoom());
+    return url.toString();
+  }
+  const qrStage = document.getElementById('qrStage');
+  const qrTarget = document.getElementById('qrTarget');
+  function showQrEnding() {
+    if (!qrTarget || typeof QRCode === 'undefined') { qrStage?.classList.add('show'); return; }
+    qrTarget.innerHTML = '';
+    new QRCode(qrTarget, {
+      text: getAudienceUrl(),
+      width: 320,
+      height: 320,
+      correctLevel: QRCode.CorrectLevel.H,
+    });
+    qrStage.classList.add('show');
+  }
+
   function renderBold(text) {
     return text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   }
@@ -286,7 +347,7 @@
   }
 
   function runSequence(i) {
-    if (i >= SLIDES.length) return; // hard black, stays there
+    if (i >= SLIDES.length) { showQrEnding(); return; }
     showSlide(SLIDES[i], () => runSequence(i + 1));
   }
 
