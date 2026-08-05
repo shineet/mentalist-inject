@@ -82,6 +82,7 @@ const els = {
   schoolShowManualAdvance: document.getElementById("schoolShowManualAdvance"),
   schoolShowModeProjector: document.getElementById("schoolShowModeProjector"),
   schoolShowModePhone: document.getElementById("schoolShowModePhone"),
+  schoolShowMusicUrl: document.getElementById("schoolShowMusicUrl"),
   schoolShowSlidesText: document.getElementById("schoolShowSlidesText"),
   btnSendSchoolShow: document.getElementById("btnSendSchoolShow"),
   btnSchoolShowPrev: document.getElementById("btnSchoolShowPrev"),
@@ -204,6 +205,7 @@ function applySettingsToForm(s) {
     els.schoolShowModePhone.checked = isPhone;
     els.schoolShowModeProjector.checked = !isPhone;
   }
+  if (els.schoolShowMusicUrl) els.schoolShowMusicUrl.value = s.schoolShowMusicUrl ?? "";
   if (els.schoolShowSlidesText) els.schoolShowSlidesText.value = s.schoolShowSlidesText ?? "";
 
   els.iosLaunchEnabled.checked = s.iosLaunchEnabled ?? false;
@@ -254,6 +256,7 @@ function applyServerStateToForm(st) {
     schoolShowEnabled: st.schoolShow?.enabled,
     schoolShowManualAdvance: st.schoolShow?.manualAdvance,
     schoolShowMode: st.schoolShow?.mode,
+    schoolShowMusicUrl: st.schoolShow?.musicUrl,
     schoolShowSlidesText: st.schoolShow?.slidesText,
     karaokeAudioUrl: st.karaoke?.audioUrl,
     karaokeLrcUrl: st.karaoke?.lrcUrl,
@@ -377,6 +380,7 @@ function saveSettings() {
     schoolShowEnabled: !!els.schoolShowEnabled?.checked,
     schoolShowManualAdvance: !!els.schoolShowManualAdvance?.checked,
     schoolShowMode: els.schoolShowModePhone?.checked ? "phone" : "projector",
+    schoolShowMusicUrl: (els.schoolShowMusicUrl?.value || "").trim(),
     schoolShowSlidesText: (els.schoolShowSlidesText?.value || "").trim(),
 
     iosLaunchEnabled: !!els.iosLaunchEnabled.checked,
@@ -439,6 +443,7 @@ function payloadFromUI() {
       enabled: s.schoolShowEnabled,
       manualAdvance: s.schoolShowManualAdvance,
       mode: s.schoolShowMode,
+      musicUrl: s.schoolShowMusicUrl,
       slidesText: s.schoolShowSlidesText,
       slides: parseSchoolShowSlides(s.schoolShowSlidesText),
       // currentCardIndex deliberately omitted -- only host:schoolShowNext/

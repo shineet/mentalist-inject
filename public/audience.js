@@ -22,6 +22,7 @@ try { document.title = `Audience - ${ROOM}`; } catch {}
 // We unlock audio on the first user interaction anywhere on the page.
 const revealMusic = new Audio("/music.mp3");
 const reviewMusic = new Audio("/review.mp3");
+const schoolShowMusic = new Audio(); // no default track -- Custom Slides is silent unless a URL is set
 const karaokeMusic = new Audio();
 karaokeMusic.preload = "auto";
 karaokeMusic.volume = 1.0;
@@ -62,14 +63,29 @@ function hideAudioEnableButton() {
 ensureAudioEnableButton();
 revealMusic.loop = true;
 reviewMusic.loop = true;
+schoolShowMusic.loop = true;
 revealMusic.preload = "auto";
 reviewMusic.preload = "auto";
+schoolShowMusic.preload = "auto";
 revealMusic.volume = 0.7;
 reviewMusic.volume = 0.7;
+schoolShowMusic.volume = 0.5;
 
 function setAudioSource(audio, url) {
   const next = (url || "").trim();
-  if (!next || audio.src === new URL(next, window.location.href).href) return;
+  if (!next) {
+    // Explicit clear -- only relevant for schoolShowMusic, which has no
+    // fallback default (reveal/review always pass a non-empty URL, so this
+    // branch is a no-op for them). Without this, removing a previously-set
+    // Custom Slides music URL would leave the old track cached and playable.
+    if (audio.src) {
+      try { audio.pause(); audio.currentTime = 0; } catch {}
+      audio.removeAttribute("src");
+      try { audio.load(); } catch {}
+    }
+    return;
+  }
+  if (audio.src === new URL(next, window.location.href).href) return;
   try { audio.pause(); audio.currentTime = 0; } catch {}
   audio.src = next;
   try { audio.load(); } catch {}
@@ -78,11 +94,15 @@ function setAudioSource(audio, url) {
 function updateMediaSources(state) {
   setAudioSource(revealMusic, state?.revealMusicUrl || state?.musicUrl || "/music.mp3");
   setAudioSource(reviewMusic, state?.reviewMusicUrl || state?.reviewAudioUrl || "/review.mp3");
+  // No fallback path here (unlike reveal/review above) -- Custom Slides
+  // stays silent unless Shine explicitly sets a music URL for it.
+  setAudioSource(schoolShowMusic, state?.schoolShow?.musicUrl || "");
 }
 
 // Some mobile browsers behave better if these are explicitly inline.
 try { revealMusic.setAttribute?.("playsinline", ""); } catch {}
 try { reviewMusic.setAttribute?.("playsinline", ""); } catch {}
+try { schoolShowMusic.setAttribute?.("playsinline", ""); } catch {}
 
 let audioUnlocked = false;
 let pendingMusicPhase = "idle"; // track latest phase so music can start right after unlock
@@ -90,6 +110,7 @@ let pendingMusicPhase = "idle"; // track latest phase so music can start right a
 function stopAllMusic() {
   try { revealMusic.pause(); revealMusic.currentTime = 0; } catch {}
   try { reviewMusic.pause(); reviewMusic.currentTime = 0; } catch {}
+  try { schoolShowMusic.pause(); schoolShowMusic.currentTime = 0; } catch {}
   stopKaraoke(false);
 }
 
@@ -116,6 +137,7 @@ function unlockAudio() {
 
   primeMediaEl(revealMusic);
   primeMediaEl(reviewMusic);
+  primeMediaEl(schoolShowMusic);
   primeMediaEl(karaokeMusic);
 
   audioUnlocked = true;
@@ -145,6 +167,14 @@ async function setMusicForPhase(phase) {
   if (phase === "review") {
     try { revealMusic.pause(); revealMusic.currentTime = 0; } catch {}
     try { await reviewMusic.play(); } catch (err) { ensureAudioEnableButton(); }
+    return;
+  }
+
+  if (phase === "school_show") {
+    try { revealMusic.pause(); revealMusic.currentTime = 0; } catch {}
+    try { reviewMusic.pause(); reviewMusic.currentTime = 0; } catch {}
+    if (!schoolShowMusic.src) return; // no music configured -- stay silent, not an error
+    try { await schoolShowMusic.play(); } catch (err) { ensureAudioEnableButton(); }
     return;
   }
 

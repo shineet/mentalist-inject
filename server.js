@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v115-custom-slides-generic-label";
+const REVISION = "v116-custom-slides-music";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -236,6 +236,10 @@ const defaultState = () => ({
     slidesText: "",
     slides: [], // [{ heading, body }], body may contain **bold** spans
     currentCardIndex: 0,
+    // No fallback track (unlike reveal/review music) -- each phone plays
+    // this independently with no cross-device sync, so it stays silent
+    // unless Shine deliberately opts in.
+    musicUrl: "",
   },
 
   lastUpdateTs: Date.now(),
