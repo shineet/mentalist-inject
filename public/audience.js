@@ -565,9 +565,12 @@ async function showClientTextCard(text, durationMs, state = {}) {
   await wait(FADE_MS + 40);
 }
 
+// v123: reads state.photoStep (shared across Messages/Karaoke/Cinematic) --
+// see showUniversalPhotoStepIfEnabled below for the entry point that decides
+// whether/when to call this.
 async function showClientPhotoStep(state, durationMs) {
-  const cfg = state.clientSplash || {};
-  const msg = (cfg.photoMessage || "").trim();
+  const cfg = state.photoStep || {};
+  const msg = (cfg.message || "").trim();
 
   if (!views.client) return false;
 
@@ -619,13 +622,41 @@ async function showClientPhotoStep(state, durationMs) {
   return ok;
 }
 
+// v123: single entry point for the shared client photo + thank-you step,
+// used before the review screen regardless of which of the three
+// post-reveal options (Messages/Karaoke/Cinematic) just finished. Excludes
+// corporate mode, same as the old Messages-only version did.
+async function showUniversalPhotoStepIfEnabled(state) {
+  if (state.corporateMode) return;
+  const cfg = state.photoStep || {};
+  if (cfg.enabled === false) return;
+  const durationMs = Number(cfg.durationMs ?? 3000);
+  if (durationMs <= 0) return;
+  await showClientPhotoStep(state, durationMs);
+}
+
+// Replaces every direct startReviewFlow(state) call after Messages/
+// Cinematic finish -- runs the shared photo step first if enabled, then the
+// real review screen. Karaoke's ending (goToGoogleReviewAfterKaraoke) calls
+// showUniversalPhotoStepIfEnabled directly instead, since it doesn't always
+// go through startReviewFlow at all (see that function's own comment).
+async function proceedToReview(state) {
+  await showUniversalPhotoStepIfEnabled(state);
+  startReviewFlow(state);
+}
+
 // Auto-timer path: any number of text cards (state.clientSplash.cards, was a
-// fixed card1..card5 through v84) + a photo step, duration applies to EACH.
-// Only used when clientSplash.manualAdvance is false -- see
-// runManualSplash()/renderManualSplashStep() below for the host-paced path.
+// fixed card1..card5 through v84), duration applies to EACH. Only used when
+// clientSplash.manualAdvance is false -- see runManualSplash()/
+// driveManualSplash() below for the host-paced path. No longer includes the
+// photo step (v123 -- that's now shared across all three post-reveal
+// options, handled by the caller via showUniversalPhotoStepIfEnabled/
+// proceedToReview, not embedded in here).
 async function showClientSplashIfPresent(state, token) {
-  // Corporate mode skips the personal message cards + client photo entirely and
-  // goes straight to the thank-you / review screen.
+  // Corporate mode skips the personal message cards entirely and goes
+  // straight to whatever's next (the shared photoStep also excludes
+  // corporate mode -- see showUniversalPhotoStepIfEnabled -- so this ends
+  // up going straight to the review screen, same as before).
   if (state.corporateMode) return false;
 
   const cfg = state.clientSplash || {};
@@ -639,19 +670,18 @@ async function showClientSplashIfPresent(state, token) {
     await showClientTextCard(card, durationMs, state);
     if (token && !isCurrentRun(token)) return false;
   }
-
-  const ok = await showClientPhotoStep(state, durationMs);
-  if (token && !isCurrentRun(token)) return false;
-  return ok;
+  return true;
 }
 
 // ── Manual (host-paced) advance ─────────────────────────────────────────────
-// Renders exactly one step (a text card, the photo step, or "done") based on
+// Renders exactly one step (a text card, or "done") based on
 // state.clientSplash.currentCardIndex, and does nothing else -- no internal
 // timer. Re-entrant/idempotent: calling it again with an unchanged index is a
 // no-op, and calling it with a new index while a transition is still fading
 // queues to the latest requested index rather than overlapping animations
 // (so rapid next/prev clicks from the host can't race each other visually).
+// No longer includes a photo step (v123 -- see showClientSplashIfPresent's
+// comment above; caller handles that separately via proceedToReview).
 let manualSplashLastRendered = -1;
 let manualSplashDesiredIndex = null;
 let manualSplashBusy = false;
@@ -675,7 +705,7 @@ function runManualSplash(state, token, onDone) {
   if (cfg.enabled === false) { onDone(); return; }
 
   const cards = (Array.isArray(cfg.cards) ? cfg.cards : []).map((c) => (c || "").trim()).filter(Boolean);
-  const maxIdx = cards.length + 1; // + photo step, + 1 terminal ("done")
+  const maxIdx = cards.length; // cards.length itself is the terminal ("done") index
   const idx = Math.max(0, Math.min(Number(cfg.currentCardIndex || 0), maxIdx));
 
   manualSplashLatestState = state;
@@ -695,8 +725,9 @@ async function driveManualSplash() {
     const cards = (Array.isArray(cfg.cards) ? cfg.cards : []).map((c) => (c || "").trim()).filter(Boolean);
     manualSplashLastRendered = idx;
 
-    if (idx >= cards.length + 1) {
-      // Past the photo step -- fade out and hand off to the real review screen.
+    if (idx >= cards.length) {
+      // Past the last card -- fade out and hand off to whatever's next
+      // (shared photo step, then review -- see proceedToReview).
       if (manualSplashShowing) {
         views.client.classList.remove("show");
         await wait(520 + 40);
@@ -708,14 +739,13 @@ async function driveManualSplash() {
       return;
     }
 
-    const isPhoto = idx >= cards.length;
-    await renderManualSplashStep({ text: isPhoto ? null : cards[idx], isPhoto, state });
+    await renderManualSplashStep({ text: cards[idx], state });
     if (token && !isCurrentRun(token)) { manualSplashBusy = false; return; }
   }
   manualSplashBusy = false;
 }
 
-async function renderManualSplashStep({ text, isPhoto, state }) {
+async function renderManualSplashStep({ text, state }) {
   if (!views.client) return;
 
   if (manualSplashShowing) {
@@ -726,34 +756,13 @@ async function renderManualSplashStep({ text, isPhoto, state }) {
   showOnly("client");
   views.client.classList.add("fadeCine");
 
-  if (isPhoto) {
-    const cfg = state.clientSplash || {};
-    const msg = (cfg.photoMessage || "").trim();
-    if (clientCard) clientCard.classList.add("hidden");
-    if (clientMsg) { clientMsg.textContent = msg || ""; clientMsg.classList.toggle("hidden", !msg); }
-
-    const configuredUrl = (state?.clientImageUrl || cfg.clientImageUrl || cfg.imageUrl || cfg.photoUrl || "/client.png").trim();
-    const url = configuredUrl.includes("?") ? `${configuredUrl}&v=${Date.now()}` : `${configuredUrl}?v=${Date.now()}`;
-    const loadPromise = new Promise((resolve) => {
-      const img = new Image();
-      img.onload = async () => { try { if (img.decode) await img.decode(); } catch {} resolve(true); };
-      img.onerror = () => resolve(false);
-      img.src = url;
-    });
-    const ok = await Promise.race([loadPromise, new Promise((resolve) => setTimeout(() => resolve(false), 4500))]);
-    if (clientImg) {
-      if (ok) { clientImg.src = url; clientImg.classList.remove("hidden"); }
-      else clientImg.classList.add("hidden");
-    }
-  } else {
-    if (clientCard) {
-      applyClientTextStyle(state);
-      clientCard.textContent = String(text || "").replace(/\\n/g, "\n");
-      clientCard.classList.remove("hidden");
-    }
-    if (clientImg) clientImg.classList.add("hidden");
-    if (clientMsg) clientMsg.classList.add("hidden");
+  if (clientCard) {
+    applyClientTextStyle(state);
+    clientCard.textContent = String(text || "").replace(/\\n/g, "\n");
+    clientCard.classList.remove("hidden");
   }
+  if (clientImg) clientImg.classList.add("hidden");
+  if (clientMsg) clientMsg.classList.add("hidden");
 
   views.client.classList.add("show");
   manualSplashShowing = true;
@@ -1299,39 +1308,32 @@ function getClientPhotoDurationMsFromState(state = {}) {
   return 5000;
 }
 
+// v123: uses the shared photoStep (message/enabled/corporateMode -- see
+// showUniversalPhotoStepIfEnabled) same as Messages/Cinematic now do, but
+// keeps its own richer end-photo URL fallback chain layered on top
+// (karaokeEndPhotoUrl etc. -- a genuinely-used, deliberately-different
+// closing photo for some shows, e.g. Jacquie's karaoke ending) rather than
+// only the plain clientImageUrl the shared step uses by default.
 async function showKaraokeEndPhotoThenReview() {
   const state = lastKaraokeState || currentState || {};
-  const durationMs = getClientPhotoDurationMsFromState(state);
   const reviewUrl = getReviewUrlFromState(state);
-  const photoUrl = getClientPhotoUrlFromState(state);
 
   if (karaokeTimer) clearInterval(karaokeTimer);
   karaokeTimer = null;
   try { karaokeMusic.pause(); } catch {}
 
-  // Reuse the original, already-working client photo display used after message cards.
-  // This avoids the blank screen issue caused by the separate karaoke end-photo screen.
-  const photoState = {
-    ...state,
-    clientImageUrl: photoUrl || state.clientImageUrl,
-    clientSplash: {
-      ...(state.clientSplash || {}),
-      photoMessage: "Thank you!"
-    }
-  };
-
-  let shown = false;
-  try {
-    shown = await showClientPhotoStep(photoState, durationMs);
-  } catch {}
-
-  if (!shown) {
+  if (!state.corporateMode && state.photoStep?.enabled !== false) {
+    const durationMs = Number(state.photoStep?.durationMs ?? 3000);
+    const photoUrl = getClientPhotoUrlFromState(state);
+    const photoState = { ...state, clientImageUrl: photoUrl || state.clientImageUrl };
+    try { await showClientPhotoStep(photoState, durationMs); } catch {}
+  } else {
     if (btnKaraokeStart) btnKaraokeStart.classList.add("hidden");
     if (karaokePrev) karaokePrev.textContent = "";
     if (karaokeCurrent) karaokeCurrent.textContent = "Thank you!";
     if (karaokeNext) karaokeNext.textContent = "";
     if (karaokeStatus) karaokeStatus.textContent = "Redirecting in a few seconds…";
-    await wait(Math.max(2500, durationMs || 3500));
+    await wait(1200);
   }
 
   if (reviewUrl) {
@@ -1588,7 +1590,7 @@ async function handleStateUpdate(state) {
     if (state.schoolShow?.manualAdvance) {
       if (phaseChanged) resetManualSchoolShowTracking();
       const schoolShowRun = runToken;
-      runManualSchoolShow(state, schoolShowRun, () => { startReviewFlow(state); });
+      runManualSchoolShow(state, schoolShowRun, () => { proceedToReview(state); });
       return;
     }
 
@@ -1596,7 +1598,7 @@ async function handleStateUpdate(state) {
     const schoolShowRun = ++runToken;
     showSchoolShowIfPresent(state, schoolShowRun).then(() => {
       if (!isCurrentRun(schoolShowRun)) return;
-      startReviewFlow(state);
+      proceedToReview(state);
     });
     return;
   }
@@ -1613,7 +1615,7 @@ async function handleStateUpdate(state) {
       // block earlier in this function -- just reset our own tracking here.
       if (phaseChanged) resetManualSplashTracking();
       const reviewRun = runToken;
-      runManualSplash(state, reviewRun, () => { startReviewFlow(state); });
+      runManualSplash(state, reviewRun, () => { proceedToReview(state); });
       return;
     }
 
@@ -1621,7 +1623,7 @@ async function handleStateUpdate(state) {
     const reviewRun = ++runToken;
     showClientSplashIfPresent(state, reviewRun).then(() => {
       if (!isCurrentRun(reviewRun)) return;
-      startReviewFlow(state);
+      proceedToReview(state);
     });
     return;
   }

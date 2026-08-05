@@ -75,9 +75,12 @@ const els = {
   clientSplashTextSize: document.getElementById("clientSplashTextSize"),
   clientSplashCardsList: document.getElementById("clientSplashCardsList"),
   btnAddCard: document.getElementById("btnAddCard"),
-  clientSplashMsg: document.getElementById("clientSplashMsg"),
   btnSplashPrev: document.getElementById("btnSplashPrev"),
   btnSplashNext: document.getElementById("btnSplashNext"),
+
+  photoStepEnabled: document.getElementById("photoStepEnabled"),
+  photoStepMessage: document.getElementById("photoStepMessage"),
+  photoStepDurationMs: document.getElementById("photoStepDurationMs"),
 
   schoolShowEnabled: document.getElementById("schoolShowEnabled"),
   schoolShowManualAdvance: document.getElementById("schoolShowManualAdvance"),
@@ -115,6 +118,7 @@ const els = {
   btnResetPhase: document.getElementById("btnResetPhase"),
   btnResetAll: document.getElementById("btnResetAll"),
   btnSaveAsDefault: document.getElementById("btnSaveAsDefault"),
+  btnPerformMode: document.getElementById("btnPerformMode"),
 
   btnShowQR: document.getElementById("btnShowQR"),
   btnCopyLink: document.getElementById("btnCopyLink"),
@@ -204,8 +208,11 @@ function applySettingsToForm(s) {
   els.clientSplashMs.value = s.clientSplashMs ?? 3000;
   if (els.clientSplashTextSize) els.clientSplashTextSize.value = s.clientSplashTextSize ?? 6.2;
   renderCardsList(s.clientSplashCards ?? ["Hope you enjoyed my show", "Let\'s all wish Kylie a very happy B'Day"]);
-  els.clientSplashMsg.value = s.clientSplashMsg ?? "Thank you — one last quick thing ❤️";
   updateSplashControlsVisibility();
+
+  if (els.photoStepEnabled) els.photoStepEnabled.checked = s.photoStepEnabled ?? true;
+  if (els.photoStepMessage) els.photoStepMessage.value = s.photoStepMessage ?? "Thank you — one last quick thing ❤️";
+  if (els.photoStepDurationMs) els.photoStepDurationMs.value = s.photoStepDurationMs ?? 3000;
 
   if (els.schoolShowEnabled) els.schoolShowEnabled.checked = s.schoolShowEnabled ?? true;
   if (els.schoolShowManualAdvance) els.schoolShowManualAdvance.checked = !!s.schoolShowManualAdvance;
@@ -263,7 +270,9 @@ function applyServerStateToForm(st) {
     clientSplashMs: st.clientSplash?.durationMs,
     clientSplashTextSize: st.clientSplash?.textSize,
     clientSplashCards: st.clientSplash?.cards,
-    clientSplashMsg: st.clientSplash?.photoMessage,
+    photoStepEnabled: st.photoStep?.enabled,
+    photoStepMessage: st.photoStep?.message,
+    photoStepDurationMs: st.photoStep?.durationMs,
     schoolShowEnabled: st.schoolShow?.enabled,
     schoolShowManualAdvance: st.schoolShow?.manualAdvance,
     schoolShowMode: st.schoolShow?.mode,
@@ -303,7 +312,10 @@ function loadSettings() {
     els.clientSplashMs.value = 3000;
     if (els.clientSplashTextSize) els.clientSplashTextSize.value = 6.2;
     renderCardsList(["Hope you enjoyed my show", "Let\'s all wish Kylie a very happy B'Day"]);
-    els.clientSplashMsg.value = "Thank you — one last quick thing ❤️";
+
+    if (els.photoStepEnabled) els.photoStepEnabled.checked = true;
+    if (els.photoStepMessage) els.photoStepMessage.value = "Thank you — one last quick thing ❤️";
+    if (els.photoStepDurationMs) els.photoStepDurationMs.value = 3000;
 
     els.iosLaunchEnabled.checked = true;
     els.iosLaunchDelayMs.value = 250;
@@ -387,7 +399,10 @@ function saveSettings() {
     clientSplashMs: Number(els.clientSplashMs.value || 0),
     clientSplashTextSize: Number(els.clientSplashTextSize?.value || 6.2),
     clientSplashCards: getCardsFromUI(),
-    clientSplashMsg: (els.clientSplashMsg.value || "").trim(),
+
+    photoStepEnabled: !!els.photoStepEnabled?.checked,
+    photoStepMessage: (els.photoStepMessage?.value || "").trim(),
+    photoStepDurationMs: Number(els.photoStepDurationMs?.value || 0),
 
     schoolShowEnabled: !!els.schoolShowEnabled?.checked,
     schoolShowManualAdvance: !!els.schoolShowManualAdvance?.checked,
@@ -440,9 +455,14 @@ function payloadFromUI() {
       durationMs: s.clientSplashMs,
       textSize: s.clientSplashTextSize,
       cards: s.clientSplashCards,
-      photoMessage: s.clientSplashMsg,
       // currentCardIndex deliberately omitted -- only host:splashNext/Prev/
       // sendToReview change it; a routine settings save must never reset it.
+    },
+
+    photoStep: {
+      enabled: s.photoStepEnabled,
+      message: s.photoStepMessage,
+      durationMs: s.photoStepDurationMs,
     },
 
     karaoke: {
@@ -905,6 +925,37 @@ socket.on("counts:update", (c) => {
 
 loadSettings();
 emitHostAction("host:saveSettings", "saveSettings", payloadFromUI());
+
+/* ================== PERFORM MODE ==================
+   Hides every settings card (and group headers) during a live show, leaving
+   just the status badges and the fixed bottom dock -- nothing left to
+   scroll past once everything is configured. Persisted per-browser so it
+   survives a reload mid-show. */
+const PERFORM_MODE_KEY = `hostPerformMode:${ROOM}`;
+function setPerformMode(on) {
+  document.body.classList.toggle("perform-mode", on);
+  els.btnPerformMode?.classList.toggle("active", on);
+  if (els.btnPerformMode) els.btnPerformMode.textContent = on ? "🎯 Exit Perform Mode" : "🎯 Perform Mode";
+  localStorage.setItem(PERFORM_MODE_KEY, on ? "1" : "0");
+}
+els.btnPerformMode?.addEventListener("click", () => setPerformMode(!document.body.classList.contains("perform-mode")));
+setPerformMode(localStorage.getItem(PERFORM_MODE_KEY) === "1");
+
+/* ================== CARD COLLAPSE/EXPAND ==================
+   Each settings card is a <details> -- remember open/closed per card so the
+   layout from setup is still there next time. */
+const CARD_STATE_KEY = `hostCardOpen:${ROOM}`;
+(function initCardCollapse() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(CARD_STATE_KEY) || "{}"); } catch {}
+  document.querySelectorAll("details.card[id]").forEach((d) => {
+    if (Object.prototype.hasOwnProperty.call(saved, d.id)) d.open = !!saved[d.id];
+    d.addEventListener("toggle", () => {
+      saved[d.id] = d.open;
+      localStorage.setItem(CARD_STATE_KEY, JSON.stringify(saved));
+    });
+  });
+})();
 
 /* ================== REMOTE HOTKEYS (consolidated) ==================
    Single keydown listener, one action per key, matching the show dock:

@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v122-rename-school-show-html-to-cinematic-html";
+const REVISION = "v123-host-reorg-perform-mode-shared-photo-step";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -216,15 +216,26 @@ const defaultState = () => ({
     textSize: 6.2,
     // Dynamic list (was fixed card1..card5 through v84) -- any number of slides.
     cards: ["Hope you enjoyed my show", "Let\\'s all wish Kylie a very happy B'Day"],
-    photoMessage: "Thank you — one last quick thing ❤️",
     // Manual (host-paced) advance, added v85. When true, the audience does not
     // auto-cycle on a timer -- it shows whatever currentCardIndex points to and
-    // waits for host:splashNext/host:splashPrev. Index range: 0..cards.length-1
-    // are text cards, cards.length is the photo step, cards.length+1 means
-    // "done, show the real review screen." Reset to 0 whenever review phase is
-    // (re-)entered via host:sendToReview.
+    // waits for host:splashNext/host:splashPrev. Index range: 0..cards.length-1.
+    // Reaching the end hands off to the shared photoStep (see below), not a
+    // step within this card range anymore (v123) -- reset to 0 whenever
+    // review phase is (re-)entered via host:sendToReview.
     manualAdvance: false,
     currentCardIndex: 0,
+  },
+
+  // Client photo + thank-you message shown right before the review ask --
+  // v123: pulled out of clientSplash (Messages) specifically, since this is
+  // now shared by ALL THREE post-reveal options (Messages, Karaoke,
+  // Cinematic), not just Messages. clientImageUrl stays where it already
+  // was (top-level, alongside the other Media URLs) since it was already
+  // generic. See audience.js's showUniversalPhotoStepIfEnabled/proceedToReview.
+  photoStep: {
+    enabled: true,
+    message: "Thank you — one last quick thing ❤️",
+    durationMs: 3000,
   },
 
   reviewMode: { autoRedirect: true, autoRedirectDelayMs: 3000, thankTitle: "", thankMessage: "If you enjoyed my show, I would love a 5 star review!" },
@@ -377,7 +388,11 @@ function allow(socket, key, minMs) {
 function splashMaxIndex(room) {
   const st = getState(room);
   const cards = Array.isArray(st.clientSplash?.cards) ? st.clientSplash.cards.filter((c) => (c || "").trim()) : [];
-  return cards.length + 1;
+  // Indices 0..cards.length-1 are real cards; cards.length itself is now the
+  // "done, move on" terminal index (was cards.length+1 through v122, when a
+  // photo step also lived in this range -- that moved out to the shared
+  // photoStep in v123, so max is one less than before).
+  return cards.length;
 }
 
 function resetSplashIndex(room) {
@@ -433,6 +448,7 @@ function mergeState(room, payload, extra = {}) {
     clientSplash: { ...current.clientSplash, ...(payload?.clientSplash || {}) },
     karaoke: { ...current.karaoke, ...(payload?.karaoke || {}) },
     schoolShow: { ...current.schoolShow, ...(payload?.schoolShow || {}) },
+    photoStep: { ...current.photoStep, ...(payload?.photoStep || {}) },
   });
 }
 

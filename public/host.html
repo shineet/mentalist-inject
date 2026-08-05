@@ -32,6 +32,17 @@
     #btnAddCard { background:#2b2b46; }
     .audLink { overflow-wrap:anywhere; color:#d9d3ff; font-size:14px; }
     .hint { color:var(--muted); font-size:13px; margin-top:6px; line-height:1.35; }
+    .groupHead { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin:26px 6px 8px; }
+    .groupHead:first-of-type { margin-top:4px; }
+    details.card { padding:16px; }
+    details.card > summary { cursor:pointer; list-style:none; margin:0; }
+    details.card > summary::-webkit-details-marker { display:none; }
+    details.card > summary h2 { margin:0; display:flex; align-items:center; gap:8px; }
+    details.card > summary h2::before { content:"▸"; color:var(--accent); font-size:14px; flex:0 0 auto; }
+    details.card[open] > summary h2::before { content:"▾"; }
+    details.card[open] > summary { margin-bottom:12px; }
+    body.perform-mode .card, body.perform-mode .groupHead { display:none !important; }
+    #btnPerformMode.active { background:var(--accent); }
     .qrOverlay { position:fixed; inset:0; background:rgba(0,0,0,.78); display:none; align-items:center; justify-content:center; z-index:999; padding:18px; }
     .qrOverlay.show { display:flex; }
     .overlayCard { background:#fff; color:#111; border-radius:24px; padding:18px; width:min(92vw, 520px); text-align:center; }
@@ -64,78 +75,13 @@
 
     <div class="actions" style="margin-bottom:14px;">
       <button id="btnResetPhase" class="secondary">Reset Phase</button>
+      <button id="btnPerformMode" class="secondary">🎯 Perform Mode</button>
     </div>
 
-    <section class="card">
-      <h2>Audience</h2>
-      <p class="hint">Use QR or Copy Link</p>
-      <div id="audienceLink" class="audLink"></div>
-      <div class="actions">
-        <button id="btnShowQR">Show QR</button>
-        <button id="btnCopyLink" class="secondary">Copy Link</button>
-        <button id="btnSync" class="secondary">SYNC CHECK</button>
-      </div>
-      <p id="syncLine" class="hint">Sync check: …</p>
-    </section>
+    <h2 class="groupHead">🎭 Performance</h2>
 
-    <section class="card">
-      <h2>Reveal Settings</h2>
-      <div class="grid">
-        <div><label>Reveal URL (image or page)</label><input id="revealUrl" type="url" /></div>
-        <div><label>Logo URL (optional)</label><input id="logoUrl" type="url" /></div>
-        <div><label>Logo duration (ms)</label><input id="logoMs" type="number" value="4000" /></div>
-        <div><label>Animation duration (ms)</label><input id="animationMs" type="number" value="12000" /></div>
-      </div>
-      <div class="radioRow">
-        <label>Reveal type</label>
-        <label><input type="radio" name="revealType" value="page" checked />Page (iframe)</label>
-        <label><input type="radio" name="revealType" value="image" />Image</label>
-      </div>
-      <label class="checkrow"><input id="skipAnimation" type="checkbox" />Skip animation (instant reveal)</label>
-      <div class="actions"><button id="btnSendReveal">Show Magic</button></div>
-    </section>
-
-    <section class="card">
-      <h2>Show Format</h2>
-      <p class="hint">Which alternate experience the dock's second button (and remote ArrowRight) triggers for this show. Messages, Karaoke, and Cinematic can all stay loaded and configured at once -- this just picks which one is live right now, so you can flip it between shows without clearing anything out.</p>
-      <div class="radioRow">
-        <label><input type="radio" name="dockAltAction" id="dockAltMessages" value="messages" checked />💬 Messages</label>
-        <label><input type="radio" name="dockAltAction" id="dockAltKaraoke" value="karaoke" />🎤 Karaoke</label>
-        <label><input type="radio" name="dockAltAction" id="dockAltCinematic" value="cinematic" />🎬 Cinematic</label>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Corporate Mode (table hopping)</h2>
-      <p class="hint">One switch for corporate gigs. When on: the waiting screen shows your company logo instead of the heart (and the heartbeat goes silent), the personal message cards and karaoke are skipped, and "Show Messages" goes straight to the thank-you / review screen below. Turn off to return to the normal private-party show. Auto-saves; no redeploy needed.</p>
-      <label class="checkrow"><input id="corporateMode" type="checkbox" />Corporate Mode ON</label>
-      <div class="grid">
-        <div><label>Company Logo URL (idle screen)</label><input id="idleLogoUrl" type="url" placeholder="https://.../company-logo.png" /></div>
-        <div><label>Thank-you title</label><input id="reviewThankTitle" type="text" placeholder="Thank you!" /></div>
-        <div><label>Thank-you / review request message</label><textarea id="reviewThankMessage" placeholder="If you enjoyed the show, I'd love a 5-star review ⭐⭐⭐⭐⭐"></textarea></div>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>iPhone App Launch (Host on iPhone)</h2>
-      <div class="grid">
-        <label class="checkrow"><input id="iosLaunchEnabled" type="checkbox" />Open app after “Show Magic”</label>
-        <div><label>Delay (ms)</label><input id="iosLaunchDelayMs" type="number" value="250" /></div>
-        <div><label>Deep link URL</label><input id="iosLaunchUrl" type="url" /></div>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Review Settings</h2>
-      <div class="grid">
-        <div><label>Google review URL</label><input id="reviewUrl" type="url" /></div>
-        <label class="checkrow"><input id="autoRedirect" type="checkbox" />Auto redirect</label>
-        <div><label>Redirect delay (ms)</label><input id="autoRedirectDelayMs" type="number" value="3000" /></div>
-      </div>
-    </section>
-
-    <section class="card">
-      <h2>Client Splash (before review)</h2>
+    <details class="card" id="card-messages" open>
+      <summary><h2>Messages (before review)</h2></summary>
       <div class="grid">
         <label class="checkrow"><input id="clientSplashEnabled" type="checkbox" />Enable</label>
         <label class="checkrow"><input id="clientSplashManualAdvance" type="checkbox" />Manual advance (control with remote / on-screen button instead of a timer)</label>
@@ -146,20 +92,33 @@
           <div id="clientSplashCardsList"></div>
           <button id="btnAddCard" type="button">+ Add Slide</button>
         </div>
-        <div><label>Photo message (below image)</label><textarea id="clientSplashMsg"></textarea></div>
       </div>
       <div class="actions">
         <button id="btnSendReview">Show Messages</button>
         <button id="btnSplashPrev" class="secondary" type="button">◀ Prev Slide</button>
         <button id="btnSplashNext" class="secondary" type="button">Next Slide ▶</button>
-        <button id="btnSaveAsDefault" class="secondary" title="Save the two music URLs and the review URL as the default for new/reset shows">💾 Save as Default</button>
-        <button id="btnResetAll" class="danger">Reset All</button>
       </div>
-    </section>
+    </details>
 
-    <section class="card">
-      <h2>Cinematic (before review)</h2>
-      <p class="hint">Third option alongside Client Splash and Karaoke. Paste your slides below -- <code># Heading</code> (repeat <code>#</code> for a 2-line heading), a blank line before each body paragraph, <code>**word**</code> for emphasis, and a line with just <code>---</code> between slides.</p>
+    <details class="card" id="card-karaoke">
+      <summary><h2>Spotify Style Karaoke</h2></summary>
+      <p class="hint">Optional alternative to the custom message cards. Paste the MP3 URL and .LRC lyrics URL. Two-step start: click <strong>Prepare Karaoke</strong> first -- every phone loads the song and background photo and shows "Enable Sound" if needed, but nothing plays yet. Once everyone's ready, click <strong>Start Karaoke</strong> to begin perfectly in sync. This does not change the normal Show Magic or Show Messages flow.</p>
+      <div class="grid">
+        <div><label>Karaoke MP3 URL</label><input id="karaokeAudioUrl" type="url" placeholder="https://.../song.mp3" /></div>
+        <div><label>Karaoke Lyrics .LRC URL</label><input id="karaokeLrcUrl" type="url" placeholder="https://.../song.lrc" /></div>
+        <div><label>Karaoke Background Image URL (optional)</label><input id="karaokeBgUrl" type="url" placeholder="https://.../photo.jpg" /></div>
+        <div><label>Karaoke Title</label><input id="karaokeTitle" type="text" placeholder="Sophia's Song" /></div>
+      </div>
+      <div class="actions">
+        <button id="btnKaraokePrepareStep" class="secondary">1. Prepare Karaoke</button>
+        <button id="btnStartKaraoke">2. Start Karaoke</button>
+        <button id="btnStopKaraoke" class="secondary">Stop Karaoke</button>
+      </div>
+    </details>
+
+    <details class="card" id="card-cinematic">
+      <summary><h2>Cinematic (before review)</h2></summary>
+      <p class="hint">Third option alongside Messages and Karaoke. Paste your slides below -- <code># Heading</code> (repeat <code>#</code> for a 2-line heading), a blank line before each body paragraph, <code>**word**</code> for emphasis, and a line with just <code>---</code> between slides.</p>
       <div class="grid">
         <label class="checkrow"><input id="schoolShowEnabled" type="checkbox" />Enable</label>
         <label class="checkrow"><input id="schoolShowManualAdvance" type="checkbox" />Manual advance (control with remote / on-screen button instead of a timer)</label>
@@ -180,34 +139,99 @@
         <button id="btnSchoolShowNext" class="secondary" type="button">Next Slide ▶</button>
         <button id="btnUpdateCinematicPage" class="secondary" type="button" title="Push these slides to the standalone Cinematic page (cinematic.html) -- it pulls this content automatically, so this is just for an explicit confirmation.">🔄 Update Cinematic Page</button>
       </div>
-    </section>
+    </details>
 
-    <section class="card">
-      <h2>Media URLs</h2>
+    <h2 class="groupHead">⚙️ General Settings</h2>
+
+    <details class="card" id="card-audience" open>
+      <summary><h2>Audience</h2></summary>
+      <p class="hint">Use QR or Copy Link</p>
+      <div id="audienceLink" class="audLink"></div>
+      <div class="actions">
+        <button id="btnShowQR">Show QR</button>
+        <button id="btnCopyLink" class="secondary">Copy Link</button>
+        <button id="btnSync" class="secondary">SYNC CHECK</button>
+        <button id="btnSaveAsDefault" class="secondary" title="Save the two music URLs and the review URL as the default for new/reset shows">💾 Save as Default</button>
+        <button id="btnResetAll" class="danger">Reset All</button>
+      </div>
+      <p id="syncLine" class="hint">Sync check: …</p>
+    </details>
+
+    <details class="card" id="card-showformat">
+      <summary><h2>Show Format</h2></summary>
+      <p class="hint">Which alternate experience the dock's second button (and remote ArrowRight) triggers for this show. Messages, Karaoke, and Cinematic can all stay loaded and configured at once -- this just picks which one is live right now, so you can flip it between shows without clearing anything out.</p>
+      <div class="radioRow">
+        <label><input type="radio" name="dockAltAction" id="dockAltMessages" value="messages" checked />💬 Messages</label>
+        <label><input type="radio" name="dockAltAction" id="dockAltKaraoke" value="karaoke" />🎤 Karaoke</label>
+        <label><input type="radio" name="dockAltAction" id="dockAltCinematic" value="cinematic" />🎬 Cinematic</label>
+      </div>
+    </details>
+
+    <details class="card" id="card-corporate">
+      <summary><h2>Corporate Mode (table hopping)</h2></summary>
+      <p class="hint">One switch for corporate gigs. When on: the waiting screen shows your company logo instead of the heart (and the heartbeat goes silent), the personal message cards and karaoke are skipped, and "Show Messages" goes straight to the thank-you / review screen below. Turn off to return to the normal private-party show. Auto-saves; no redeploy needed.</p>
+      <label class="checkrow"><input id="corporateMode" type="checkbox" />Corporate Mode ON</label>
+      <div class="grid">
+        <div><label>Company Logo URL (idle screen)</label><input id="idleLogoUrl" type="url" placeholder="https://.../company-logo.png" /></div>
+        <div><label>Thank-you title</label><input id="reviewThankTitle" type="text" placeholder="Thank you!" /></div>
+        <div><label>Thank-you / review request message</label><textarea id="reviewThankMessage" placeholder="If you enjoyed the show, I'd love a 5-star review ⭐⭐⭐⭐⭐"></textarea></div>
+      </div>
+    </details>
+
+    <details class="card" id="card-clientphoto">
+      <summary><h2>Client Photo (after Messages, Karaoke, or Cinematic)</h2></summary>
+      <p class="hint">Plays once, right before the review screen -- no matter which of the three show formats above you ran.</p>
+      <div class="grid">
+        <label class="checkrow"><input id="photoStepEnabled" type="checkbox" />Enable</label>
+        <div><label>Duration (ms)</label><input id="photoStepDurationMs" type="number" value="3000" /></div>
+        <div><label>Client Image URL</label><input id="clientImageUrl" type="url" placeholder="https://.../client.png" /></div>
+        <div style="grid-column:1/-1"><label>Photo message (below image)</label><textarea id="photoStepMessage"></textarea></div>
+      </div>
+    </details>
+
+    <details class="card" id="card-media">
+      <summary><h2>Media URLs</h2></summary>
       <p class="hint">Paste your Supabase links here. These auto-save in this browser and can be changed without another Fly deploy.</p>
       <div class="grid">
         <div><label>Animation Music URL</label><input id="revealMusicUrl" type="url" placeholder="https://.../music.mp3" /></div>
         <div><label>Slide Show Music URL</label><input id="reviewMusicUrl" type="url" placeholder="https://.../review.mp3" /></div>
-        <div><label>Client Image URL</label><input id="clientImageUrl" type="url" placeholder="https://.../client.png" /></div>
       </div>
-    </section>
+    </details>
 
-
-    <section class="card">
-      <h2>Spotify Style Karaoke</h2>
-      <p class="hint">Optional alternative to the custom message cards. Paste the MP3 URL and .LRC lyrics URL. Two-step start: click <strong>Prepare Karaoke</strong> first -- every phone loads the song and background photo and shows "Enable Sound" if needed, but nothing plays yet. Once everyone's ready, click <strong>Start Karaoke</strong> to begin perfectly in sync. This does not change the normal Show Magic or Show Messages flow.</p>
+    <details class="card" id="card-review">
+      <summary><h2>Review Settings</h2></summary>
       <div class="grid">
-        <div><label>Karaoke MP3 URL</label><input id="karaokeAudioUrl" type="url" placeholder="https://.../song.mp3" /></div>
-        <div><label>Karaoke Lyrics .LRC URL</label><input id="karaokeLrcUrl" type="url" placeholder="https://.../song.lrc" /></div>
-        <div><label>Karaoke Background Image URL (optional)</label><input id="karaokeBgUrl" type="url" placeholder="https://.../photo.jpg" /></div>
-        <div><label>Karaoke Title</label><input id="karaokeTitle" type="text" placeholder="Sophia's Song" /></div>
+        <div><label>Google review URL</label><input id="reviewUrl" type="url" /></div>
+        <label class="checkrow"><input id="autoRedirect" type="checkbox" />Auto redirect</label>
+        <div><label>Redirect delay (ms)</label><input id="autoRedirectDelayMs" type="number" value="3000" /></div>
       </div>
-      <div class="actions">
-        <button id="btnKaraokePrepareStep" class="secondary">1. Prepare Karaoke</button>
-        <button id="btnStartKaraoke">2. Start Karaoke</button>
-        <button id="btnStopKaraoke" class="secondary">Stop Karaoke</button>
+    </details>
+
+    <details class="card" id="card-ioslaunch">
+      <summary><h2>iPhone App Launch (Host on iPhone)</h2></summary>
+      <div class="grid">
+        <label class="checkrow"><input id="iosLaunchEnabled" type="checkbox" />Open app after “Show Magic”</label>
+        <div><label>Delay (ms)</label><input id="iosLaunchDelayMs" type="number" value="250" /></div>
+        <div><label>Deep link URL</label><input id="iosLaunchUrl" type="url" /></div>
       </div>
-    </section>
+    </details>
+
+    <details class="card" id="card-reveal">
+      <summary><h2>Reveal Settings</h2></summary>
+      <div class="grid">
+        <div><label>Reveal URL (image or page)</label><input id="revealUrl" type="url" /></div>
+        <div><label>Logo URL (optional)</label><input id="logoUrl" type="url" /></div>
+        <div><label>Logo duration (ms)</label><input id="logoMs" type="number" value="4000" /></div>
+        <div><label>Animation duration (ms)</label><input id="animationMs" type="number" value="12000" /></div>
+      </div>
+      <div class="radioRow">
+        <label>Reveal type</label>
+        <label><input type="radio" name="revealType" value="page" checked />Page (iframe)</label>
+        <label><input type="radio" name="revealType" value="image" />Image</label>
+      </div>
+      <label class="checkrow"><input id="skipAnimation" type="checkbox" />Skip animation (instant reveal)</label>
+      <div class="actions"><button id="btnSendReveal">Show Magic</button></div>
+    </details>
 
   </main>
 
