@@ -522,11 +522,18 @@ function postHostActionFallback(action, payload = {}) {
 function emitHostAction(eventName, actionName, payload = {}) {
   const body = { ...payload, room: ROOM, clientTs: Date.now() };
 
-  // Send both ways. Socket is instant when connected; HTTP makes sure the room state
-  // is also updated even if the mobile browser or Wi‑Fi briefly drops the socket.
-  try {
-    if (socket.connected) socket.emit(eventName, body);
-  } catch {}
+  // HTTP is a fallback for when the socket is actually down (mobile browser
+  // paused it, Wi-Fi dropped), NOT a second parallel send. Firing both
+  // unconditionally raced two DIFFERENT actions' deliveries against each
+  // other whenever they were clicked in quick succession (e.g. Show Messages
+  // then Reset Phase): the socket messages usually landed in click order, but
+  // the older action's HTTP fallback could straggle in afterward (slower,
+  // cold network request) and silently reapply it -- Reset Phase "not
+  // sticking", the room reverting to review. Only using HTTP when the socket
+  // isn't connected removes that race for the normal (connected) case.
+  if (socket.connected) {
+    try { socket.emit(eventName, body); return; } catch {}
+  }
   postHostActionFallback(actionName, body);
 }
 
