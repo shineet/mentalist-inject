@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Whisper Remote — BLE Diagnostic</title>
+<style>
+  * { box-sizing: border-box; }
+  body { background:#0a0a0f; color:#e8e6ef; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  p.hint { color:#8a86a0; font-size:14px; line-height:1.5; }
+  button#connectBtn { background:#7c5cff; color:#fff; border:0; border-radius:10px; padding:14px 22px; font-size:16px; font-weight:700; cursor:pointer; margin: 10px 0; }
+  button#connectBtn:disabled { opacity:.5; cursor:default; }
+  button#clearBtn { background:#2b2b46; color:#e8e6ef; border:0; border-radius:8px; padding:8px 14px; font-size:13px; cursor:pointer; margin-left:8px; }
+  #status { margin: 14px 0; padding: 10px 14px; border-radius:8px; background:#1a1a26; font-size:14px; }
+  #status.connected { background:#1a3a28; color:#8fe0a5; }
+  #status.error { background:#3a1a1a; color:#f8a0a0; }
+  #log { margin-top:16px; background:#111118; border:1px solid #2a2a3a; border-radius:10px; padding:14px; min-height: 200px; max-height: 500px; overflow-y:auto; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size:13px; }
+  .entry { margin-bottom:8px; padding-bottom:8px; border-bottom:1px solid #222230; }
+  .entry .t { color:#7c5cff; }
+  .entry .c { color:#ffd76a; font-weight:700; }
+  .entry .empty { color:#555; }
+</style>
+</head>
+<body>
+<h1>&#128269; Whisper Remote &mdash; BLE Diagnostic</h1>
+<p class="hint">
+  Connects directly to the "Whisper" remote over Bluetooth and logs every notification it sends,
+  from both Notify-capable characteristics LightBlue found. Click Connect, choose "Whisper" from
+  the picker, then press each of the 5 buttons one at a time (with a pause between) and watch what
+  shows up below &mdash; that tells us which characteristic reports button presses and how to tell
+  the buttons apart.
+</p>
+
+<button id="connectBtn">Connect to Whisper</button>
+<button id="clearBtn">Clear log</button>
+<div id="status">Not connected.</div>
+<div id="log"></div>
+
+<script>
+  // Custom GATT service/characteristics found via LightBlue -- this is the common
+  // ESP32 BLE example service UUID pattern, not a truly proprietary protocol.
+  const SERVICE_UUID = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
+  const NOTIFY_CHARS = [
+    { uuid: 'beb5483e-36e1-4688-b7f5-ea07361b26a8', label: 'Characteristic …A8' },
+    { uuid: 'beb5483e-36e1-4688-b7f5-ea07361b26aa', label: 'Characteristic …AA' },
+  ];
+
+  const connectBtn = document.getElementById('connectBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const statusEl = document.getElementById('status');
+  const logEl = document.getElementById('log');
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = cls || '';
+  }
+
+  function logEvent(charLabel, value) {
+    const bytes = [];
+    for (let i = 0; i < value.byteLength; i++) bytes.push(value.getUint8(i));
+    const hex = bytes.map((b) => b.toString(16).padStart(2, '0')).join(' ');
+    const dec = bytes.join(', ');
+    const time = new Date().toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3 });
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = bytes.length
+      ? `<span class="t">${time}</span> &mdash; <span class="c">${charLabel}</span><br>hex: ${hex} &nbsp; dec: [${dec}] &nbsp; length: ${value.byteLength}`
+      : `<span class="t">${time}</span> &mdash; <span class="c">${charLabel}</span> <span class="empty">(empty notification, 0 bytes)</span>`;
+    logEl.prepend(div);
+  }
+
+  function logNote(text) {
+    const time = new Date().toLocaleTimeString();
+    const div = document.createElement('div');
+    div.className = 'entry';
+    div.innerHTML = `<span class="t">${time}</span> &mdash; ${text}`;
+    logEl.prepend(div);
+  }
+
+  async function connect() {
+    try {
+      setStatus('Requesting device…');
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [{ services: [SERVICE_UUID] }, { name: 'Whisper' }],
+        optionalServices: [SERVICE_UUID, 'battery_service'],
+      });
+
+      setStatus('Connecting to ' + device.name + '…');
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+
+      let subscribed = 0;
+      for (const { uuid, label } of NOTIFY_CHARS) {
+        try {
+          const char = await service.getCharacteristic(uuid);
+          await char.startNotifications();
+          char.addEventListener('characteristicvaluechanged', (e) => logEvent(label, e.target.value));
+          subscribed++;
+          logNote(`Subscribed to ${label}`);
+        } catch (e) {
+          logNote(`Could not subscribe to ${label}: ${e.message}`);
+        }
+      }
+
+      device.addEventListener('gattserverdisconnected', () => {
+        setStatus('Disconnected. Click Connect to reconnect.', 'error');
+        connectBtn.disabled = false;
+      });
+
+      setStatus(`Connected to ${device.name} — listening on ${subscribed} characteristic(s). Press the remote's buttons now, one at a time.`, 'connected');
+      connectBtn.disabled = true;
+    } catch (e) {
+      setStatus('Error: ' + e.message, 'error');
+      console.error(e);
+    }
+  }
+
+  connectBtn.addEventListener('click', connect);
+  clearBtn.addEventListener('click', () => { logEl.innerHTML = ''; });
+
+  if (!navigator.bluetooth) {
+    setStatus('This browser does not support Web Bluetooth. Use Chrome or Edge on your Mac (not Safari, not iPhone -- neither support this).', 'error');
+    connectBtn.disabled = true;
+  }
+</script>
+</body>
+</html>
