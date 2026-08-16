@@ -84,7 +84,13 @@
     {
       key: 'face',
       type: 'relational',
-      say: 'Move to the emoji with a face that is CLOSEST to the one you picked. If two look equally close, take either one.',
+      // Both escape hatches are stated out loud. Half the grid IS a face, so
+      // those spectators map to themselves and would otherwise sit there
+      // wondering whether they had misunderstood; and 12 of the 24 starts
+      // give a tie for 'nearest'. Neither is a flaw, but an unspoken one
+      // reads to a spectator as having got it wrong, and hesitation is what
+      // makes a routine feel like a test instead of a game.
+      say: 'Move to the emoji with a face that is CLOSEST to the one you picked. If yours already has a face, stay where you are. If two look equally close, take either one.',
       requires: ['face'],
     },
     {
