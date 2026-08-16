@@ -3,62 +3,75 @@
  *
  * THE PRINCIPLE
  * Each instruction is "switch to any emoji that is X". Whatever a spectator is
- * looking at, they end up somewhere in the set of items matching X, so after
- * the instruction the whole room is inside that set no matter where they
- * started. Stack instructions whose matching sets nest and shrink, and the
- * room converges. Nobody is ever told they were wrong, and nobody is ever
- * short of options.
+ * looking at, they end up somewhere in the set matching X, so after the
+ * instruction the whole room is inside that set no matter where they started.
+ * The last set has one member, and the room has converged.
  *
- * WHY IT DOES NOT FEEL FORCED
- *  - Every round leaves several valid answers, so the choice is real. Only the
- *    final round has one, and by then it reads as the reveal, not a rule.
- *  - The criterion CHANGES kind every round: a feature, then a position, then
- *    a category, then a colour. Five rounds of the same kind of rule reads as
- *    an algorithm; five different kinds reads as a game.
- *  - Nothing is ever removed from the grid mid-routine. Items vanishing round
- *    by round is what exposes a funnel. There is exactly one vanish, at the end.
- *  - The wording is always "switch to", never "cross out" or "eliminate".
- *    Elimination language invites people to reconstruct the logic afterwards.
+ * WHY THE ROUNDS ARE DISJOINT, NOT NESTED
+ * The obvious build is a sieve: faces, then left-half faces, then left-half
+ * animals, narrowing each time. Two things go wrong with it, and both were
+ * caught by looking at the routine rather than the code:
+ *
+ *  1. Anyone already inside the next set does not move. Half the room stands
+ *     still while the other half moves, which looks like some people got it
+ *     wrong.
+ *  2. The survivors bunch up. In the sieve version the last three rounds all
+ *     lived in column 0, so the closing moves were visibly up and down a
+ *     single column -- the exact moment a spectator sees the machinery.
+ *
+ * So consecutive rounds are now DISJOINT: no emoji is in both round N and
+ * round N+1. Everyone moves, every single time. And because each round is a
+ * different category rather than a subset of the last, the pool never appears
+ * to shrink -- it changes character. It is not a funnel until the final beat.
+ *
+ * The layout is then arranged so the closing sets are spread across rows AND
+ * columns, making the last moves diagonal jumps across the grid rather than a
+ * slide along one line.
  *
  * WHY THE VERIFIER EXISTS
  * A hand-built set fails silently. Get one tag wrong and a few spectators end
- * on the wrong emoji, say nothing, and the only symptom is a soft reaction you
- * cannot explain. verifySet() walks every possible path from every possible
- * starting emoji and refuses to pass unless all of them land on exactly one.
- * Run it against any set before performing it.
+ * elsewhere, say nothing, and the only symptom is a soft reaction you cannot
+ * explain. verifySet() refuses to pass a set that does not end on exactly one
+ * emoji, that strands anyone with nothing to move to, that lets anyone stand
+ * still, or whose closing rounds sit in a single row or column.
  */
 
 (function (root) {
   'use strict';
 
-  // 6 x 4. Column index decides the positional tags, so the layout and the
-  // instructions cannot drift apart -- "left half" is derived, never typed.
   const COLUMNS = 6;
 
   // prettier-ignore
   const EMOJI = [
-    '🐸', '🍎', '🤖',   '🐶', '🍌', '🍕',
-    '🐨', '⚽', '🌵',   '🐱', '🎸', '🔑',
-    '👻', '⭐', '🍉',   '🦁', '✈️', '📚',
-    '🐼', '🧊', '🎈',   '🐵', '😀', '🚗',
+    '🍎', '🐼', '⚽',   '🍌', '🐶', '✈️',
+    '👻', '🍕', '🐸',   '🎸', '⭐', '🐱',
+    '🔑', '🦁', '🍉',   '🐨', '📚', '🎈',
+    '🤖', '🚗', '😀',   '🧊', '🐵', '🍦',
   ];
 
-  // Hand-tagged properties. Positional tags are added below from the index, so
-  // moving an emoji in the grid updates them automatically.
+  // Positional tags are derived from the index below, so moving an emoji in the
+  // grid updates them automatically and the layout can never drift out of step
+  // with the instructions.
   const TAGS = {
+    // Faces — round 1's destination.
+    '🐼': ['face', 'animal', 'greyish'],
+    '🐨': ['face', 'animal', 'greyish'],
     '🐸': ['face', 'animal', 'green'],
-    '🐨': ['face', 'animal'],
-    '👻': ['face'],
-    '🐼': ['face', 'animal', 'blackwhite'],
-    '🤖': ['face'],
     '🐶': ['face', 'animal'],
     '🐱': ['face', 'animal'],
     '🦁': ['face', 'animal'],
     '🐵': ['face', 'animal'],
+    '👻': ['face'],
+    '🤖': ['face'],
     '😀': ['face'],
-    '🌵': ['green'],
-    '🍎': [], '⚽': ['blackwhite'], '⭐': [], '🍉': ['green'], '🧊': [], '🎈': [],
-    '🍌': [], '🍕': [], '🎸': [], '🔑': [], '✈️': [], '📚': [], '🚗': [],
+    // Food — round 2.
+    '🍎': ['food'], '🍌': ['food'], '🍕': ['food'], '🍉': ['food'], '🍦': ['food'],
+    // Objects — round 3.
+    '⚽': ['object'], '✈️': ['object'], '🎸': ['object'],
+    '🔑': ['object'], '📚': ['object'], '🚗': ['object'],
+    // Decoys, in no instruction set at all. They exist so the grid reads as an
+    // arbitrary pile of emoji rather than three tidy categories.
+    '⭐': [], '🎈': [], '🧊': [],
   };
 
   function buildItems() {
@@ -73,55 +86,48 @@
   }
 
   /*
-   * Each round's matching set is defined by tags, prefixed with "!" to negate.
-   * The rounds nest deliberately: a spectator always moves to something that
-   * still satisfies everything asked so far, so each instruction reads as
-   * narrowing rather than as being sent somewhere unrelated.
+   * Round 1 is RELATIONAL so the spectator's own free choice decides where they
+   * go -- with every round absolute, the emoji they picked at the top is
+   * discarded immediately, and that is the thread anyone replaying the routine
+   * would pull first. excludeSelf keeps it honest: someone who picked a face
+   * still has to move.
    *
-   * 24 -> 10 -> 5 -> 3 -> 2 -> 1
+   * Rounds 2-5 are absolute and disjoint from their neighbours, so each one
+   * moves every person in the room.
    */
   const ROUNDS = [
     {
       key: 'face',
       type: 'relational',
-      // Both escape hatches are stated out loud. Half the grid IS a face, so
-      // those spectators map to themselves and would otherwise sit there
-      // wondering whether they had misunderstood; and 12 of the 24 starts
-      // give a tie for 'nearest'. Neither is a flaw, but an unspoken one
-      // reads to a spectator as having got it wrong, and hesitation is what
-      // makes a routine feel like a test instead of a game.
-      say: 'Move to the emoji with a face that is CLOSEST to the one you picked. If yours already has a face, stay where you are. If two look equally close, take either one.',
+      excludeSelf: true,
+      say: 'Move to the CLOSEST emoji that has a face — not your own one. If two look equally close, take either.',
       requires: ['face'],
     },
     {
-      key: 'left',
-      say: 'Now switch to any emoji with a face on the LEFT half of the screen.',
-      requires: ['face', 'leftHalf'],
+      key: 'food',
+      say: 'Now jump to any FOOD on the screen.',
+      requires: ['food'],
     },
     {
-      key: 'animal',
-      say: 'Switch to any of those that is an animal.',
-      requires: ['face', 'leftHalf', 'animal'],
+      key: 'object',
+      say: 'Now jump to any OBJECT — something you could pick up and carry.',
+      requires: ['object'],
     },
     {
-      key: 'colour',
-      say: 'Switch to any of those that is NOT black and white.',
-      requires: ['face', 'leftHalf', 'animal', '!blackwhite'],
+      key: 'grey',
+      say: 'Now go to an animal that is black, white or grey.',
+      requires: ['animal', 'greyish'],
     },
     {
       key: 'final',
-      say: 'And settle on the green one.',
-      requires: ['face', 'leftHalf', 'animal', '!blackwhite', 'green'],
+      say: 'And finally — the green animal.',
+      requires: ['animal', 'green'],
     },
   ];
 
-  /*
-   * Chebyshev ("king move") distance. Chosen over Manhattan because it matches
-   * how the grid actually reads on screen: a diagonal neighbour looks just as
-   * close as one straight up, so "nearest" should agree with the eye rather
-   * than with a taxi route.
-   */
   function distance(a, b) {
+    // Chebyshev ("king move"): a diagonal neighbour looks as close as one
+    // straight up, so "nearest" agrees with the eye rather than a taxi route.
     return Math.max(Math.abs(a.row - b.row), Math.abs(a.column - b.column));
   }
 
@@ -133,58 +139,66 @@
     );
   }
 
-  /*
-   * Where a spectator may go this round.
-   *
-   * ABSOLUTE rounds ("switch to any emoji that is X") ignore where they are:
-   * the whole room lands inside the matching set at once.
-   *
-   * RELATIONAL rounds ("move to the nearest X") depend on where they already
-   * are, which is the point of using them -- it makes the free choice at the
-   * top actually determine something. Every emoji at the minimum distance is
-   * returned, not just one: ties are a genuine free choice for the spectator,
-   * and the verifier has to walk all of them or it is not proving anything.
-   */
   function allowedTargets(items, round, from) {
-    const candidates = items.filter((item) => matches(item, round.requires));
+    let candidates = items.filter((item) => matches(item, round.requires));
+    if (round.excludeSelf && from) {
+      candidates = candidates.filter((c) => c.id !== from.id);
+    }
     if (round.type !== 'relational' || !from) return candidates;
     if (!candidates.length) return [];
     const best = Math.min(...candidates.map((c) => distance(from, c)));
+    // Every emoji at the minimum distance, not just one: a tie is a genuine
+    // free choice, and the verifier has to walk all of them to prove anything.
     return candidates.filter((c) => distance(from, c) === best);
   }
 
-  /*
-   * Walks every path from every starting emoji.
-   *
-   * Two ways a set can be broken, and both are checked:
-   *  1. A round with NO valid target strands the room mid-routine -- worse
-   *     than a wrong answer, because people visibly cannot comply.
-   *  2. A final set larger than one means some spectators end elsewhere. That
-   *     is the silent failure this whole function exists to prevent.
-   */
   function verifySet(set) {
     const items = set.items;
     const problems = [];
+    const warnings = [];
     const sizes = [items.length];
+    const layers = [];
 
     let reachable = items.slice();
     set.rounds.forEach((round, i) => {
-      // Union over every position the room could currently be in. For an
-      // absolute round that collapses to one set; for a relational one it is a
-      // real breadth-first step, since two spectators on different emoji get
-      // different options.
       const next = new Map();
+      let someoneStandsStill = false;
+
       reachable.forEach((from) => {
         const targets = allowedTargets(items, round, from);
         if (targets.length === 0) {
           problems.push(
-            `Round ${i + 1} (${round.key}): nothing matches from ${from.emoji}, which strands anyone there.`
+            `Round ${i + 1} (${round.key}): nothing to move to from ${from.emoji}.`
           );
         }
+        // Every instruction must actually move everyone. Someone standing still
+        // while the room moves looks like a mistake they made.
+        if (targets.some((t) => t.id === from.id)) someoneStandsStill = true;
         targets.forEach((t) => next.set(t.id, t));
       });
+
+      if (someoneStandsStill) {
+        problems.push(
+          `Round ${i + 1} (${round.key}): someone can stay put. Consecutive rounds must be disjoint.`
+        );
+      }
+
       reachable = Array.from(next.values());
+      layers.push(reachable);
       sizes.push(reachable.length);
+
+      // The closing rounds are where a spectator is most likely to see the
+      // shape of it. Two or three emoji in a line read as a mechanism; the same
+      // emoji scattered read as coincidence.
+      if (reachable.length > 1 && reachable.length <= 3) {
+        const rows = new Set(reachable.map((r) => r.row));
+        const cols = new Set(reachable.map((r) => r.column));
+        if (rows.size === 1 || cols.size === 1) {
+          warnings.push(
+            `Round ${i + 1} (${round.key}) leaves ${reachable.length} emoji in a single ${rows.size === 1 ? 'row' : 'column'} — that move will look mechanical.`
+          );
+        }
+      }
     });
 
     if (reachable.length !== 1) {
@@ -193,39 +207,27 @@
       );
     }
 
-    // A round that does not shrink the set is a wasted beat on stage: the
-    // audience makes a choice that changed nothing. Not fatal, worth knowing.
-    const stalled = [];
-    for (let i = 1; i < sizes.length; i++) {
-      const round = set.rounds[i - 1];
-      // A relational round's job is to make the spectator's own position
-      // matter, not to shrink the field, so a flat step there is by design.
-      if (round.type === 'relational') continue;
-      if (sizes[i] >= sizes[i - 1]) stalled.push(round.key);
-    }
-
     return {
       ok: problems.length === 0,
       problems,
+      warnings,
       sizes,
-      stalled,
+      layers,
       target: reachable.length === 1 ? reachable[0] : null,
-      // Rough sense of how free it felt: the product of the choices offered.
       apparentPaths: sizes.slice(0, -1).reduce((a, b) => a * b, 1),
     };
   }
 
   const SET = {
-    id: 'emoji-24-v1',
+    id: 'emoji-24-v2',
     columns: COLUMNS,
     items: buildItems(),
     rounds: ROUNDS,
   };
 
-  // Attached to globalThis rather than exported: this loads as a classic
-  // <script> in the browser alongside the other public/ files, and package.json
-  // sets "type": "module", so a CommonJS export here would never run under Node
-  // either. globalThis is the one thing both agree on, which also lets the
-  // verifier be run from the command line before a show.
+  // globalThis rather than an export: this loads as a classic <script> in the
+  // browser, and package.json sets "type": "module", so a CommonJS export would
+  // never run under Node either. This is the one thing both agree on, which
+  // also lets the verifier be run from the command line before a show.
   root.InteractiveSet = { SET, verifySet, allowedTargets, matches, COLUMNS };
 })(globalThis);
