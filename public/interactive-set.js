@@ -83,12 +83,13 @@
   const ROUNDS = [
     {
       key: 'face',
-      say: 'Switch to any emoji on the screen that has a face.',
+      type: 'relational',
+      say: 'Move to the emoji with a face that is CLOSEST to the one you picked. If two look equally close, take either one.',
       requires: ['face'],
     },
     {
       key: 'left',
-      say: 'Now switch to any one of those on the LEFT half of the screen.',
+      say: 'Now switch to any emoji with a face on the LEFT half of the screen.',
       requires: ['face', 'leftHalf'],
     },
     {
@@ -108,6 +109,16 @@
     },
   ];
 
+  /*
+   * Chebyshev ("king move") distance. Chosen over Manhattan because it matches
+   * how the grid actually reads on screen: a diagonal neighbour looks just as
+   * close as one straight up, so "nearest" should agree with the eye rather
+   * than with a taxi route.
+   */
+  function distance(a, b) {
+    return Math.max(Math.abs(a.row - b.row), Math.abs(a.column - b.column));
+  }
+
   function matches(item, requires) {
     return requires.every((tag) =>
       tag.charAt(0) === '!'
@@ -116,8 +127,24 @@
     );
   }
 
-  function allowedTargets(items, round) {
-    return items.filter((item) => matches(item, round.requires));
+  /*
+   * Where a spectator may go this round.
+   *
+   * ABSOLUTE rounds ("switch to any emoji that is X") ignore where they are:
+   * the whole room lands inside the matching set at once.
+   *
+   * RELATIONAL rounds ("move to the nearest X") depend on where they already
+   * are, which is the point of using them -- it makes the free choice at the
+   * top actually determine something. Every emoji at the minimum distance is
+   * returned, not just one: ties are a genuine free choice for the spectator,
+   * and the verifier has to walk all of them or it is not proving anything.
+   */
+  function allowedTargets(items, round, from) {
+    const candidates = items.filter((item) => matches(item, round.requires));
+    if (round.type !== 'relational' || !from) return candidates;
+    if (!candidates.length) return [];
+    const best = Math.min(...candidates.map((c) => distance(from, c)));
+    return candidates.filter((c) => distance(from, c) === best);
   }
 
   /*
@@ -136,14 +163,21 @@
 
     let reachable = items.slice();
     set.rounds.forEach((round, i) => {
-      const targets = allowedTargets(items, round);
-      if (targets.length === 0) {
-        problems.push(`Round ${i + 1} (${round.key}) has no matching emoji.`);
-      }
-      // Every instruction is "switch to any X", so wherever the room was, it
-      // is now exactly the set matching X. Reachability does not depend on
-      // where anyone came from.
-      reachable = targets;
+      // Union over every position the room could currently be in. For an
+      // absolute round that collapses to one set; for a relational one it is a
+      // real breadth-first step, since two spectators on different emoji get
+      // different options.
+      const next = new Map();
+      reachable.forEach((from) => {
+        const targets = allowedTargets(items, round, from);
+        if (targets.length === 0) {
+          problems.push(
+            `Round ${i + 1} (${round.key}): nothing matches from ${from.emoji}, which strands anyone there.`
+          );
+        }
+        targets.forEach((t) => next.set(t.id, t));
+      });
+      reachable = Array.from(next.values());
       sizes.push(reachable.length);
     });
 
@@ -157,7 +191,11 @@
     // audience makes a choice that changed nothing. Not fatal, worth knowing.
     const stalled = [];
     for (let i = 1; i < sizes.length; i++) {
-      if (sizes[i] >= sizes[i - 1]) stalled.push(set.rounds[i - 1].key);
+      const round = set.rounds[i - 1];
+      // A relational round's job is to make the spectator's own position
+      // matter, not to shrink the field, so a flat step there is by design.
+      if (round.type === 'relational') continue;
+      if (sizes[i] >= sizes[i - 1]) stalled.push(round.key);
     }
 
     return {
