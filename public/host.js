@@ -93,6 +93,13 @@ const els = {
   btnSchoolShowNext: document.getElementById("btnSchoolShowNext"),
   btnUpdateCinematicPage: document.getElementById("btnUpdateCinematicPage"),
 
+  btnStartInteractive: document.getElementById("btnStartInteractive"),
+  btnInteractivePrev: document.getElementById("btnInteractivePrev"),
+  btnInteractiveNext: document.getElementById("btnInteractiveNext"),
+  btnInteractiveReveal: document.getElementById("btnInteractiveReveal"),
+  interactiveStatus: document.getElementById("interactiveStatus"),
+  interactiveScript: document.getElementById("interactiveScript"),
+
   reviewUrl: document.getElementById("reviewUrl"),
   btnGoToReview: document.getElementById("btnGoToReview"),
   revealMusicUrl: document.getElementById("revealMusicUrl"),
@@ -562,6 +569,43 @@ els.btnSendReview.addEventListener("click", () => {
   emitHostAction("host:sendToReview", "sendToReview", p);
   markContentTriggered();
 });
+
+// ── Interactive emoji routine ──────────────────────────────────────────────
+// The panel runs the verifier on load and shows the result. If a set is ever
+// edited and stops converging, that has to be visible HERE, before a show,
+// rather than discovered as a soft reaction in the room.
+(function initInteractive() {
+  const kit = globalThis.InteractiveSet;
+  if (!kit || !els.interactiveStatus) return;
+
+  const result = kit.verifySet(kit.SET);
+  if (result.ok) {
+    els.interactiveStatus.innerHTML =
+      "✅ <b>Set verified</b> — every path ends on " +
+      result.target.emoji +
+      " &nbsp;·&nbsp; " + result.sizes.join(" → ");
+    els.interactiveStatus.style.color = "#8fe0a5";
+  } else {
+    els.interactiveStatus.innerHTML =
+      "⛔ <b>DO NOT PERFORM</b> — " + result.problems.join(" ");
+    els.interactiveStatus.style.color = "#ff8a8a";
+  }
+
+  // The script, so the wording is in front of Shine while he performs rather
+  // than remembered.
+  els.interactiveScript.innerHTML = kit.SET.rounds
+    .map((r, i) => (i + 1) + ". " + r.say)
+    .join("<br>");
+})();
+
+function interactiveEmit(event, action) {
+  emitHostAction(event, action, { room: ROOM, totalRounds: globalThis.InteractiveSet?.SET.rounds.length || 0 });
+}
+
+els.btnStartInteractive?.addEventListener("click", () => interactiveEmit("host:startInteractive", "startInteractive"));
+els.btnInteractiveNext?.addEventListener("click", () => interactiveEmit("host:interactiveNext", "interactiveNext"));
+els.btnInteractivePrev?.addEventListener("click", () => interactiveEmit("host:interactivePrev", "interactivePrev"));
+els.btnInteractiveReveal?.addEventListener("click", () => interactiveEmit("host:interactiveReveal", "interactiveReveal"));
 
 els.btnSendSchoolShow?.addEventListener("click", () => {
   const p = payloadFromUI();

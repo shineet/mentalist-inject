@@ -169,6 +169,22 @@
       </div>
     </details>
 
+    <details class="card">
+      <summary>🧠 Interactive (everyone ends on the same emoji)</summary>
+      <div class="grid">
+        <div class="field" style="grid-column:1/-1">
+          <div id="interactiveStatus" class="hint">Checking the set…</div>
+          <div id="interactiveScript" class="hint" style="margin-top:6px;line-height:1.5"></div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btnStartInteractive">Show Grid</button>
+        <button id="btnInteractivePrev" class="secondary" type="button">◀ Back</button>
+        <button id="btnInteractiveNext" class="secondary" type="button">Next Instruction ▶</button>
+        <button id="btnInteractiveReveal">✨ Vanish &amp; Reveal</button>
+      </div>
+    </details>
+
     <h2 class="groupHead">⚙️ General Settings</h2>
 
     <details class="card" id="card-audience" open>
@@ -288,6 +304,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="/interactive-set.js?v=1"></script>
   <script src="/host.js?v=88"></script>
 </body>
 </html>

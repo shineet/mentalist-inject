@@ -203,6 +203,7 @@ const views = {
   schoolShow: document.getElementById("viewSchoolShow"),
   review: document.getElementById("viewReview"),
   karaoke: document.getElementById("viewKaraoke"),
+  interactive: document.getElementById("viewInteractive"),
 };
 
 const logoImg = document.getElementById("logoImg");
@@ -506,6 +507,75 @@ function stopRedirectStuff() {
 function showOnly(key) {
   Object.entries(views).forEach(([k, el]) => {
     el.classList.toggle("hidden", k !== key);
+  });
+}
+
+// ── Interactive emoji routine ───────────────────────────────────────────────
+// The set, the instructions and the proof that they converge live in
+// interactive-set.js. This only draws the current step.
+let interactiveDrawn = false;
+
+function renderInteractive(state) {
+  const kit = globalThis.InteractiveSet;
+  const grid = document.getElementById("interactiveGrid");
+  const say = document.getElementById("interactiveSay");
+  if (!kit || !grid || !say) return;
+
+  const set = kit.SET;
+
+  // Build the cells once. Re-rendering them on every state broadcast would
+  // restart the CSS transition and make the final vanish stutter.
+  if (!interactiveDrawn) {
+    grid.innerHTML = "";
+    set.items.forEach((item) => {
+      const cell = document.createElement("div");
+      cell.className = "cell";
+      cell.dataset.id = item.id;
+      cell.textContent = item.emoji;
+      grid.appendChild(cell);
+    });
+    interactiveDrawn = true;
+  }
+
+  const round = state.interactive?.round ?? -1;
+  const revealed = !!state.interactive?.revealed;
+
+  if (revealed) {
+    // Nothing competes with the finish. The last instruction has done its job
+    // and leaving it on screen turns a reveal into a caption.
+    say.textContent = "";
+    say.classList.remove("pick");
+  } else if (round < 0) {
+    say.textContent = "Look at the screen and think of ANY one of these.";
+    say.classList.add("pick");
+  } else {
+    say.textContent = set.rounds[round]?.say || "";
+    say.classList.remove("pick");
+  }
+
+  // The target is read from the verified set rather than stored in server
+  // state, so the reveal can never disagree with the routine that produced it.
+  const result = kit.verifySet(set);
+  const targetId = result.target?.id;
+
+  grid.classList.toggle("revealed", revealed);
+  grid.querySelectorAll(".cell").forEach((cell) => {
+    const isTarget = revealed && cell.dataset.id === targetId;
+    cell.classList.toggle("target", isTarget);
+
+    // Drift the survivor to the middle as the others fade, rather than leaving
+    // it marooned in whatever cell it happened to occupy. Measured from the
+    // rendered boxes so it works at any grid size or orientation, and cleared
+    // when not revealed so stepping Back returns it to its slot.
+    if (isTarget) {
+      const g = grid.getBoundingClientRect();
+      const c = cell.getBoundingClientRect();
+      const dx = (g.left + g.width / 2) - (c.left + c.width / 2);
+      const dy = (g.top + g.height / 2) - (c.top + c.height / 2);
+      cell.style.transform = `translate(${dx}px, ${dy}px) scale(2.6)`;
+    } else {
+      cell.style.transform = "";
+    }
   });
 }
 
@@ -1609,6 +1679,14 @@ async function handleStateUpdate(state) {
       if (!isCurrentRun(schoolShowRun)) return;
       proceedToReview(state);
     });
+    return;
+  }
+
+  if (phase === "interactive") {
+    stopKaraoke();
+    if (phaseChanged) interactiveDrawn = false;  // fresh grid on a fresh run
+    showOnly("interactive");
+    renderInteractive(state);
     return;
   }
 

@@ -178,6 +178,51 @@
   }
 </style>
 
+<style>
+  /* The shared .view is a centred flex row, which put the instruction beside
+     the grid instead of under it. Stack this one. */
+  #viewInteractive {
+    flex-direction: column;
+    justify-content: center;
+  }
+  .emojiGrid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1.6vmin;
+    width: min(96vw, 620px);
+    margin: 0 auto;
+  }
+  .emojiGrid .cell {
+    aspect-ratio: 1 / 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: min(7.4vw, 44px);
+    background: rgba(255,255,255,.05);
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 12px;
+    /* Every cell fades on the same curve, so the finish reads as one movement
+       rather than 23 separate disappearances. */
+    transition: opacity .9s ease, transform .9s ease;
+  }
+  .emojiGrid.revealed .cell { opacity: 0; transform: scale(.82); }
+  .emojiGrid.revealed .cell.target {
+    opacity: 1;
+    background: transparent;
+    border-color: transparent;
+    /* Position and scale come from an inline transform set in audience.js,
+       which measures the real boxes -- a class cannot know where the survivor
+       sits in the grid. */
+  }
+  .emojiSay {
+    margin: 3.2vh auto 0;
+    max-width: min(92vw, 620px);
+    text-align: center;
+    font-size: min(4.6vw, 21px);
+    line-height: 1.45;
+    color: #f2f2f5;
+    min-height: 3.2em;   /* reserve the space so the grid never jumps */
+  }
+  .emojiSay.pick { color: #ffd166; }
+</style>
 </head>
 <body>
   <div id="fxLayer"></div>
@@ -207,6 +252,14 @@
     <div id="clientCard"></div>
     <img id="clientImg" class="hidden" alt="Client" />
     <div id="clientMsg" class="hidden"></div>
+  </section>
+
+  <!-- Interactive emoji routine. The grid never changes size mid-routine:
+       items disappearing round by round is exactly what exposes the funnel,
+       so there is one vanish and it is the finish. -->
+  <section id="viewInteractive" class="view hidden">
+    <div id="interactiveGrid" class="emojiGrid"></div>
+    <div id="interactiveSay" class="emojiSay"></div>
   </section>
 
   <section id="viewSchoolShow" class="view hidden">
@@ -239,7 +292,8 @@
   </section>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/audience.js?v=88"></script>
+  <script src="/interactive-set.js?v=1"></script>
+  <script src="/audience.js?v=89"></script>
 
   <div id="karaokePhotoEnd" class="screen hidden">
     <img id="karaokePhotoEndImg" alt="Client photo" />

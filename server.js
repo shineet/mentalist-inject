@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v139-whisper-remote-ble-diagnostic-page";
+const REVISION = "v140-interactive-emoji-routine";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -157,6 +157,44 @@ app.post("/api/host/:action", (req, res) => {
       return res.json({ ok: true, room, state: getState(room) });
     }
 
+    // Interactive routine. Mirrors the socket handlers above -- without these
+    // the buttons would silently do nothing whenever the host's socket is down,
+    // which is exactly the moment a fallback is supposed to cover.
+    if (action === "startInteractive") {
+      const state = getState(room);
+      setState(room, { ...state, phase: "interactive", interactive: { round: -1, revealed: false } });
+      broadcastState(room);
+      return res.json({ ok: true, room, state: getState(room) });
+    }
+
+    if (action === "interactiveNext") {
+      const state = getState(room);
+      if (state.phase !== "interactive") return res.json({ ok: true, room, state });
+      const total = Number(payload?.totalRounds) || 0;
+      const cur = state.interactive?.round ?? -1;
+      const next = total ? Math.min(cur + 1, total - 1) : cur + 1;
+      setState(room, { ...state, interactive: { ...state.interactive, round: next } });
+      broadcastState(room);
+      return res.json({ ok: true, room, state: getState(room) });
+    }
+
+    if (action === "interactivePrev") {
+      const state = getState(room);
+      if (state.phase !== "interactive") return res.json({ ok: true, room, state });
+      const cur = state.interactive?.round ?? -1;
+      setState(room, { ...state, interactive: { round: Math.max(cur - 1, -1), revealed: false } });
+      broadcastState(room);
+      return res.json({ ok: true, room, state: getState(room) });
+    }
+
+    if (action === "interactiveReveal") {
+      const state = getState(room);
+      if (state.phase !== "interactive") return res.json({ ok: true, room, state });
+      setState(room, { ...state, interactive: { ...state.interactive, revealed: true } });
+      broadcastState(room);
+      return res.json({ ok: true, room, state: getState(room) });
+    }
+
     if (action === "resetPhase") {
       const state = getState(room);
       setState(room, { ...state, phase: "idle" });
@@ -197,7 +235,7 @@ function normalizeRoom(value) {
 
 const defaultState = () => ({
   seq: 0,
-  phase: "idle", // idle | reveal_sequence | revealed | review | karaoke_prepare | karaoke
+  phase: "idle", // idle | reveal_sequence | revealed | review | karaoke_prepare | karaoke | interactive
   revealType: "page", // image | page
   revealUrl: DEFAULT_REVEAL_URL,
   reviewUrl: DEFAULT_REVIEW_URL,
@@ -221,6 +259,14 @@ const defaultState = () => ({
   // Shine can keep more than one configured at once and just flip this
   // between shows. Host-only field (audience.js never reads it).
   dockAltAction: "messages",
+
+  // "Interactive" routine: a grid of emoji, a handful of instructions, and the
+  // whole room ends on the same one. round -1 is the grid with no instruction
+  // yet -- the beat where everyone picks freely. 0..n-1 step through the
+  // instructions. revealed vanishes everything except the target.
+  // The grid, the instructions and the guarantee that they converge all live
+  // in public/interactive-set.js; the server only tracks where we are.
+  interactive: { round: -1, revealed: false },
 
   clientSplash: {
     enabled: true,
@@ -504,6 +550,56 @@ io.on("connection", (socket) => {
       setState(room, { ...state, phase: "revealed" });
       broadcastState(room);
     }
+  });
+
+  // ── Interactive emoji routine ────────────────────────────────────────────
+  // Deliberately four small events rather than one with an index: the host is
+  // driving this live with a remote, and "next" needs to be a single button
+  // press that cannot land on the wrong step because of a stale payload.
+  socket.on("host:startInteractive", (payload = {}) => {
+    if (!allow(socket, "startInteractive", 250)) return;
+    const room = joinRoom(socket, roomOfSocket(socket, payload));
+    const state = getState(room);
+    setState(room, { ...state, phase: "interactive", interactive: { round: -1, revealed: false } });
+    broadcastState(room);
+  });
+
+  socket.on("host:interactiveNext", (payload = {}) => {
+    if (!allow(socket, "interactiveNext", 150)) return;
+    const room = joinRoom(socket, roomOfSocket(socket, payload));
+    const state = getState(room);
+    if (state.phase !== "interactive") return;
+    const total = Number(payload?.totalRounds) || 0;
+    const current = state.interactive?.round ?? -1;
+    // Clamped by the host's own round count rather than hardcoded here, so the
+    // server never needs to know what is in the set file.
+    const next = total ? Math.min(current + 1, total - 1) : current + 1;
+    setState(room, { ...state, interactive: { ...state.interactive, round: next } });
+    broadcastState(room);
+  });
+
+  socket.on("host:interactivePrev", (payload = {}) => {
+    if (!allow(socket, "interactivePrev", 150)) return;
+    const room = joinRoom(socket, roomOfSocket(socket, payload));
+    const state = getState(room);
+    if (state.phase !== "interactive") return;
+    const current = state.interactive?.round ?? -1;
+    setState(room, {
+      ...state,
+      // Stepping back also un-reveals, so a mis-tapped reveal is recoverable
+      // mid-show instead of being a dead end.
+      interactive: { round: Math.max(current - 1, -1), revealed: false },
+    });
+    broadcastState(room);
+  });
+
+  socket.on("host:interactiveReveal", (payload = {}) => {
+    if (!allow(socket, "interactiveReveal", 250)) return;
+    const room = joinRoom(socket, roomOfSocket(socket, payload));
+    const state = getState(room);
+    if (state.phase !== "interactive") return;
+    setState(room, { ...state, interactive: { ...state.interactive, revealed: true } });
+    broadcastState(room);
   });
 
   socket.on("host:preloadKaraokeSilent", (payload = {}) => {
