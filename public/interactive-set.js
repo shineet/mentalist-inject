@@ -39,49 +39,85 @@
 (function (root) {
   'use strict';
 
-  const COLUMNS = 6;
+  // The scatter lives in a box of this fixed aspect on EVERY screen, phone or
+  // projector. That is not cosmetic: round 1 asks for the nearest face, so if
+  // the layout reflowed differently on a tall phone than on a wide projector,
+  // two spectators would compute different answers and the whole guarantee
+  // would quietly fail. Fixed aspect means identical geometry everywhere.
+  const BOX_W = 1.5;
+  const BOX_H = 1.0;
+
+  // Laid out on an 8 x 5 lattice and then jittered. Deterministic on purpose:
+  // it has to LOOK scattered while being the SAME scatter for the host screen
+  // and every phone in the room.
+  const COLS = 8;
+  const ROWS = 5;
+  const SEED = 0x5ee11e;
 
   // prettier-ignore
-  const EMOJI = [
-    '🍎', '🐼', '⚽',   '🍌', '🐶', '✈️',
-    '👻', '🍕', '🐸',   '🎸', '⭐', '🐱',
-    '🔑', '🦁', '🍉',   '🐨', '📚', '🎈',
-    '🤖', '🚗', '😀',   '🧊', '🐵', '🍦',
-  ];
-
-  // Positional tags are derived from the index below, so moving an emoji in the
-  // grid updates them automatically and the layout can never drift out of step
-  // with the instructions.
-  const TAGS = {
-    // Faces — round 1's destination.
-    '🐼': ['face', 'animal', 'greyish'],
-    '🐨': ['face', 'animal', 'greyish'],
-    '🐸': ['face', 'animal', 'green'],
-    '🐶': ['face', 'animal'],
-    '🐱': ['face', 'animal'],
-    '🦁': ['face', 'animal'],
-    '🐵': ['face', 'animal'],
-    '👻': ['face'],
-    '🤖': ['face'],
-    '😀': ['face'],
-    // Food — round 2.
-    '🍎': ['food'], '🍌': ['food'], '🍕': ['food'], '🍉': ['food'], '🍦': ['food'],
-    // Objects — round 3.
-    '⚽': ['object'], '✈️': ['object'], '🎸': ['object'],
-    '🔑': ['object'], '📚': ['object'], '🚗': ['object'],
-    // Decoys, in no instruction set at all. They exist so the grid reads as an
-    // arbitrary pile of emoji rather than three tidy categories.
-    '⭐': [], '🎈': [], '🧊': [],
+  const GROUPS = {
+    // Round 1's destination. Deliberately no white or grey animals beyond the
+    // two below -- a spectator asked for "black, white or grey" would happily
+    // pick a white rabbit, and their reading of the grid is what matters, not
+    // my tags.
+    face: ['🐼', '🐨', '🐸', '🐶', '🐱', '🦁', '🐵', '🐷', '👻', '🤖', '😀', '🦊'],
+    food: ['🍎', '🍌', '🍕', '🍉', '🍦', '🍔', '🍇', '🥕'],
+    // Round 3 is "not alive and not food", so objects and abstract things are
+    // one pool. Keeping them separate here only documents the intent.
+    object: ['⚽', '🎸', '🔑', '📚', '⌚', '📱', '✏️', '🎩', '🧢', '🔨'],
+    abstract: ['⭐', '🌈', '❤️', '🔥', '💧', '🌙', '🎵', '⚡', '☁️', '🌊'],
   };
 
+  const TAGS = {};
+  GROUPS.face.forEach((e) => (TAGS[e] = ['face', 'animal']));
+  ['👻', '🤖', '😀'].forEach((e) => (TAGS[e] = ['face']));   // faces, not animals
+  TAGS['🐼'] = ['face', 'animal', 'greyish'];
+  TAGS['🐨'] = ['face', 'animal', 'greyish'];
+  TAGS['🐸'] = ['face', 'animal', 'green'];
+  GROUPS.food.forEach((e) => (TAGS[e] = ['food']));
+  GROUPS.object.forEach((e) => (TAGS[e] = ['thing']));
+  GROUPS.abstract.forEach((e) => (TAGS[e] = ['thing']));
+
+  const EMOJI = [].concat(GROUPS.face, GROUPS.food, GROUPS.object, GROUPS.abstract);
+
+  // Small deterministic PRNG. Same seed, same scatter, every device.
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
   function buildItems() {
-    return EMOJI.map((emoji, index) => {
-      const column = index % COLUMNS;
-      const row = Math.floor(index / COLUMNS);
+    const rand = mulberry32(SEED);
+    // Shuffle first so the four category blocks are not laid down in reading
+    // order -- otherwise all the food would sit in one band of the screen.
+    const shuffled = EMOJI.slice();
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const cellW = BOX_W / COLS;
+    const cellH = BOX_H / ROWS;
+    // Jitter stays inside 34% of a cell so nothing can overlap or drift off
+    // the edge, which keeps "nearest" readable at a glance.
+    const jx = cellW * 0.34;
+    const jy = cellH * 0.34;
+
+    return shuffled.map((emoji, index) => {
+      const col = index % COLS;
+      const row = Math.floor(index / COLS);
+      const x = (col + 0.5) * cellW + (rand() * 2 - 1) * jx;
+      const y = (row + 0.5) * cellH + (rand() * 2 - 1) * jy;
       const tags = (TAGS[emoji] || []).slice();
-      tags.push(column < COLUMNS / 2 ? 'leftHalf' : 'rightHalf');
-      tags.push(row < 2 ? 'topHalf' : 'bottomHalf');
-      return { id: 'i' + index, emoji, index, row, column, tags };
+      tags.push(x < BOX_W / 2 ? 'leftHalf' : 'rightHalf');
+      tags.push(y < BOX_H / 2 ? 'topHalf' : 'bottomHalf');
+      // Rotation is cosmetic only, never used by any rule.
+      const tilt = (rand() * 2 - 1) * 14;
+      return { id: 'i' + index, emoji, index, x, y, tilt, tags };
     });
   }
 
@@ -109,9 +145,13 @@
       requires: ['food'],
     },
     {
-      key: 'object',
-      say: 'Now jump to any OBJECT — something you could pick up and carry.',
-      requires: ['object'],
+      key: 'thing',
+      // "Something you could pick up and carry" was ambiguous: an apple is
+      // carryable, so food qualified too and round 3 stopped being disjoint
+      // from round 2 in the spectator's head even though the tags were clean.
+      // Stated as an exclusion instead, which nobody can misread.
+      say: 'Now jump to anything on screen that is NOT alive and NOT food.',
+      requires: ['thing'],
     },
     {
       key: 'grey',
@@ -126,9 +166,12 @@
   ];
 
   function distance(a, b) {
-    // Chebyshev ("king move"): a diagonal neighbour looks as close as one
-    // straight up, so "nearest" agrees with the eye rather than a taxi route.
-    return Math.max(Math.abs(a.row - b.row), Math.abs(a.column - b.column));
+    // Straight-line distance in the fixed-aspect box. Since that box has the
+    // same shape on a phone and a projector, this is exactly what a spectator's
+    // eye measures on either screen.
+    const dx = a.x - b.x;
+    const dy = a.y - b.y;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   function matches(item, requires) {
@@ -191,11 +234,17 @@
       // shape of it. Two or three emoji in a line read as a mechanism; the same
       // emoji scattered read as coincidence.
       if (reachable.length > 1 && reachable.length <= 3) {
-        const rows = new Set(reachable.map((r) => r.row));
-        const cols = new Set(reachable.map((r) => r.column));
-        if (rows.size === 1 || cols.size === 1) {
+        // Two survivors sitting almost on top of each other, or in a dead
+        // straight line with the target, makes the closing move look
+        // mechanical. Measured on the scatter itself now there is no grid.
+        const spread = Math.min(
+          ...reachable.flatMap((a, ai) =>
+            reachable.slice(ai + 1).map((b) => distance(a, b))
+          )
+        );
+        if (isFinite(spread) && spread < 0.25) {
           warnings.push(
-            `Round ${i + 1} (${round.key}) leaves ${reachable.length} emoji in a single ${rows.size === 1 ? 'row' : 'column'} — that move will look mechanical.`
+            `Round ${i + 1} (${round.key}) leaves ${reachable.length} emoji clustered together — that move will barely register.`
           );
         }
       }
@@ -219,8 +268,8 @@
   }
 
   const SET = {
-    id: 'emoji-24-v2',
-    columns: COLUMNS,
+    id: 'emoji-40-scatter-v3',
+    box: { w: BOX_W, h: BOX_H },
     items: buildItems(),
     rounds: ROUNDS,
   };
@@ -229,5 +278,5 @@
   // browser, and package.json sets "type": "module", so a CommonJS export would
   // never run under Node either. This is the one thing both agree on, which
   // also lets the verifier be run from the command line before a show.
-  root.InteractiveSet = { SET, verifySet, allowedTargets, matches, COLUMNS };
+  root.InteractiveSet = { SET, verifySet, allowedTargets, matches, distance };
 })(globalThis);

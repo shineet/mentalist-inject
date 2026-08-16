@@ -184,33 +184,38 @@
   #viewInteractive {
     flex-direction: column;
     justify-content: center;
+    /* Clears the persistent Sound pill anchored at the bottom of the screen,
+       which the instruction line was landing on top of. */
+    padding-bottom: 9vh;
   }
   .emojiGrid {
-    display: grid;
-    grid-template-columns: repeat(6, 1fr);
-    gap: 1.6vmin;
-    width: min(96vw, 620px);
+    /* A fixed 3:2 box on every device. Not cosmetic: round 1 asks for the
+       nearest face, so a layout that reflowed differently on a tall phone than
+       on a wide projector would have two spectators computing different
+       answers. Same shape everywhere, same answer everywhere. */
+    position: relative;
+    width: min(96vw, 148vh);
+    aspect-ratio: 3 / 2;
+    max-height: 72vh;
     margin: 0 auto;
   }
   .emojiGrid .cell {
-    aspect-ratio: 1 / 1;
-    display: flex; align-items: center; justify-content: center;
-    font-size: min(7.4vw, 44px);
-    background: rgba(255,255,255,.05);
-    border: 1px solid rgba(255,255,255,.10);
-    border-radius: 12px;
-    /* Every cell fades on the same curve, so the finish reads as one movement
-       rather than 23 separate disappearances. */
+    position: absolute;
+    /* left/top are set per item in audience.js as percentages of the box.
+       translate(-50%,-50%) centres each emoji on its point; the tilt is
+       cosmetic and never used by any rule. */
+    transform: translate(-50%, -50%) rotate(var(--tilt, 0deg));
+    font-size: min(5.6vw, 8.4vh);
+    line-height: 1;
+    user-select: none;
     transition: opacity .9s ease, transform .9s ease;
   }
-  .emojiGrid.revealed .cell { opacity: 0; transform: scale(.82); }
+  .emojiGrid.revealed .cell { opacity: 0; }
   .emojiGrid.revealed .cell.target {
     opacity: 1;
-    background: transparent;
-    border-color: transparent;
     /* Position and scale come from an inline transform set in audience.js,
-       which measures the real boxes -- a class cannot know where the survivor
-       sits in the grid. */
+       which measures the real boxes -- CSS cannot know where the survivor
+       happens to sit in the scatter. */
   }
   .emojiSay {
     margin: 3.2vh auto 0;
@@ -292,8 +297,8 @@
   </section>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/interactive-set.js?v=3"></script>
-  <script src="/audience.js?v=89"></script>
+  <script src="/interactive-set.js?v=4"></script>
+  <script src="/audience.js?v=90"></script>
 
   <div id="karaokePhotoEnd" class="screen hidden">
     <img id="karaokePhotoEndImg" alt="Client photo" />

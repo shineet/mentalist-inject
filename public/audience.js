@@ -522,9 +522,10 @@ function renderInteractive(state) {
   if (!kit || !grid || !say) return;
 
   const set = kit.SET;
+  const box = set.box || { w: 1.5, h: 1 };
 
-  // Build the cells once. Re-rendering them on every state broadcast would
-  // restart the CSS transition and make the final vanish stutter.
+  // Built once. Re-creating the nodes on every state broadcast would restart
+  // the CSS transition and make the final vanish stutter.
   if (!interactiveDrawn) {
     grid.innerHTML = "";
     set.items.forEach((item) => {
@@ -532,6 +533,12 @@ function renderInteractive(state) {
       cell.className = "cell";
       cell.dataset.id = item.id;
       cell.textContent = item.emoji;
+      // Percentages of a fixed-aspect box, so the scatter is geometrically
+      // identical on a phone and on a projector. Round 1 asks for the nearest
+      // face, so if these reflowed per device the answers would differ.
+      cell.style.left = (item.x / box.w) * 100 + "%";
+      cell.style.top = (item.y / box.h) * 100 + "%";
+      cell.style.setProperty("--tilt", (item.tilt || 0).toFixed(2) + "deg");
       grid.appendChild(cell);
     });
     interactiveDrawn = true;
@@ -541,8 +548,7 @@ function renderInteractive(state) {
   const revealed = !!state.interactive?.revealed;
 
   if (revealed) {
-    // Nothing competes with the finish. The last instruction has done its job
-    // and leaving it on screen turns a reveal into a caption.
+    // Nothing competes with the finish.
     say.textContent = "";
     say.classList.remove("pick");
   } else if (round < 0) {
@@ -553,26 +559,26 @@ function renderInteractive(state) {
     say.classList.remove("pick");
   }
 
-  // The target is read from the verified set rather than stored in server
-  // state, so the reveal can never disagree with the routine that produced it.
-  const result = kit.verifySet(set);
-  const targetId = result.target?.id;
+  // Read from the verified set rather than from server state, so the reveal
+  // can never disagree with the routine that produced it.
+  const targetId = kit.verifySet(set).target?.id;
 
   grid.classList.toggle("revealed", revealed);
   grid.querySelectorAll(".cell").forEach((cell) => {
     const isTarget = revealed && cell.dataset.id === targetId;
     cell.classList.toggle("target", isTarget);
 
-    // Drift the survivor to the middle as the others fade, rather than leaving
-    // it marooned in whatever cell it happened to occupy. Measured from the
-    // rendered boxes so it works at any grid size or orientation, and cleared
-    // when not revealed so stepping Back returns it to its slot.
     if (isTarget) {
+      // Drift the survivor to the middle as the rest fade, rather than leaving
+      // it wherever it happened to sit. Measured from the rendered boxes, so it
+      // is correct at any size. The -50% pair has to be carried through or the
+      // cell would jump by half its own width, since that is what positions it.
       const g = grid.getBoundingClientRect();
       const c = cell.getBoundingClientRect();
       const dx = (g.left + g.width / 2) - (c.left + c.width / 2);
       const dy = (g.top + g.height / 2) - (c.top + c.height / 2);
-      cell.style.transform = `translate(${dx}px, ${dy}px) scale(2.6)`;
+      cell.style.transform =
+        `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(3) rotate(0deg)`;
     } else {
       cell.style.transform = "";
     }
