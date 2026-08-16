@@ -51,8 +51,15 @@
   // it has to LOOK scattered while being the SAME scatter for the host screen
   // and every phone in the room.
   const COLS = 8;
-  const ROWS = 5;
-  const SEED = 0x5ee11e;
+  const ROWS = 6;   // 8 x 6 = 48 slots for 44 emoji; the gaps read as natural
+  // Not a decorative number. The emoji and the instructions are fixed; only the
+  // LAYOUT decides whether the closing relational rounds converge, so this seed
+  // was found by searching the seed space and testing each candidate with
+  // verifySet. 4090 funnels 44 -> 13 -> 9 -> 4 -> 3 -> 1, and the final round
+  // does real work: three different positions all reach the same green while
+  // five greens sit in plain view. Changing it WILL break the routine unless a
+  // new seed is searched for the same way.
+  const SEED = 4090;
 
   // prettier-ignore
   const GROUPS = {
@@ -66,6 +73,12 @@
     // one pool. Keeping them separate here only documents the intent.
     object: ['⚽', '🎸', '🔑', '📚', '⌚', '📱', '✏️', '🎩', '🧢', '🔨'],
     abstract: ['⭐', '🌈', '❤️', '🔥', '💧', '🌙', '🎵', '⚡', '☁️', '🌊'],
+    // Several visibly green things, on purpose. The final instruction has to
+    // have MORE than one honest answer or it is a naked force at the most
+    // exposed moment of the routine -- which is precisely why the closing
+    // rounds are relational: everyone can see five greens, and position alone
+    // decides which one they reach.
+    green: ['🐸', '🌵', '🥑', '🍀', '🐢'],
   };
 
   const TAGS = {};
@@ -77,8 +90,16 @@
   GROUPS.food.forEach((e) => (TAGS[e] = ['food']));
   GROUPS.object.forEach((e) => (TAGS[e] = ['thing']));
   GROUPS.abstract.forEach((e) => (TAGS[e] = ['thing']));
+  TAGS['🐸'] = ['face', 'animal', 'green'];
+  TAGS['🐢'] = ['face', 'animal', 'green'];
+  TAGS['🌵'] = ['green'];
+  TAGS['🥑'] = ['food', 'green'];
+  TAGS['🍀'] = ['green'];
 
-  const EMOJI = [].concat(GROUPS.face, GROUPS.food, GROUPS.object, GROUPS.abstract);
+  const EMOJI = [].concat(
+    GROUPS.face, GROUPS.food, GROUPS.object, GROUPS.abstract,
+    GROUPS.green.filter((e) => e !== '🐸')
+  );
 
   // Small deterministic PRNG. Same seed, same scatter, every device.
   function mulberry32(a) {
@@ -90,8 +111,8 @@
     };
   }
 
-  function buildItems() {
-    const rand = mulberry32(SEED);
+  function buildItems(seed) {
+    const rand = mulberry32(seed === undefined ? SEED : seed);
     // Shuffle first so the four category blocks are not laid down in reading
     // order -- otherwise all the food would sit in one band of the screen.
     const shuffled = EMOJI.slice();
@@ -133,35 +154,32 @@
    */
   const ROUNDS = [
     {
-      key: 'face',
-      type: 'relational',
-      excludeSelf: true,
+      key: 'face', type: 'relational', excludeSelf: true,
       say: 'Move to the CLOSEST emoji that has a face — not your own one. If two look equally close, take either.',
       requires: ['face'],
     },
     {
       key: 'food',
-      say: 'Now jump to any FOOD on the screen.',
+      say: 'Now jump to any FOOD anywhere on the screen.',
       requires: ['food'],
     },
     {
-      key: 'thing',
-      // "Something you could pick up and carry" was ambiguous: an apple is
-      // carryable, so food qualified too and round 3 stopped being disjoint
-      // from round 2 in the spectator's head even though the tags were clean.
-      // Stated as an exclusion instead, which nobody can misread.
-      say: 'Now jump to anything on screen that is NOT alive and NOT food.',
+      key: 'thing', type: 'relational', excludeSelf: true,
+      say: 'Now move to whatever is NEAREST to you that is not alive and not food.',
       requires: ['thing'],
     },
     {
-      key: 'grey',
-      say: 'Now go to an animal that is black, white or grey.',
-      requires: ['animal', 'greyish'],
+      key: 'animal', type: 'relational', excludeSelf: true,
+      say: 'Now move to the ANIMAL nearest to you.',
+      requires: ['animal'],
     },
     {
-      key: 'final',
-      say: 'And finally — the green animal.',
-      requires: ['animal', 'green'],
+      key: 'green', type: 'relational', excludeSelf: true,
+      // Five green things are on screen and every one of them is a legitimate
+      // answer to this. Which one a spectator reaches is decided entirely by
+      // the path their own choices took them along.
+      say: 'And finally — move to the GREEN thing nearest to you.',
+      requires: ['green'],
     },
   ];
 
@@ -268,7 +286,7 @@
   }
 
   const SET = {
-    id: 'emoji-40-scatter-v3',
+    id: 'emoji-44-relational-v4',
     box: { w: BOX_W, h: BOX_H },
     items: buildItems(),
     rounds: ROUNDS,
@@ -278,5 +296,5 @@
   // browser, and package.json sets "type": "module", so a CommonJS export would
   // never run under Node either. This is the one thing both agree on, which
   // also lets the verifier be run from the command line before a show.
-  root.InteractiveSet = { SET, verifySet, allowedTargets, matches, distance };
+  root.InteractiveSet = { SET, verifySet, allowedTargets, matches, distance, buildItems, ROUNDS, BOX_W, BOX_H };
 })(globalThis);
