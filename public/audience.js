@@ -512,7 +512,15 @@ function showOnly(key) {
   // audio, so the Sound pill has nothing to offer while it is up. It comes
   // back for every other phase, so a spectator who never enabled sound still
   // gets the prompt before anything that needs it.
-  document.body.classList.toggle("fieldFullScreen", key === "interactive");
+  //
+  // The same class also makes the document scrollable (see audience.html),
+  // which is what lets iPhone Safari hide its toolbars in landscape. On <html>
+  // as well as <body> because both carry height:100%/overflow:hidden and either
+  // one left alone keeps the page unscrollable.
+  const fieldUp = key === "interactive";
+  document.body.classList.toggle("fieldFullScreen", fieldUp);
+  document.documentElement.classList.toggle("fieldFullScreen", fieldUp);
+  if (!fieldUp) window.scrollTo(0, 0);
 }
 
 // ── Interactive emoji routine ───────────────────────────────────────────────

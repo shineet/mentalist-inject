@@ -24,6 +24,9 @@
   <style>
     :root{color-scheme:dark;--bg:#05050b;--text:#fff;--muted:#cfcfe8;--accent:#7c5cff}
     *{box-sizing:border-box} html,body{width:100%;height:100%;margin:0;overflow:hidden}
+    /* Overscroll would show the page background behind the field while a
+       spectator scrolls to collapse Safari's toolbars. */
+    html.fieldFullScreen{overscroll-behavior:none;background:#05050b}
     body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:radial-gradient(circle at top,#24244f,#05050b 58%);color:var(--text)}
     .view{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:clamp(18px,4vw,56px)}
     .hidden{display:none!important}
@@ -249,6 +252,24 @@
      instructions are spoken) and no Sound pill (this routine has no audio). */
   #interactiveSay { display: none; }
   body.fieldFullScreen #soundHint { display: none !important; }
+
+  /* MAKING THE PAGE SCROLLABLE IS WHAT BUYS TRUE FULL SCREEN ON AN IPHONE.
+     iPhone Safari in landscape hides both toolbars -- but only for a page it
+     considers scrollable. Every other page in this app is deliberately
+     unscrollable (html,body overflow:hidden, fixed views), and that is exactly
+     what pins Safari's chrome in place and leaves the field boxed in.
+     So while the field is up, and only then, the document is given a little
+     more height than the screen. Nothing moves when it scrolls: the field is
+     position:fixed, so this is purely a signal to Safari.
+     This is also why the competitor's page behaves the way it does -- small
+     and chrome-bound in portrait, genuinely full screen once turned. */
+  html.fieldFullScreen,
+  body.fieldFullScreen {
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  body.fieldFullScreen { min-height: calc(100dvh + 160px); }
 
   /* The stage occupies the field's ON-SCREEN footprint, which is the field's
      own box with the sides swapped once it is rotated. A rotated element still
