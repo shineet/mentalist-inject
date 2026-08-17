@@ -584,66 +584,102 @@ els.btnSendReview.addEventListener("click", () => {
   const kit = globalThis.InteractiveSet;
   if (!kit || !els.interactiveStatus) return;
 
-  const result = kit.verifySet(kit.SET);
-  if (result.ok && result.targetIndex !== kit.CLIENT_SLOT) {
-    // Converges, but not onto the slot the client's logo is drawn at -- so the
-    // room would land on a decoy while the client's mark sat untouched
-    // elsewhere. The routine would look like it worked and the payoff would be
-    // gone, which is exactly the failure worth shouting about.
-    els.interactiveStatus.innerHTML =
-      "⛔ <b>DO NOT PERFORM</b> — converges on slot " + result.targetIndex +
-      " but the client logo is drawn at slot " + kit.CLIENT_SLOT +
-      ". Set CLIENT_SLOT to " + result.targetIndex + " in interactive-set.js.";
-    els.interactiveStatus.style.color = "#ff8a8a";
-  } else if (result.ok) {
-    els.interactiveStatus.innerHTML =
-      "✅ <b>Set verified</b> — every path ends on the client logo" +
-      " &nbsp;·&nbsp; " + result.sizes.join(" → ") +
-      (result.warnings.length ? "<br>⚠️ " + result.warnings.join(" ") : "");
-    els.interactiveStatus.style.color = "#8fe0a5";
-  } else {
-    els.interactiveStatus.innerHTML =
-      "⛔ <b>DO NOT PERFORM</b> — " + result.problems.join(" ");
-    els.interactiveStatus.style.color = "#ff8a8a";
+  function currentLogo() {
+    return (els.interactiveLogoUrl?.value || "").trim() ||
+           (els.logoUrl?.value || "").trim();
   }
 
-  // The script, so the wording is in front of Shine while he performs rather
-  // than remembered.
-  els.interactiveScript.innerHTML = kit.SET.rounds
-    .map((r, i) => (i + 1) + ". " + r.say)
-    .join("<br>");
+  // Both sets are verified, not just the one about to be performed. A broken
+  // set that happens to be the inactive one today is still broken, and finding
+  // that out the first time a gig has no logo configured is finding out too
+  // late.
+  function describe(set) {
+    const r = kit.verifySet(set);
+    if (!r.ok) {
+      return { ok: false, html: "⛔ <b>DO NOT PERFORM</b> — " + r.problems.join(" ") };
+    }
+    if (set.wantsLogos && r.targetIndex !== set.clientSlot) {
+      // Converges, but not onto the slot the client's logo is drawn at -- so
+      // the room would land on a decoy while the client's mark sat untouched
+      // elsewhere. The routine would look like it worked and the payoff would
+      // be gone, which is the failure worth shouting about.
+      return {
+        ok: false,
+        html: "⛔ <b>DO NOT PERFORM</b> — converges on slot " + r.targetIndex +
+              " but the client logo is drawn at slot " + set.clientSlot +
+              ". Set CLIENT_SLOT to " + r.targetIndex + " in interactive-set.js.",
+      };
+    }
+    return {
+      ok: true,
+      ends: set.wantsLogos ? "the client logo" : r.target.label,
+      sizes: r.sizes.join(" → "),
+      warnings: r.warnings,
+    };
+  }
+
+  function refreshInteractive() {
+    const logo = currentLogo();
+    const set = kit.setFor(logo);
+    const other = kit.setFor(logo ? "" : "x");
+    const mine = describe(set);
+    const theirs = describe(other);
+
+    if (!mine.ok) {
+      els.interactiveStatus.innerHTML = mine.html;
+      els.interactiveStatus.style.color = "#ff8a8a";
+    } else {
+      els.interactiveStatus.innerHTML =
+        "✅ <b>" + (set.wantsLogos ? "Logo finish" : "Emoji finish") + " armed</b> — " +
+        (set.wantsLogos
+          ? "five logos in the field, every path ends on the client logo"
+          : "no logo set, so no logos in the field; every path ends on " + mine.ends) +
+        " &nbsp;·&nbsp; " + mine.sizes + " items" +
+        (mine.warnings.length ? "<br>⚠️ " + mine.warnings.join(" ") : "") +
+        (theirs.ok ? "" : "<br>⚠️ The other finish is broken: " + theirs.html);
+      els.interactiveStatus.style.color = "#8fe0a5";
+    }
+
+    // The script, so the wording is in front of Shine while he performs rather
+    // than remembered. It changes with the set, since only the last line does.
+    els.interactiveScript.innerHTML = set.rounds
+      .map((r, i) => (i + 1) + ". " + r.say)
+      .join("<br>");
+  }
 
   // Show the logo the way the room will see it -- on its white plate, at the
   // real proportions. A URL that 404s or a logo that turns out to be white on
   // transparent is something to find out here, not from the back of a ballroom.
   function previewLogo() {
+    refreshInteractive();
+
     const box = els.interactiveLogoPreview;
     if (!box) return;
-    const url = (els.interactiveLogoUrl?.value || "").trim() ||
-                (els.logoUrl?.value || "").trim();
+    const url = currentLogo();
     box.innerHTML = "";
+
+    if (!url) {
+      box.textContent =
+        "No logo set. The routine runs emoji only and finishes on the turtle — " +
+        "no logos appear on screen at all.";
+      return;
+    }
 
     const plate = document.createElement("span");
     plate.style.cssText =
       "display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;" +
       "background:#fff;border-radius:14px;padding:8px;vertical-align:middle;margin-right:10px";
     const img = document.createElement("img");
-    img.style.cssText = "max-width:100%;max-height:100%;object-fit:contain;display:block";
+    img.style.cssText = "width:100%;height:100%;object-fit:contain;display:block";
     img.alt = "";
     const note = document.createElement("span");
-
-    if (!url) {
-      note.textContent = "No logo set — the routine will finish on the default mark.";
+    note.textContent = "Loading…";
+    img.onload = () => { note.textContent = "Logo loads. This is what the room converges on."; };
+    img.onerror = () => {
+      note.innerHTML = "⚠️ <b>This URL did not load.</b> The show will fall back to a default mark.";
       img.src = kit.DEFAULT_LOGO;
-    } else {
-      note.textContent = "Loading…";
-      img.onload = () => { note.textContent = "Logo loads. This is what the room converges on."; };
-      img.onerror = () => {
-        note.innerHTML = "⚠️ <b>This URL did not load.</b> The show will fall back to the default mark.";
-        img.src = kit.DEFAULT_LOGO;
-      };
-      img.src = url;
-    }
+    };
+    img.src = url;
 
     plate.appendChild(img);
     box.appendChild(plate);

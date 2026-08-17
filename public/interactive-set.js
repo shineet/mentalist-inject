@@ -141,10 +141,10 @@
     // the intent.
     object: ['⚽', '🎸', '🔑', '📚', '⌚', '📱', '✏️', '🎩', '🧢', '🔨'],
     abstract: ['⭐', '🌈', '❤️', '🔥', '💧', '🌙', '🎵', '⚡', '☁️', '🌊'],
-    // Kept as scenery now the closing round is about logos rather than colour.
-    // 🌵 and 🍀 are alive and not food, so they match no round at all -- they
-    // exist to fill the field, which is exactly what a spectator assumes most
-    // of the screen is doing.
+    // Several visibly green things, on purpose. The EMOJI set's closing
+    // instruction is "the nearest green thing", and it has to have MORE than
+    // one honest answer or it is a naked force at the most exposed moment.
+    // In the LOGO set these tags are simply inert.
     green: ['🐸', '🌵', '🥑', '🍀', '🐢'],
   };
 
@@ -154,11 +154,16 @@
   GROUPS.food.forEach((e) => (TAGS[e] = ['food']));
   GROUPS.object.forEach((e) => (TAGS[e] = ['thing']));
   GROUPS.abstract.forEach((e) => (TAGS[e] = ['thing']));
-  TAGS['🐸'] = ['face', 'animal'];
-  TAGS['🐢'] = ['face', 'animal'];
-  TAGS['🌵'] = [];
-  TAGS['🥑'] = ['food'];
-  TAGS['🍀'] = [];
+  TAGS['🐼'] = ['face', 'animal', 'greyish'];
+  TAGS['🐨'] = ['face', 'animal', 'greyish'];
+  TAGS['🐸'] = ['face', 'animal', 'green'];
+  TAGS['🐢'] = ['face', 'animal', 'green'];
+  // 🌵 and 🍀 are alive and not food, so outside the green round they match
+  // nothing at all -- they exist to fill the field, which is what a spectator
+  // assumes most of the screen is doing anyway.
+  TAGS['🌵'] = ['green'];
+  TAGS['🥑'] = ['food', 'green'];
+  TAGS['🍀'] = ['green'];
 
   const EMOJI = [].concat(
     GROUPS.face, GROUPS.food, GROUPS.object, GROUPS.abstract,
@@ -172,8 +177,12 @@
   // The tags have to agree with what the room can see, not with what is
   // convenient -- a logo excluded from round 3 in code but included by the
   // audience's own reading is exactly the silent failure verifySet cannot catch.
-  const SPECS = [].concat(
-    EMOJI.map((emoji) => ({ kind: 'emoji', emoji, label: emoji, tags: (TAGS[emoji] || []).slice() })),
+  const EMOJI_SPECS = EMOJI.map((emoji) => ({
+    kind: 'emoji', emoji, label: emoji, tags: (TAGS[emoji] || []).slice(),
+  }));
+
+  const LOGO_SPECS = [].concat(
+    EMOJI_SPECS,
     Array.from({ length: LOGO_COUNT }, (_, i) => ({
       kind: 'logo', logo: i, label: 'LOGO' + (i + 1), tags: ['logo', 'thing'],
     }))
@@ -189,27 +198,27 @@
     };
   }
 
-  function buildItems(seed) {
-    const rand = mulberry32(seed === undefined ? SEED : seed);
+  function buildItems(specs, seed, cols, rows) {
+    const rand = mulberry32(seed);
     // Shuffle first so the category blocks are not laid down in reading order
     // -- otherwise all the food would sit in one band of the screen, and worse,
     // the five logos would land in a row along the bottom.
-    const shuffled = SPECS.slice();
+    const shuffled = specs.slice();
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(rand() * (i + 1));
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    const cellW = BOX_W / COLS;
-    const cellH = BOX_H / ROWS;
+    const cellW = BOX_W / cols;
+    const cellH = BOX_H / rows;
     // Jitter stays inside 34% of a cell so nothing can overlap or drift off
     // the edge, which keeps "nearest" readable at a glance.
     const jx = cellW * 0.34;
     const jy = cellH * 0.34;
 
     return shuffled.map((spec, index) => {
-      const col = index % COLS;
-      const row = Math.floor(index / COLS);
+      const col = index % cols;
+      const row = Math.floor(index / cols);
       const x = (col + 0.5) * cellW + (rand() * 2 - 1) * jx;
       const y = (row + 0.5) * cellH + (rand() * 2 - 1) * jy;
       const tags = spec.tags.slice();
@@ -233,7 +242,9 @@
    * they go at each step. excludeSelf keeps it honest: someone already standing
    * on a face still has to move when faces are called.
    */
-  const ROUNDS = [
+  // The first four rounds are shared. Only the finish differs between the two
+  // sets, which is the whole reason the routine can have two finishes at all.
+  const OPENING_ROUNDS = [
     {
       key: 'face', type: 'relational', excludeSelf: true,
       say: 'Move to the CLOSEST emoji that has a face — not your own one. If two look equally close, take either.',
@@ -254,15 +265,24 @@
       say: 'Now move to the ANIMAL nearest to you.',
       requires: ['animal'],
     },
-    {
-      key: 'logo', type: 'relational', excludeSelf: true,
-      // Five logos are on screen and every one of them is a legitimate answer
-      // to this. Which one a spectator reaches is decided entirely by the path
-      // their own choices took them along.
-      say: 'And finally — move to the nearest LOGO.',
-      requires: ['logo'],
-    },
   ];
+
+  const LOGO_FINISH = {
+    key: 'logo', type: 'relational', excludeSelf: true,
+    // Five logos are on screen and every one of them is a legitimate answer to
+    // this. Which one a spectator reaches is decided entirely by the path their
+    // own choices took them along.
+    say: 'And finally — move to the nearest LOGO.',
+    requires: ['logo'],
+  };
+
+  const GREEN_FINISH = {
+    key: 'green', type: 'relational', excludeSelf: true,
+    // Same principle with colour instead of logos: five green things are
+    // visible and position alone decides which one is reached.
+    say: 'And finally — move to the GREEN thing nearest to you.',
+    requires: ['green'],
+  };
 
   function distance(a, b) {
     // Straight-line distance in the fixed-aspect box. Since that box has the
@@ -355,11 +375,16 @@
 
     const target = reachable.length === 1 ? reachable[0] : null;
 
-    // The finish has to be a LOGO, not merely unique. If a set converged on an
-    // emoji the routine would still "work" and the reveal would be worthless,
-    // so this is a hard failure rather than a warning.
-    if (target && target.kind !== 'logo') {
+    // For the logo set the finish has to BE a logo, not merely unique. If it
+    // converged on an emoji the routine would still "work" and the reveal would
+    // be worthless, so this is a hard failure rather than a warning. The emoji
+    // set has the mirror requirement: it must not land on a logo, which would
+    // mean logo tiles had leaked into a field that is supposed to have none.
+    if (target && set.wantsLogos && target.kind !== 'logo') {
       problems.push(`Ends on ${target.label}, which is not a logo.`);
+    }
+    if (target && !set.wantsLogos && target.kind === 'logo') {
+      problems.push(`Ends on ${target.label}, but this set should have no logos in it.`);
     }
 
     return {
@@ -377,16 +402,64 @@
     };
   }
 
-  function buildSet(seed) {
+  function buildSet(config) {
     return {
-      id: 'logo-49-all-relational-v1',
+      id: config.id,
       box: { w: BOX_W, h: BOX_H },
-      items: buildItems(seed),
-      rounds: ROUNDS,
+      cols: config.cols,
+      rows: config.rows,
+      seed: config.seed,
+      clientSlot: config.clientSlot,
+      wantsLogos: !!config.wantsLogos,
+      items: buildItems(config.specs, config.seed, config.cols, config.rows),
+      rounds: OPENING_ROUNDS.concat([config.finish]),
     };
   }
 
-  const SET = buildSet();
+  /*
+   * TWO SETS, ONE ROUTINE
+   *
+   * With a client logo configured the field carries five logo tiles and closes
+   * on "the nearest LOGO". With no logo configured it must NOT invent one --
+   * five abstract marks nobody chose is a worse finish than no logo at all --
+   * so the field is emoji only and closes on "the nearest GREEN thing",
+   * landing on the turtle.
+   *
+   * They are genuinely separate layouts, not one layout with a swap. Each has
+   * its own item count, its own lattice and its own searched seed, because the
+   * convergence depends entirely on the geometry and the two fields have
+   * different geometry. Both are verified independently on every load.
+   */
+  const EMOJI_SET = buildSet({
+    id: 'emoji-44-green-finish',
+    specs: EMOJI_SPECS,
+    finish: GREEN_FINISH,
+    cols: 8,
+    rows: 6,          // 8 x 6 = 48 slots for 44 emoji
+    seed: 4090,       // funnels 44 -> 13 -> 7 -> 3 -> 3 -> 1, landing on the turtle
+    clientSlot: null,
+    wantsLogos: false,
+  });
+
+  const LOGO_SET = buildSet({
+    id: 'logo-49-logo-finish',
+    specs: LOGO_SPECS,
+    finish: LOGO_FINISH,
+    cols: COLS,
+    rows: ROWS,
+    seed: SEED,
+    clientSlot: CLIENT_SLOT,
+    wantsLogos: true,
+  });
+
+  /**
+   * Which set a show runs, decided by whether a client logo is configured.
+   * Host and audience both call this with the same value out of show state, so
+   * they cannot disagree about which routine is on screen.
+   */
+  function setFor(clientLogoUrl) {
+    return clientLogoUrl ? LOGO_SET : EMOJI_SET;
+  }
 
   /**
    * The picture to draw at a given item, given the gig's configured logo.
@@ -404,7 +477,9 @@
   // never run under Node either. This is the one thing both agree on, which
   // also lets the verifier be run from the command line before a show.
   root.InteractiveSet = {
-    SET, buildSet, verifySet, allowedTargets, matches, distance, buildItems,
-    ROUNDS, BOX_W, BOX_H, SEED, CLIENT_SLOT, DEFAULT_LOGO, DECOY_LOGOS, logoSrc,
+    EMOJI_SET, LOGO_SET, setFor, buildSet, buildItems,
+    verifySet, allowedTargets, matches, distance,
+    EMOJI_SPECS, LOGO_SPECS, OPENING_ROUNDS, LOGO_FINISH, GREEN_FINISH,
+    BOX_W, BOX_H, SEED, CLIENT_SLOT, DEFAULT_LOGO, DECOY_LOGOS, logoSrc,
   };
 })(globalThis);

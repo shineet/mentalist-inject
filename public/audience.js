@@ -513,7 +513,10 @@ function showOnly(key) {
 // ── Interactive emoji routine ───────────────────────────────────────────────
 // The set, the instructions and the proof that they converge live in
 // interactive-set.js. This only draws the current step.
-let interactiveDrawn = false;
+// The id of the set currently drawn into the field, or null. Compared rather
+// than a plain boolean so switching between the logo and emoji routines
+// rebuilds the field instead of leaving the previous one on screen.
+let interactiveDrawn = null;
 
 // Fraction of the box kept clear on all four sides. See the note where it is
 // applied: presentational only, and provably harmless to the geometry.
@@ -525,12 +528,20 @@ function renderInteractive(state) {
   const say = document.getElementById("interactiveSay");
   if (!kit || !grid || !say) return;
 
-  const set = kit.SET;
+  // Which routine is on screen is decided by one thing: whether this gig has a
+  // client logo. With one, the field carries logo tiles and closes on the
+  // nearest logo. Without one it must not invent a logo nobody chose, so it is
+  // emoji only and closes on the nearest green thing. Two genuinely different
+  // layouts, each with its own searched seed.
+  const clientLogo = state.interactiveLogoUrl || state.logoUrl || "";
+  const set = kit.setFor(clientLogo);
   const box = set.box || { w: 1.5, h: 1 };
 
-  // Built once. Re-creating the nodes on every state broadcast would restart
-  // the CSS transition and make the final vanish stutter.
-  if (!interactiveDrawn) {
+  // Built once per set. Re-creating the nodes on every state broadcast would
+  // restart the CSS transition and make the final vanish stutter -- but the
+  // field HAS to be rebuilt if the set itself changed, which happens when a
+  // logo is pasted or cleared while the routine is already on screen.
+  if (interactiveDrawn !== set.id) {
     grid.innerHTML = "";
     set.items.forEach((item) => {
       const cell = document.createElement("div");
@@ -567,14 +578,13 @@ function renderInteractive(state) {
       cell.style.setProperty("--tilt", (item.tilt || 0).toFixed(2) + "deg");
       grid.appendChild(cell);
     });
-    interactiveDrawn = true;
+    interactiveDrawn = set.id;
   }
 
-  // Applied on every render, not just at build, because the host can paste a
-  // logo while the field is already on screen. The geometry never changes with
-  // it -- only the picture at the client slot -- so this cannot affect where
-  // anybody walks.
-  const clientLogo = state.interactiveLogoUrl || state.logoUrl || "";
+  // Applied on every render, not just at build, because the host can change the
+  // logo while the field is already on screen. Within a set the geometry never
+  // changes with it -- only the picture at the client slot -- so this cannot
+  // affect where anybody walks.
   set.items.forEach((item) => {
     if (item.kind !== "logo") return;
     const img = grid.querySelector(`.cell[data-id="${item.id}"] img`);
@@ -1741,7 +1751,7 @@ async function handleStateUpdate(state) {
 
   if (phase === "interactive") {
     stopKaraoke();
-    if (phaseChanged) interactiveDrawn = false;  // fresh grid on a fresh run
+    if (phaseChanged) interactiveDrawn = null;  // fresh field on a fresh run
     showOnly("interactive");
     renderInteractive(state);
     return;
