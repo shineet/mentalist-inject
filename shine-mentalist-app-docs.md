@@ -444,20 +444,36 @@ A field of 44 emoji and 5 logos, five spoken instructions, and the whole room
 ends on the client's logo. It is the one part of the app where the maths, not
 the code, is the fragile thing — read this before touching it.
 
-**Where it lives.** `public/interactive-set.js` holds the item set, the layout,
-the instructions and the verifier. The server only tracks position:
+**Where it lives.** `public/interactive-set.js` holds the item sets, the
+layouts, the instructions and the verifier. The server only tracks position:
 `state.interactive = { round, revealed }`, where `round: -1` is the field with
 no instruction yet. `state.interactiveLogoUrl` is the per-gig client logo.
+
+**Two finishes, picked by whether a logo is configured.** `setFor(url)` returns
+`LOGO_SET` when a client logo is set and `EMOJI_SET` when it is not. Host and
+audience both call it with the same value out of show state, so they cannot
+disagree about which routine is on screen.
+
+| | items | lattice | seed | closes on | lands on |
+|---|---|---|---|---|---|
+| `LOGO_SET` | 49 | 8x7 | 241716 | nearest LOGO | client logo, slot 27 |
+| `EMOJI_SET` | 44 | 8x6 | 4090 | nearest GREEN thing | 🐢 |
+
+They are genuinely separate layouts, not one layout with a swap, because
+convergence depends entirely on the geometry and the two fields have different
+geometry. **With no logo configured there are no logo tiles on screen at all** --
+the routine must not invent a mark nobody chose. Both sets are verified on every
+load, including the inactive one.
 
 **Every round is relational** — "move to the nearest X". Nothing is absolute,
 because an absolute instruction feels forced to the audience. The consequence is
 that **the instructions guarantee nothing on their own; the LAYOUT is what makes
 the room converge.** Roughly 1 scatter in 250 works.
 
-**So the seed is load-bearing.** `SEED = 241716` was found by brute force
-(`node tools/search-seed.mjs`). Changing the seed, any emoji, the number of
-logos, the lattice, or any round's wording **breaks the routine silently**. Re-run
-the search, then paste the new seed and its `CLIENT_SLOT` back into the file.
+**So the seeds are load-bearing.** Both were found by brute force
+(`node tools/search-seed.mjs`). Changing a seed, any emoji, the number of logos,
+a lattice, or any round's wording **breaks that set silently**. Re-run the
+search, then paste the new seed and its `CLIENT_SLOT` back into the file.
 
 **Why the client logo is a slot, not a value.** The room converges on a fixed
 POSITION in the layout (`CLIENT_SLOT = 27`), and the per-gig logo is just the
