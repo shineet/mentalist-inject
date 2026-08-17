@@ -454,10 +454,26 @@ no instruction yet. `state.interactiveLogoUrl` is the per-gig client logo.
 audience both call it with the same value out of show state, so they cannot
 disagree about which routine is on screen.
 
-| | items | lattice | seed | closes on | lands on |
-|---|---|---|---|---|---|
-| `LOGO_SET` | 49 | 8x7 | 241716 | nearest LOGO | client logo, slot 27 |
-| `EMOJI_SET` | 44 | 8x6 | 4090 | nearest GREEN thing | 🐢 |
+| | live items | on screen | lattice | seed | closes on | lands on |
+|---|---|---|---|---|---|---|
+| `LOGO_SET` | 39 | 203 | 8x6 | 1951 | nearest LOGO | client logo, slot 27 |
+| `EMOJI_SET` | 34 | 203 | 8x5 | 174 | nearest GREEN thing | 🐢 |
+
+**Live items vs filler.** Only ~35 things on screen are part of the routine.
+The other ~165 are FILLER: they match no instruction at all, and exist purely so
+the field can be packed edge to edge. That split is the only way to have both a
+full screen and a convergence. Adding more LIVE items does not make the routine
+harder, it makes it impossible -- with faces everywhere, "the nearest face" only
+moves you to a neighbour, the reachable set stops shrinking, and the room never
+funnels. Filler is free because no rule can select it, so `PACK` can be tightened
+until the screen is solid without touching the maths. `verifySet()` hard-fails if
+any filler ever becomes reachable.
+
+**Filler must answer to nothing**: not a face, not food, not an animal, not
+something you could pick up, not a logo, and not green (the emoji set's finish is
+about colour). Check candidates by looking at them RENDERED -- ❇️ is named
+"sparkle" but Apple draws it as a solid green tile, which would have made it a
+legitimate answer to the closing instruction.
 
 They are genuinely separate layouts, not one layout with a swap, because
 convergence depends entirely on the geometry and the two fields have different

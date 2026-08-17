@@ -62,7 +62,7 @@
   // to LOOK scattered while being the SAME scatter for the host screen and
   // every phone in the room.
   const COLS = 8;
-  const ROWS = 7;   // 8 x 7 = 56 slots for 49 items; the gaps read as natural
+  const ROWS = 6;   // 8 x 6 = 48 slots for 39 live items; the gaps read as natural
 
   // Load-bearing, not decorative. Every round is relational, so the LAYOUT is
   // the only thing deciding whether the room converges at all -- the
@@ -74,18 +74,17 @@
   // 1 layout in 250 converges cleanly, so it is not something to guess at --
   // the host panel's verified badge is the backstop.
   //
-  // 241716 funnels 49 -> 13 -> 6 -> 5 -> 5 -> 1. It was chosen over hundreds of
-  // other converging layouts on two counts the maths does not care about but
-  // the room does:
+  // 1951 puts 109 things on screen and funnels 13 -> 8 -> 5 -> 4 -> 1. It was
+  // chosen over the other converging layouts on two counts the maths does not
+  // care about but the room does:
   //
-  //  - The five logos span 88% of the width and 90% of the height, with no two
-  //    closer than 0.40. Most converging layouts huddle all five logos into one
+  //  - The five logos span 93% of the width and 71% of the height, with no two
+  //    closer than 0.37. Most converging layouts huddle all five logos into one
   //    corner, because that is the easy way for everybody's nearest logo to be
   //    the same one -- and it looks exactly as arranged as it is.
-  //  - The five survivors going into the last round sit in four different
-  //    quadrants, so the closing move is five people crossing the screen from
-  //    genuinely different places, not five neighbours stepping sideways.
-  const SEED = 241716;
+  //  - Four survivors go into the last round from different parts of the field,
+  //    so the closing move is a real convergence rather than a formality.
+  const SEED = 1951;
 
   // The layout index the room converges on. Established by the search that
   // chose SEED, re-checked by verifySet on every load. The client's logo is
@@ -131,16 +130,40 @@
   // sibling marks rather than four marks and a hole.
   const DEFAULT_LOGO = mark('<circle cx="32" cy="32" r="20"/><path d="M32 12 V32 L46 42"/>');
 
+  /* ---------------------------------------------------------------------- *
+   * THE TWO KINDS OF THING ON SCREEN
+   *
+   * LIVE items are the routine. Every instruction points at one of these
+   * groups, and the convergence is decided entirely by where they sit.
+   *
+   * FILLER matches NO instruction at all. It exists so the screen can be
+   * packed edge to edge, which is what makes the field look like a genuine
+   * jumble rather than a small arrangement someone designed.
+   *
+   * That split is not cosmetic, it is the only way to have both. Adding more
+   * LIVE items does not make the routine harder to follow, it makes it
+   * impossible: with faces everywhere, "the nearest face" only ever moves you
+   * to a neighbour, the reachable set stops shrinking, and the room never
+   * funnels to one thing. Filler is free precisely because no rule can select
+   * it, so it can be as dense as the screen will take.
+   *
+   * The constraint on filler is therefore absolute: it must be a legitimate
+   * answer to NOTHING. Not a face, not food, not an animal, not something you
+   * could pick up, not a logo, and -- for the emoji set, whose finish is about
+   * colour -- not green. Weather, sky, symbols and hearts clear all six.
+   * ---------------------------------------------------------------------- */
+
   // prettier-ignore
   const GROUPS = {
     // Round 1's destination.
     face: ['🐼', '🐨', '🐸', '🐶', '🐱', '🦁', '🐵', '🐷', '👻', '🤖', '😀', '🦊'],
     food: ['🍎', '🍌', '🍕', '🍉', '🍦', '🍔', '🍇', '🥕'],
-    // Round 3 is "not alive and not food", so objects, abstract things AND the
-    // logos are one pool. Keeping the emoji groups separate here only documents
-    // the intent.
+    // Round 3 is "something you could pick up and hold", so this group is
+    // exactly that and nothing else. It used to be "not alive and not food",
+    // which also caught stars, clouds and hearts -- fine when those were live
+    // items, fatal once they became filler, because filler must never be a
+    // legitimate answer.
     object: ['⚽', '🎸', '🔑', '📚', '⌚', '📱', '✏️', '🎩', '🧢', '🔨'],
-    abstract: ['⭐', '🌈', '❤️', '🔥', '💧', '🌙', '🎵', '⚡', '☁️', '🌊'],
     // Several visibly green things, on purpose. The EMOJI set's closing
     // instruction is "the nearest green thing", and it has to have MORE than
     // one honest answer or it is a naked force at the most exposed moment.
@@ -148,35 +171,46 @@
     green: ['🐸', '🌵', '🥑', '🍀', '🐢'],
   };
 
+  // Deliberately no faces here: 🌞 and 🌝 are out for that reason alone, and
+  // 🌙 is the crescent rather than the one with a profile on it. Deliberately
+  // nothing green either, or it would become an honest answer to the emoji
+  // set's closing instruction -- which is why 🌈 is absent, and why ❇️ was
+  // pulled after seeing it on screen: it is described as a "sparkle" but Apple
+  // draws it as a solid GREEN tile. Check new filler by looking at it rendered,
+  // not by reading its name. The spectator sees the picture, not the codepoint.
+  // prettier-ignore
+  const FILLER = [
+    '⭐', '🌟', '💫', '✨', '☄️', '🌠', '🌙', '☀️', '☁️', '⚡', '❄️', '💧',
+    '🌊', '🔥', '💥', '💨', '🌀', '🎵', '🎶', '✴️', '❤️', '💙', '💜',
+    '🤍', '🔷', '🔶', '🔺', '🟣', '🟠', '🟡', '🔵',
+  ];
+
   const TAGS = {};
   GROUPS.face.forEach((e) => (TAGS[e] = ['face', 'animal']));
   ['👻', '🤖', '😀'].forEach((e) => (TAGS[e] = ['face']));   // faces, not animals
   GROUPS.food.forEach((e) => (TAGS[e] = ['food']));
   GROUPS.object.forEach((e) => (TAGS[e] = ['thing']));
-  GROUPS.abstract.forEach((e) => (TAGS[e] = ['thing']));
   TAGS['🐼'] = ['face', 'animal', 'greyish'];
   TAGS['🐨'] = ['face', 'animal', 'greyish'];
   TAGS['🐸'] = ['face', 'animal', 'green'];
   TAGS['🐢'] = ['face', 'animal', 'green'];
-  // 🌵 and 🍀 are alive and not food, so outside the green round they match
-  // nothing at all -- they exist to fill the field, which is what a spectator
-  // assumes most of the screen is doing anyway.
+  // 🌵 and 🍀 are alive and not food, and you would not call either of them
+  // something you pick up and hold, so outside the green round they match
+  // nothing -- live items that behave like filler.
   TAGS['🌵'] = ['green'];
   TAGS['🥑'] = ['food', 'green'];
   TAGS['🍀'] = ['green'];
 
   const EMOJI = [].concat(
-    GROUPS.face, GROUPS.food, GROUPS.object, GROUPS.abstract,
+    GROUPS.face, GROUPS.food, GROUPS.object,
     GROUPS.green.filter((e) => e !== '🐸')
   );
 
-  // What goes into the scatter: every emoji, plus the logo tiles.
-  //
-  // The logos carry 'thing' as well as 'logo' because round 3 says "not alive
-  // and not food", and a spectator looking at a logo would plainly count it.
-  // The tags have to agree with what the room can see, not with what is
-  // convenient -- a logo excluded from round 3 in code but included by the
-  // audience's own reading is exactly the silent failure verifySet cannot catch.
+  // The logos carry ONLY 'logo' now. Under the old round 3 they also carried
+  // 'thing', because "not alive and not food" plainly described a logo and the
+  // tags have to agree with what the room can see. Under "something you could
+  // pick up and hold" a logo is just as plainly excluded, so the tag went with
+  // the wording.
   const EMOJI_SPECS = EMOJI.map((emoji) => ({
     kind: 'emoji', emoji, label: emoji, tags: (TAGS[emoji] || []).slice(),
   }));
@@ -184,9 +218,16 @@
   const LOGO_SPECS = [].concat(
     EMOJI_SPECS,
     Array.from({ length: LOGO_COUNT }, (_, i) => ({
-      kind: 'logo', logo: i, label: 'LOGO' + (i + 1), tags: ['logo', 'thing'],
+      kind: 'logo', logo: i, label: 'LOGO' + (i + 1), tags: ['logo'],
     }))
   );
+
+  // How close two things may sit, as a fraction of the box width. Filler is
+  // packed down to this, so it is what decides whether the screen reads as
+  // "full". Live items keep their own much wider lattice spacing, so packing
+  // the gaps does not make "the nearest face" any harder to judge -- the faces
+  // are still exactly where they were.
+  const PACK = 0.064;
 
   // Small deterministic PRNG. Same seed, same scatter, every device.
   function mulberry32(a) {
@@ -216,7 +257,7 @@
     const jx = cellW * 0.34;
     const jy = cellH * 0.34;
 
-    return shuffled.map((spec, index) => {
+    const live = shuffled.map((spec, index) => {
       const col = index % cols;
       const row = Math.floor(index / cols);
       const x = (col + 0.5) * cellW + (rand() * 2 - 1) * jx;
@@ -235,6 +276,68 @@
         label: spec.label,
       };
     });
+
+    return live.concat(buildFiller(live, seed));
+  }
+
+  /**
+   * Packs filler into every gap the live items leave.
+   *
+   * Dart-throwing rather than a lattice: a lattice would show through as rows
+   * once the screen is this busy, and rows are the thing that makes a field
+   * look arranged. Candidates are tried in a fixed shuffled order and kept only
+   * if they clear everything already placed, live items included.
+   *
+   * Seeded off the set's own seed so the packing is identical on the host
+   * screen and on every phone in the room. It has no effect on the routine --
+   * nothing here matches any instruction -- but two devices showing visibly
+   * different fields would still be a giveaway.
+   */
+  function buildFiller(live, seed) {
+    const rand = mulberry32(seed ^ 0x5f3759df);
+    const placed = live.map((i) => ({ x: i.x, y: i.y }));
+    const out = [];
+
+    // A generous candidate grid, walked in random order. Far more candidates
+    // than can be accepted, which is what lets the accepted ones look scattered
+    // instead of aligned.
+    const candidates = [];
+    const step = PACK * 0.5;
+    for (let x = step; x < BOX_W; x += step) {
+      for (let y = step; y < BOX_H; y += step) candidates.push([x, y]);
+    }
+    for (let i = candidates.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [candidates[i], candidates[j]] = [candidates[j], candidates[i]];
+    }
+
+    for (const [cx, cy] of candidates) {
+      const x = cx + (rand() * 2 - 1) * step * 0.45;
+      const y = cy + (rand() * 2 - 1) * step * 0.45;
+      if (x < 0.01 || x > BOX_W - 0.01 || y < 0.01 || y > BOX_H - 0.01) continue;
+      let ok = true;
+      for (const p of placed) {
+        const dx = p.x - x, dy = p.y - y;
+        if (dx * dx + dy * dy < PACK * PACK) { ok = false; break; }
+      }
+      if (!ok) continue;
+      placed.push({ x, y });
+      const emoji = FILLER[Math.floor(rand() * FILLER.length)];
+      out.push({
+        id: 'f' + out.length,
+        // Indices continue after the live items, so a live item's index -- and
+        // therefore CLIENT_SLOT -- never moves when the packing changes.
+        index: live.length + out.length,
+        x, y,
+        tilt: (rand() * 2 - 1) * 14,
+        // Empty. This is the whole contract: filler answers to no instruction.
+        tags: [],
+        kind: 'filler',
+        emoji,
+        label: emoji,
+      });
+    }
+    return out;
   }
 
   /*
@@ -257,7 +360,7 @@
     },
     {
       key: 'thing', type: 'relational', excludeSelf: true,
-      say: 'Now move to whatever is NEAREST to you that is not alive and not food.',
+      say: 'Now move to the NEAREST thing you could pick up and hold.',
       requires: ['thing'],
     },
     {
@@ -321,6 +424,10 @@
     const sizes = [items.length];
     const layers = [];
 
+    // Only live items can start a path. Filler is on screen and a spectator can
+    // certainly pick one to begin with, so it is included in the opening count
+    // -- but a filler item matches no rule, so a spectator standing on one
+    // still has somewhere to go on round 1 like everybody else.
     let reachable = items.slice();
     set.rounds.forEach((round, i) => {
       const next = new Map();
@@ -370,6 +477,18 @@
     if (reachable.length !== 1) {
       problems.push(
         `Ends on ${reachable.length} items (${reachable.map((r) => r.label).join(' ')}) instead of exactly one.`
+      );
+    }
+
+    // Filler exists only to fill the screen. If a rule can ever select one, it
+    // is not filler any more -- it is an untested live item sitting in a field
+    // of a hundred others, and the convergence proved above is meaningless.
+    // Cheap to check and catastrophic to miss, so it is a hard failure.
+    const strayFiller = layers.flat().filter((i) => i.kind === 'filler');
+    if (strayFiller.length) {
+      problems.push(
+        `${strayFiller.length} filler item(s) are reachable (e.g. ${strayFiller[0].label}). ` +
+        `Filler must match no instruction.`
       );
     }
 
@@ -430,19 +549,24 @@
    * convergence depends entirely on the geometry and the two fields have
    * different geometry. Both are verified independently on every load.
    */
-  const EMOJI_SET = buildSet({
-    id: 'emoji-44-green-finish',
+  // Configs, kept separate from the built sets so the seed searcher can rebuild
+  // either one at any seed without duplicating what a set is made of.
+  const EMOJI_CONFIG = {
+    id: 'emoji-green-finish',
     specs: EMOJI_SPECS,
     finish: GREEN_FINISH,
     cols: 8,
-    rows: 6,          // 8 x 6 = 48 slots for 44 emoji
-    seed: 4090,       // funnels 44 -> 13 -> 7 -> 3 -> 3 -> 1, landing on the turtle
+    rows: 5,          // 8 x 5 = 40 slots for 34 live emoji
+    // 112 items on screen, funnels 13 -> 5 -> 4 -> 3 -> 1 onto the turtle.
+    // Chosen for green spread: the five greens span 92% of the width and 73%
+    // of the height, so the closing move is a real journey across the field.
+    seed: 174,
     clientSlot: null,
     wantsLogos: false,
-  });
+  };
 
-  const LOGO_SET = buildSet({
-    id: 'logo-49-logo-finish',
+  const LOGO_CONFIG = {
+    id: 'logo-logo-finish',
     specs: LOGO_SPECS,
     finish: LOGO_FINISH,
     cols: COLS,
@@ -450,7 +574,10 @@
     seed: SEED,
     clientSlot: CLIENT_SLOT,
     wantsLogos: true,
-  });
+  };
+
+  const EMOJI_SET = buildSet(EMOJI_CONFIG);
+  const LOGO_SET = buildSet(LOGO_CONFIG);
 
   /**
    * Which set a show runs, decided by whether a client logo is configured.
@@ -477,9 +604,9 @@
   // never run under Node either. This is the one thing both agree on, which
   // also lets the verifier be run from the command line before a show.
   root.InteractiveSet = {
-    EMOJI_SET, LOGO_SET, setFor, buildSet, buildItems,
+    EMOJI_SET, LOGO_SET, EMOJI_CONFIG, LOGO_CONFIG, setFor, buildSet, buildItems,
     verifySet, allowedTargets, matches, distance,
-    EMOJI_SPECS, LOGO_SPECS, OPENING_ROUNDS, LOGO_FINISH, GREEN_FINISH,
+    EMOJI_SPECS, LOGO_SPECS, FILLER, PACK, OPENING_ROUNDS, LOGO_FINISH, GREEN_FINISH,
     BOX_W, BOX_H, SEED, CLIENT_SLOT, DEFAULT_LOGO, DECOY_LOGOS, logoSrc,
   };
 })(globalThis);
