@@ -52,13 +52,18 @@
   // and every phone in the room.
   const COLS = 8;
   const ROWS = 6;   // 8 x 6 = 48 slots for 44 emoji; the gaps read as natural
-  // Not a decorative number. The emoji and the instructions are fixed; only the
-  // LAYOUT decides whether the closing relational rounds converge, so this seed
-  // was found by searching the seed space and testing each candidate with
-  // verifySet. 4090 funnels 44 -> 13 -> 9 -> 4 -> 3 -> 1, and the final round
-  // does real work: three different positions all reach the same green while
-  // five greens sit in plain view. Changing it WILL break the routine unless a
-  // new seed is searched for the same way.
+  // Load-bearing, not decorative. Every round is relational now, so the LAYOUT
+  // is the only thing deciding whether the room converges at all -- the
+  // instructions on their own guarantee nothing. Found by searching the seed
+  // space and testing each candidate with verifySet.
+  //
+  // 4090 funnels 44 -> 13 -> 7 -> 3 -> 3 -> 1, and the closing round does real
+  // work: three separate positions all reach the same green while five greens
+  // sit in plain view.
+  //
+  // CHANGING THIS, OR ANY EMOJI, WILL BREAK THE ROUTINE unless a new seed is
+  // searched the same way. Roughly 1 layout in 100 converges, so it is not
+  // something to guess at -- the host panel's verified badge is the backstop.
   const SEED = 4090;
 
   // prettier-ignore
@@ -159,8 +164,8 @@
       requires: ['face'],
     },
     {
-      key: 'food',
-      say: 'Now jump to any FOOD anywhere on the screen.',
+      key: 'food', type: 'relational', excludeSelf: true,
+      say: 'Now move to the FOOD nearest to you.',
       requires: ['food'],
     },
     {
@@ -286,7 +291,7 @@
   }
 
   const SET = {
-    id: 'emoji-44-relational-v4',
+    id: 'emoji-44-all-relational-v5',
     box: { w: BOX_W, h: BOX_H },
     items: buildItems(),
     rounds: ROUNDS,
