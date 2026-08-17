@@ -580,14 +580,19 @@ els.btnSendReview.addEventListener("click", () => {
 // The panel runs the verifier on load and shows the result. If a set is ever
 // edited and stops converging, that has to be visible HERE, before a show,
 // rather than discovered as a soft reaction in the room.
+// Which logo this gig is configured with, and therefore which of the two sets
+// the routine will run. Module scope rather than inside initInteractive below,
+// because the transport buttons need it too.
+function currentInteractiveLogo() {
+  return (els.interactiveLogoUrl?.value || "").trim() ||
+         (els.logoUrl?.value || "").trim();
+}
+
 (function initInteractive() {
   const kit = globalThis.InteractiveSet;
   if (!kit || !els.interactiveStatus) return;
 
-  function currentLogo() {
-    return (els.interactiveLogoUrl?.value || "").trim() ||
-           (els.logoUrl?.value || "").trim();
-  }
+  const currentLogo = currentInteractiveLogo;
 
   // Both sets are verified, not just the one about to be performed. A broken
   // set that happens to be the inactive one today is still broken, and finding
@@ -695,7 +700,13 @@ els.btnSendReview.addEventListener("click", () => {
 })();
 
 function interactiveEmit(event, action) {
-  emitHostAction(event, action, { room: ROOM, totalRounds: globalThis.InteractiveSet?.SET.rounds.length || 0 });
+  // Read the round count off the set that is actually armed. This used to read
+  // a `SET` export that no longer exists once the routine grew two sets, and
+  // because `?.` only guarded InteractiveSet itself and not the missing
+  // property, every button in the card threw instead of doing nothing visible.
+  const kit = globalThis.InteractiveSet;
+  const set = kit && kit.setFor ? kit.setFor(currentInteractiveLogo()) : null;
+  emitHostAction(event, action, { room: ROOM, totalRounds: set ? set.rounds.length : 0 });
 }
 
 els.btnStartInteractive?.addEventListener("click", () => interactiveEmit("host:startInteractive", "startInteractive"));
