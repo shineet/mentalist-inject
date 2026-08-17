@@ -622,27 +622,13 @@ function renderInteractive(state) {
 
   grid.classList.toggle("revealed", revealed);
   grid.querySelectorAll(".cell").forEach((cell) => {
-    const isTarget = revealed && cell.dataset.id === targetId;
-    cell.classList.toggle("target", isTarget);
-
-    if (isTarget) {
-      // Drift the survivor to the middle as the rest fade, rather than leaving
-      // it wherever it happened to sit. Measured from the rendered boxes, so it
-      // is correct at any size. The -50% pair has to be carried through or the
-      // cell would jump by half its own width, since that is what positions it.
-      const g = grid.getBoundingClientRect();
-      const c = cell.getBoundingClientRect();
-      const dx = (g.left + g.width / 2) - (c.left + c.width / 2);
-      const dy = (g.top + g.height / 2) - (c.top + c.height / 2);
-      // A logo goes bigger than an emoji would. It is the client's mark on
-      // screen at the peak of the routine, and a plate the same size as a
-      // magnified emoji undersells the moment.
-      const scale = cell.classList.contains("logoCell") ? 4.6 : 3;
-      cell.style.transform =
-        `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${scale}) rotate(0deg)`;
-    } else {
-      cell.style.transform = "";
-    }
+    // Everything the reveal does -- fading the field, drifting the survivor to
+    // the middle, scaling it up, keeping it upright -- is CSS driven off this
+    // one class. It used to be an inline transform computed from measured
+    // screen boxes, which stopped being correct the moment the field could be
+    // rotated on a portrait phone: the rects are in screen space but the
+    // transform applies in the field's own rotated space.
+    cell.classList.toggle("target", revealed && cell.dataset.id === targetId);
   });
 }
 
