@@ -515,6 +515,10 @@ function showOnly(key) {
 // interactive-set.js. This only draws the current step.
 let interactiveDrawn = false;
 
+// Fraction of the box kept clear on all four sides. See the note where it is
+// applied: presentational only, and provably harmless to the geometry.
+const INTERACTIVE_INSET = 0.05;
+
 function renderInteractive(state) {
   const kit = globalThis.InteractiveSet;
   const grid = document.getElementById("interactiveGrid");
@@ -551,8 +555,15 @@ function renderInteractive(state) {
       // Percentages of a fixed-aspect box, so the scatter is geometrically
       // identical on a phone and on a projector. Round 1 asks for the nearest
       // face, so if these reflowed per device the answers would differ.
-      cell.style.left = (item.x / box.w) * 100 + "%";
-      cell.style.top = (item.y / box.h) * 100 + "%";
+      //
+      // INSET pulls everything away from the edges, because each item is
+      // centred on its point and the ones near an edge hung half out of the
+      // grid -- a logo plate is wide enough that it landed on the caption.
+      // Safe to do: it scales both axes by the same factor in a box whose
+      // aspect is fixed, so every distance shrinks by the same amount and the
+      // nearest-neighbour relations the whole routine rests on are untouched.
+      cell.style.left = (INTERACTIVE_INSET + (item.x / box.w) * (1 - 2 * INTERACTIVE_INSET)) * 100 + "%";
+      cell.style.top = (INTERACTIVE_INSET + (item.y / box.h) * (1 - 2 * INTERACTIVE_INSET)) * 100 + "%";
       cell.style.setProperty("--tilt", (item.tilt || 0).toFixed(2) + "deg");
       grid.appendChild(cell);
     });

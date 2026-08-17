@@ -216,24 +216,39 @@
      spectator picking the logos out of forty-four emoji at a glance, and
      because a client's logo can be any colour including near-black. */
   .emojiGrid .cell.logoCell {
-    width: min(6.4vw, 9.6vh);
-    height: min(6.4vw, 9.6vh);
+    /* border-box and an absolute padding, both deliberately. A percentage
+       padding here resolves against the GRID's width, not the plate's, which
+       silently inflated every plate to roughly 500px. */
+    box-sizing: border-box;
+    width: min(6.6vw, 9.9vh);
+    height: min(6.6vw, 9.9vh);
+    padding: min(0.8vw, 1.2vh);
     display: flex;
     align-items: center;
     justify-content: center;
     background: #fff;
     border-radius: 22%;
-    padding: 12%;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, .35);
+    /* A plate is wider than an emoji, so neighbouring cells can clip it. An
+       emoji half-covered by a logo still reads fine; a logo half-covered by an
+       emoji is a problem, because the closing instruction asks the room to
+       spot the logos. So the logos win the overlap. */
+    z-index: 2;
   }
   .emojiGrid .cell.logoCell img {
-    max-width: 100%;
-    max-height: 100%;
-    /* contain, so a wide wordmark and a square glyph both sit inside the plate
-       without either being cropped or stretched. */
+    /* Explicit 100%, not max-width. An SVG with only a viewBox and no width or
+       height attribute has no intrinsic size, and inside a flex item that can
+       resolve to nothing at all -- which is how five blank plates happen.
+       object-fit then keeps a wide wordmark and a square glyph both intact. */
+    width: 100%;
+    height: 100%;
     object-fit: contain;
     display: block;
   }
+  /* The hairline that separates a white plate from the dark field is only
+     needed while the plate is small. Scaled 4.6x at the reveal it becomes a
+     fuzzy grey ring around the client's logo, so drop it there. */
+  .emojiGrid.revealed .cell.logoCell.target { box-shadow: none; }
   .emojiGrid.revealed .cell { opacity: 0; }
   .emojiGrid.revealed .cell.target {
     opacity: 1;
