@@ -4,6 +4,23 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Audience</title>
+
+  <!-- Genuine full screen, with no browser chrome at all, is only reachable on
+       iOS by launching from the Home Screen. iPhone Safari does not implement
+       the Fullscreen API, so there is no button a page can offer that hides the
+       URL bar; these tags are the whole of what is possible.
+       Once added to the Home Screen, the icon opens the page with no toolbars.
+       black-translucent puts the field under the status bar as well, which is
+       what viewport-fit=cover above is already set up for.
+       These only take effect for a Home Screen launch -- they change nothing
+       about how the page behaves in normal Safari, so they are safe for the
+       audience, who will never install anything. -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Show" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="theme-color" content="#05050b" />
+  <link rel="manifest" href="/manifest.webmanifest" />
   <style>
     :root{color-scheme:dark;--bg:#05050b;--text:#fff;--muted:#cfcfe8;--accent:#7c5cff}
     *{box-sizing:border-box} html,body{width:100%;height:100%;margin:0;overflow:hidden}
@@ -188,8 +205,17 @@
     /* --L is the LONG side of the 3:2 field. Everything below derives from it,
        so there is one number per orientation to reason about.
        99vw/99vh rather than 100: a hair of margin so nothing kisses the bezel
-       on a rounded screen. */
+       on a rounded screen.
+
+       dvh, not vh, and this is a real bug fix rather than a preference. On iOS
+       Safari `vh` means the height the page WOULD have if the toolbars were
+       hidden, so sizing the field in vh made it taller than the part of the
+       screen you can actually see and the bottom rows were cropped off. `dvh`
+       tracks the currently visible height. The vh line is kept immediately
+       above as a fallback for anything that does not understand dvh -- it will
+       simply ignore the second declaration. */
     --L: min(99vw, 148vh);
+    --L: min(99vw, 148dvh);
     --stageW: var(--L);
     --stageH: calc(var(--L) * 2 / 3);
     --rot: 0deg;
@@ -212,6 +238,7 @@
   @media (orientation: portrait) {
     #viewInteractive {
       --L: min(148vw, 99vh);
+      --L: min(148vw, 99dvh);
       --stageW: calc(var(--L) * 2 / 3);
       --stageH: var(--L);
       --rot: 90deg;

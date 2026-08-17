@@ -1,0 +1,13 @@
+{
+  "name": "Shine, The Mentalist — Show",
+  "short_name": "Show",
+  "description": "Audience screen for the live show.",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "landscape",
+  "background_color": "#05050b",
+  "theme_color": "#05050b",
+  "icons": [
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
