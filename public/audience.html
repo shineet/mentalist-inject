@@ -184,43 +184,44 @@
   #viewInteractive {
     flex-direction: column;
     justify-content: center;
-    /* --L is the LONG side of the 3:2 field. Everything below is derived from
-       it, so there is one number to reason about per orientation. */
-    /* 108vh, not 148vh: the stage is two thirds of --L tall, so this caps the
-       field at 72vh and leaves the instruction line and the Sound pill room
-       underneath. Without the cap a short landscape window (a laptop, a
-       projector at 16:10) grows the field straight through the caption. */
-    --L: min(96vw, 108vh);
+    padding: 0;
+    /* --L is the LONG side of the 3:2 field. Everything below derives from it,
+       so there is one number per orientation to reason about.
+       99vw/99vh rather than 100: a hair of margin so nothing kisses the bezel
+       on a rounded screen. */
+    --L: min(99vw, 148vh);
     --stageW: var(--L);
     --stageH: calc(var(--L) * 2 / 3);
     --rot: 0deg;
-    --counter: 0deg;
   }
 
-  /* PORTRAIT: turn the field on its side.
-     The field has to stay 3:2 on every device -- round 1 asks for the nearest
-     face, so a layout that reflowed differently on a tall phone than on a wide
-     projector would have two spectators computing different answers. But a 3:2
-     landscape box on a portrait phone can only ever be a band across the
-     middle, which is most of the screen wasted.
-     Rotating it is the way out, and it is exactly safe: rotation is an
-     isometry, so every distance between every pair of items is unchanged and
-     "the nearest face" is the same face it was. A spectator on a phone sees
-     the identical arrangement, just turned. The emoji themselves are
-     counter-rotated so they stay upright. */
+  /* PORTRAIT: show the whole thing turned on its side.
+     Two reasons, and the second is the important one.
+     1. The field is 3:2 and that cannot change -- round 1 asks for the nearest
+        face, so a layout that reflowed differently on a tall phone than on a
+        wide projector would have two spectators computing different answers.
+        A 3:2 landscape box in a portrait window is a band across the middle.
+     2. Rotating the ENTIRE view, emoji and all, makes a phone held upright
+        show sideways content, which is the universally understood "turn me".
+        Once turned it reads correctly either way: with rotation lock ON the
+        viewport stays portrait and this rotation is what makes it upright;
+        with lock OFF the viewport becomes landscape and the rule below stops
+        applying, which lands in the same place.
+     The emoji are NOT counter-rotated any more, precisely so the screen looks
+     wrong until the phone is turned. */
   @media (orientation: portrait) {
     #viewInteractive {
-      --L: min(147vw, 75vh);
+      --L: min(148vw, 99vh);
       --stageW: calc(var(--L) * 2 / 3);
       --stageH: var(--L);
       --rot: 90deg;
-      --counter: -90deg;
-      /* Clears the Sound pill, which is fixed to the bottom of the screen and
-         is not part of this section's flow -- without this the instruction
-         line lands underneath it. */
-      padding-bottom: 12vh;
     }
   }
+
+  /* Nothing else on screen while the field is up: no caption (the
+     instructions are spoken) and no Sound pill (this routine has no audio). */
+  #interactiveSay { display: none; }
+  body.fieldFullScreen #soundHint { display: none !important; }
 
   /* The stage occupies the field's ON-SCREEN footprint, which is the field's
      own box with the sides swapped once it is rotated. A rotated element still
@@ -244,32 +245,24 @@
   .emojiGrid .cell {
     position: absolute;
     /* left/top are set per item in audience.js as percentages of the box.
-       translate(-50%,-50%) centres each emoji on its point; the tilt is
-       cosmetic and never used by any rule. --counter undoes the field's own
-       rotation so a phone shows upright emoji in a turned arrangement. */
-    transform: translate(-50%, -50%) rotate(calc(var(--tilt, 0deg) + var(--counter)));
-    /* Sized to the packing distance, not to taste. The field holds around 200
-       things, packed to PACK (0.064 of the box width) apart -- so anything much
-       larger overlaps into an unreadable mush, and anything much smaller leaves
-       the gaps the packing was added to remove. */
-    font-size: calc(var(--L) * 0.048);
+       translate(-50%,-50%) centres each item on its point; the tilt is
+       cosmetic and never used by any rule. */
+    transform: translate(-50%, -50%) rotate(var(--tilt, 0deg));
+    /* Tied to the packing distance rather than picked by eye, so density and
+       size stay in step: change PACK in interactive-set.js and this follows. */
+    font-size: calc(var(--L) * 0.052);
     line-height: 1;
     user-select: none;
-    /* left/top are transitioned too, because the reveal now drifts the survivor
-       to the middle by setting them to 50% rather than by measuring screen
-       boxes. Measuring stopped working the moment the field could be rotated:
-       the rects are in screen space but the transform applies in the field's
-       own rotated space, so the two disagreed. */
-    transition: opacity .9s ease, transform .9s ease, left .9s ease, top .9s ease;
+    transition: opacity .9s ease, transform .9s ease;
   }
   .emojiGrid .cell.logoCell {
     /* border-box and an absolute padding, both deliberately. A percentage
        padding here resolves against the GRID's width, not the plate's, which
        silently inflated every plate to roughly 500px. */
     box-sizing: border-box;
-    width: calc(var(--L) * 0.056);
-    height: calc(var(--L) * 0.056);
-    padding: calc(var(--L) * 0.0068);
+    width: calc(var(--L) * 0.060);
+    height: calc(var(--L) * 0.060);
+    padding: calc(var(--L) * 0.0072);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -297,23 +290,20 @@
      fuzzy grey ring around the client's logo, so drop it there. */
   .emojiGrid.revealed .cell.logoCell.target { box-shadow: none; }
   .emojiGrid.revealed .cell { opacity: 0; }
-  /* The survivor drifts to the middle of the field as the rest fade. left/top
-     go to 50% rather than being measured in screen pixels, so this is correct
-     in either orientation, and --counter keeps it upright. */
+  /* The survivor stays exactly where it sat in the field. It used to drift to
+     the middle, which read as the app presenting an answer; holding position
+     reads as the thing they were already looking at being the only one left.
+     So no left/top override here -- the inline position audience.js wrote at
+     build time is left alone, and only opacity and scale change. */
   .emojiGrid.revealed .cell.target {
     opacity: 1;
-    /* !important because audience.js writes each item's left/top inline, and an
-       inline declaration beats a stylesheet one. Without it the survivor stays
-       wherever it sat in the field instead of drifting to the middle. */
-    left: 50% !important;
-    top: 50% !important;
-    transform: translate(-50%, -50%) rotate(var(--counter)) scale(3);
+    transform: translate(-50%, -50%) scale(3);
   }
   .emojiGrid.revealed .cell.logoCell.target {
     /* A logo goes bigger than an emoji would. It is the client's mark on screen
        at the peak of the routine, and a plate the size of a magnified emoji
        undersells the moment. */
-    transform: translate(-50%, -50%) rotate(var(--counter)) scale(4.6);
+    transform: translate(-50%, -50%) scale(4.6);
   }
   .emojiSay {
     margin: 1.8vh auto 0;

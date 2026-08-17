@@ -222,12 +222,21 @@
     }))
   );
 
-  // How close two things may sit, as a fraction of the box width. Filler is
-  // packed down to this, so it is what decides whether the screen reads as
-  // "full". Live items keep their own much wider lattice spacing, so packing
-  // the gaps does not make "the nearest face" any harder to judge -- the faces
-  // are still exactly where they were.
-  const PACK = 0.064;
+  // How close two things may sit, in box units (the box is BOX_W wide). Filler
+  // is packed down to this, so it decides whether the screen reads as "full"
+  // or as "cluttered", and the two are only a hair apart.
+  //
+  // The number that matters is this against the rendered glyph size. A glyph
+  // occupies roughly 0.85 of its font-size, and audience.css sets font-size to
+  // 0.052 of the field width -- so a glyph is about 0.066 box units across. At
+  // PACK below that, items overlap and the field turns to mush; a little above
+  // it, they sit shoulder to shoulder with the screen still full. Keep the two
+  // in step if either changes.
+  //
+  // Live items keep their own much wider lattice spacing, so packing the gaps
+  // never makes "the nearest face" harder to judge -- the faces are still
+  // exactly where they were.
+  const PACK = 0.076;
 
   // Small deterministic PRNG. Same seed, same scatter, every device.
   function mulberry32(a) {

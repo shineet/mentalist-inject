@@ -508,6 +508,11 @@ function showOnly(key) {
   Object.entries(views).forEach(([k, el]) => {
     el.classList.toggle("hidden", k !== key);
   });
+  // The interactive field wants the entire screen, and this routine plays no
+  // audio, so the Sound pill has nothing to offer while it is up. It comes
+  // back for every other phase, so a spectator who never enabled sound still
+  // gets the prompt before anything that needs it.
+  document.body.classList.toggle("fieldFullScreen", key === "interactive");
 }
 
 // ── Interactive emoji routine ───────────────────────────────────────────────
@@ -601,20 +606,19 @@ function renderInteractive(state) {
     img.setAttribute("src", src);
   });
 
-  const round = state.interactive?.round ?? -1;
   const revealed = !!state.interactive?.revealed;
 
-  if (revealed) {
-    // Nothing competes with the finish.
-    say.textContent = "";
-    say.classList.remove("pick");
-  } else if (round < 0) {
-    say.textContent = "Look at the screen and think of ANY one of these.";
-    say.classList.add("pick");
-  } else {
-    say.textContent = set.rounds[round]?.say || "";
-    say.classList.remove("pick");
-  }
+  // No caption on the audience screen. The instructions are spoken live, which
+  // is both better theatre and the only way the field can have the whole
+  // screen. The wording still lives in the set and is shown on the host panel,
+  // so there is exactly one place it is written down.
+  //
+  // The element is kept in the DOM rather than deleted: the round is still
+  // written into it so anything inspecting the page (or a future debug view)
+  // can see where the routine is, and so the host and audience cannot drift
+  // apart about which round is live.
+  say.textContent = "";
+  say.dataset.round = String(state.interactive?.round ?? -1);
 
   // Read from the verified set rather than from server state, so the reveal
   // can never disagree with the routine that produced it.
