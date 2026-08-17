@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v145-interactive-all-relational";
+const REVISION = "v146-interactive-logo-finish";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -260,13 +260,25 @@ const defaultState = () => ({
   // between shows. Host-only field (audience.js never reads it).
   dockAltAction: "messages",
 
-  // "Interactive" routine: a grid of emoji, a handful of instructions, and the
-  // whole room ends on the same one. round -1 is the grid with no instruction
-  // yet -- the beat where everyone picks freely. 0..n-1 step through the
-  // instructions. revealed vanishes everything except the target.
-  // The grid, the instructions and the guarantee that they converge all live
+  // "Interactive" routine: a field of emoji and logos, a handful of
+  // instructions, and the whole room ends on the same one. round -1 is the
+  // field with no instruction yet -- the beat where everyone picks freely.
+  // 0..n-1 step through the instructions. revealed vanishes everything except
+  // the target.
+  // The field, the instructions and the guarantee that they converge all live
   // in public/interactive-set.js; the server only tracks where we are.
   interactive: { round: -1, revealed: false },
+
+  // The client logo the interactive routine finishes on, set per gig.
+  //
+  // Top-level rather than inside `interactive` on purpose: `interactive` is
+  // round state that startInteractive resets and mergeState does not deep-merge,
+  // so a logo stored in there would be wiped by either a settings save or the
+  // act of starting the routine. This is configuration, and it has to survive
+  // both. Empty falls back to the show's corporate logoUrl, then to the built-in
+  // default mark -- so an unconfigured show still runs, it just finishes on an
+  // abstract logo instead of the client's.
+  interactiveLogoUrl: "",
 
   clientSplash: {
     enabled: true,

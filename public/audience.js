@@ -532,7 +532,22 @@ function renderInteractive(state) {
       const cell = document.createElement("div");
       cell.className = "cell";
       cell.dataset.id = item.id;
-      cell.textContent = item.emoji;
+
+      if (item.kind === "logo") {
+        // Logos sit on a white plate. That is not decoration: the closing
+        // instruction is "move to the nearest LOGO", so a spectator has to sort
+        // five marks from forty-four emoji in about a second. The plate makes
+        // them one obvious family at a glance, and it also means a client logo
+        // drawn in any colour still reads on the dark background.
+        cell.classList.add("logoCell");
+        const img = document.createElement("img");
+        img.alt = "";
+        img.decoding = "async";
+        cell.appendChild(img);
+      } else {
+        cell.textContent = item.emoji;
+      }
+
       // Percentages of a fixed-aspect box, so the scatter is geometrically
       // identical on a phone and on a projector. Round 1 asks for the nearest
       // face, so if these reflowed per device the answers would differ.
@@ -543,6 +558,27 @@ function renderInteractive(state) {
     });
     interactiveDrawn = true;
   }
+
+  // Applied on every render, not just at build, because the host can paste a
+  // logo while the field is already on screen. The geometry never changes with
+  // it -- only the picture at the client slot -- so this cannot affect where
+  // anybody walks.
+  const clientLogo = state.interactiveLogoUrl || state.logoUrl || "";
+  set.items.forEach((item) => {
+    if (item.kind !== "logo") return;
+    const img = grid.querySelector(`.cell[data-id="${item.id}"] img`);
+    if (!img) return;
+    const src = kit.logoSrc(item, clientLogo);
+    if (img.getAttribute("src") === src) return;
+    // A client logo that fails to load would leave a blank plate, and a blank
+    // plate is still the thing the whole room is about to converge on. Falling
+    // back to the default mark keeps the finish intact -- wrong picture beats
+    // no picture.
+    img.onerror = () => {
+      if (img.getAttribute("src") !== kit.DEFAULT_LOGO) img.setAttribute("src", kit.DEFAULT_LOGO);
+    };
+    img.setAttribute("src", src);
+  });
 
   const round = state.interactive?.round ?? -1;
   const revealed = !!state.interactive?.revealed;
@@ -577,8 +613,12 @@ function renderInteractive(state) {
       const c = cell.getBoundingClientRect();
       const dx = (g.left + g.width / 2) - (c.left + c.width / 2);
       const dy = (g.top + g.height / 2) - (c.top + c.height / 2);
+      // A logo goes bigger than an emoji would. It is the client's mark on
+      // screen at the peak of the routine, and a plate the same size as a
+      // magnified emoji undersells the moment.
+      const scale = cell.classList.contains("logoCell") ? 4.6 : 3;
       cell.style.transform =
-        `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(3) rotate(0deg)`;
+        `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(${scale}) rotate(0deg)`;
     } else {
       cell.style.transform = "";
     }

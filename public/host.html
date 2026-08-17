@@ -170,8 +170,14 @@
     </details>
 
     <details class="card">
-      <summary>🧠 Interactive (everyone ends on the same emoji)</summary>
+      <summary>🧠 Interactive (everyone ends on the client's logo)</summary>
       <div class="grid">
+        <div style="grid-column:1/-1">
+          <label>Client logo URL (this gig)</label>
+          <input id="interactiveLogoUrl" type="url" placeholder="https://.../client-logo.png" />
+          <p class="hint">Five logos sit in the field and the room converges on this one. Leave it blank to fall back to the Logo URL in General Settings, then to a default mark. Changing it is safe at any time -- it swaps the picture only, never the layout, so the routine cannot break. Use a PNG or SVG with a transparent or white background.</p>
+          <div id="interactiveLogoPreview" class="hint" style="margin-top:6px"></div>
+        </div>
         <div class="field" style="grid-column:1/-1">
           <div id="interactiveStatus" class="hint">Checking the set…</div>
           <div id="interactiveScript" class="hint" style="margin-top:6px;line-height:1.5"></div>

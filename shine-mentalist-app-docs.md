@@ -438,6 +438,48 @@ Defined in both `styles.css` (shared) and inline in `audience.html`/`host.html`:
 
 ---
 
+## 12b. The Interactive Routine (phase `interactive`)
+
+A field of 44 emoji and 5 logos, five spoken instructions, and the whole room
+ends on the client's logo. It is the one part of the app where the maths, not
+the code, is the fragile thing — read this before touching it.
+
+**Where it lives.** `public/interactive-set.js` holds the item set, the layout,
+the instructions and the verifier. The server only tracks position:
+`state.interactive = { round, revealed }`, where `round: -1` is the field with
+no instruction yet. `state.interactiveLogoUrl` is the per-gig client logo.
+
+**Every round is relational** — "move to the nearest X". Nothing is absolute,
+because an absolute instruction feels forced to the audience. The consequence is
+that **the instructions guarantee nothing on their own; the LAYOUT is what makes
+the room converge.** Roughly 1 scatter in 250 works.
+
+**So the seed is load-bearing.** `SEED = 241716` was found by brute force
+(`node tools/search-seed.mjs`). Changing the seed, any emoji, the number of
+logos, the lattice, or any round's wording **breaks the routine silently**. Re-run
+the search, then paste the new seed and its `CLIENT_SLOT` back into the file.
+
+**Why the client logo is a slot, not a value.** The room converges on a fixed
+POSITION in the layout (`CLIENT_SLOT = 27`), and the per-gig logo is just the
+picture drawn there. Swapping the picture cannot move anybody, so a new client
+needs no new search and carries no showtime risk. Empty falls back to the show's
+`logoUrl`, then to a built-in abstract mark.
+
+**Four decoy logos are not optional.** A final instruction with one honest
+answer is a naked force at the most exposed moment of the routine. Five logos are
+visible and position alone decides which one a spectator reaches. The seed was
+also chosen for logo SPREAD — most converging layouts huddle all five logos into
+one corner, which converges easily and looks arranged.
+
+**The verifier is the backstop.** `verifySet()` refuses a set that does not end
+on exactly one item, that ends on something other than a logo, that strands
+anyone, that lets anyone stand still, or whose closing survivors are clustered.
+The host panel runs it on load and shows ✅ or ⛔ **DO NOT PERFORM**. It also
+checks that the converged index still equals `CLIENT_SLOT`. If that badge is not
+green, the routine is broken — do not perform it.
+
+---
+
 ## 13. Deployment
 
 ```bash

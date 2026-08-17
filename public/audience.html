@@ -210,6 +210,30 @@
     user-select: none;
     transition: opacity .9s ease, transform .9s ease;
   }
+  /* Logo tiles. Sized to sit in the same visual weight class as an emoji so
+     they read as part of one field rather than as five things pasted on top of
+     it -- but on a white plate, because the closing instruction depends on a
+     spectator picking the logos out of forty-four emoji at a glance, and
+     because a client's logo can be any colour including near-black. */
+  .emojiGrid .cell.logoCell {
+    width: min(6.4vw, 9.6vh);
+    height: min(6.4vw, 9.6vh);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border-radius: 22%;
+    padding: 12%;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .35);
+  }
+  .emojiGrid .cell.logoCell img {
+    max-width: 100%;
+    max-height: 100%;
+    /* contain, so a wide wordmark and a square glyph both sit inside the plate
+       without either being cropped or stretched. */
+    object-fit: contain;
+    display: block;
+  }
   .emojiGrid.revealed .cell { opacity: 0; }
   .emojiGrid.revealed .cell.target {
     opacity: 1;

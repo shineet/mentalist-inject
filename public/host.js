@@ -58,6 +58,8 @@ const els = {
   revealTypeRadios: document.querySelectorAll('input[name="revealType"]'),
   dockAltActionRadios: document.querySelectorAll('input[name="dockAltAction"]'),
   logoUrl: document.getElementById("logoUrl"),
+  interactiveLogoUrl: document.getElementById("interactiveLogoUrl"),
+  interactiveLogoPreview: document.getElementById("interactiveLogoPreview"),
   skipAnimation: document.getElementById("skipAnimation"),
 
   logoMs: document.getElementById("logoMs"),
@@ -193,6 +195,7 @@ function setSelectedDockAltAction(value) {
 function applySettingsToForm(s) {
   els.revealUrl.value = s.revealUrl ?? randomRevealUrl();
   els.logoUrl.value = s.logoUrl ?? "";
+  if (els.interactiveLogoUrl) els.interactiveLogoUrl.value = s.interactiveLogoUrl ?? "";
   els.skipAnimation.checked = !!s.skipAnimation;
 
   els.logoMs.value = s.logoMs ?? 4000;
@@ -260,6 +263,7 @@ function applyServerStateToForm(st) {
     dockAltAction: st.dockAltAction,
     revealUrl: st.revealUrl,
     logoUrl: st.logoUrl,
+    interactiveLogoUrl: st.interactiveLogoUrl,
     skipAnimation: st.skipAnimation,
     logoMs: st.timings?.logoMs,
     animationMs: st.timings?.animationMs,
@@ -385,6 +389,7 @@ function saveSettings() {
     dockAltAction: getSelectedDockAltAction(),
     revealUrl: els.revealUrl.value.trim() || randomRevealUrl(),
     logoUrl: els.logoUrl.value.trim(),
+    interactiveLogoUrl: (els.interactiveLogoUrl?.value || "").trim(),
     skipAnimation: !!els.skipAnimation.checked,
 
     logoMs: Number(els.logoMs.value || 0),
@@ -440,6 +445,7 @@ function payloadFromUI() {
     dockAltAction: s.dockAltAction,
     revealUrl: s.revealUrl,
     logoUrl: s.logoUrl,
+    interactiveLogoUrl: s.interactiveLogoUrl,
     skipAnimation: s.skipAnimation,
     timings: { logoMs: s.logoMs, animationMs: s.animationMs },
 
@@ -579,11 +585,21 @@ els.btnSendReview.addEventListener("click", () => {
   if (!kit || !els.interactiveStatus) return;
 
   const result = kit.verifySet(kit.SET);
-  if (result.ok) {
+  if (result.ok && result.targetIndex !== kit.CLIENT_SLOT) {
+    // Converges, but not onto the slot the client's logo is drawn at -- so the
+    // room would land on a decoy while the client's mark sat untouched
+    // elsewhere. The routine would look like it worked and the payoff would be
+    // gone, which is exactly the failure worth shouting about.
     els.interactiveStatus.innerHTML =
-      "✅ <b>Set verified</b> — every path ends on " +
-      result.target.emoji +
-      " &nbsp;·&nbsp; " + result.sizes.join(" → ");
+      "⛔ <b>DO NOT PERFORM</b> — converges on slot " + result.targetIndex +
+      " but the client logo is drawn at slot " + kit.CLIENT_SLOT +
+      ". Set CLIENT_SLOT to " + result.targetIndex + " in interactive-set.js.";
+    els.interactiveStatus.style.color = "#ff8a8a";
+  } else if (result.ok) {
+    els.interactiveStatus.innerHTML =
+      "✅ <b>Set verified</b> — every path ends on the client logo" +
+      " &nbsp;·&nbsp; " + result.sizes.join(" → ") +
+      (result.warnings.length ? "<br>⚠️ " + result.warnings.join(" ") : "");
     els.interactiveStatus.style.color = "#8fe0a5";
   } else {
     els.interactiveStatus.innerHTML =
@@ -596,6 +612,50 @@ els.btnSendReview.addEventListener("click", () => {
   els.interactiveScript.innerHTML = kit.SET.rounds
     .map((r, i) => (i + 1) + ". " + r.say)
     .join("<br>");
+
+  // Show the logo the way the room will see it -- on its white plate, at the
+  // real proportions. A URL that 404s or a logo that turns out to be white on
+  // transparent is something to find out here, not from the back of a ballroom.
+  function previewLogo() {
+    const box = els.interactiveLogoPreview;
+    if (!box) return;
+    const url = (els.interactiveLogoUrl?.value || "").trim() ||
+                (els.logoUrl?.value || "").trim();
+    box.innerHTML = "";
+
+    const plate = document.createElement("span");
+    plate.style.cssText =
+      "display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;" +
+      "background:#fff;border-radius:14px;padding:8px;vertical-align:middle;margin-right:10px";
+    const img = document.createElement("img");
+    img.style.cssText = "max-width:100%;max-height:100%;object-fit:contain;display:block";
+    img.alt = "";
+    const note = document.createElement("span");
+
+    if (!url) {
+      note.textContent = "No logo set — the routine will finish on the default mark.";
+      img.src = kit.DEFAULT_LOGO;
+    } else {
+      note.textContent = "Loading…";
+      img.onload = () => { note.textContent = "Logo loads. This is what the room converges on."; };
+      img.onerror = () => {
+        note.innerHTML = "⚠️ <b>This URL did not load.</b> The show will fall back to the default mark.";
+        img.src = kit.DEFAULT_LOGO;
+      };
+      img.src = url;
+    }
+
+    plate.appendChild(img);
+    box.appendChild(plate);
+    box.appendChild(note);
+  }
+
+  els.interactiveLogoUrl?.addEventListener("input", previewLogo);
+  els.logoUrl?.addEventListener("input", previewLogo);
+  previewLogo();
+  // The field is filled from the server a moment after load, so preview again
+  // once that has landed rather than showing "no logo set" for a saved show.
+  setTimeout(previewLogo, 1200);
 })();
 
 function interactiveEmit(event, action) {
