@@ -27,8 +27,34 @@ if (!SRC) { console.error('usage: node tools/split-voiceover.mjs <recording.mp3>
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public', 'vo');
 const NAMES = ['intro', 'round1', 'round2', 'round3', 'round4', 'round5-logo', 'round5-green', 'hold'];
 const NEEDED = NAMES.length;
-// How much longer a real separator must be than the longest in-line pause.
-const SEPARATION = 1.6;
+
+/* The lines, in order, with the text each one says.
+ *
+ * Length is what identifies a segment, not the size of the gap before it.
+ * Picking the N longest gaps looked obvious and is wrong: in a real take one
+ * genuine separator came back at 0.87s while a pause INSIDE a sentence was
+ * 1.05s, so the longest-seven rule silently chose a boundary set that made
+ * round1 three seconds long and hold nearly ten.
+ *
+ * Character count is a good proxy for speaking time, so instead every plausible
+ * set of boundaries is scored against these proportions and the best fit wins.
+ * That is robust to whatever gap lengths the model decides to produce.
+ */
+const LINES = [
+  'Look at the screen. Take a moment. And think of any one of these.',
+  'Now, move to the closest one that has a face. Not your own. If two look equally close, take either.',
+  'Now, move to the food nearest to you.',
+  'Now, move to the nearest object you could pick up and hold. Not food, and nothing alive.',
+  'Now, move to the animal nearest to you.',
+  'And finally. Move to the nearest logo.',
+  'And finally. Move to the green thing nearest to you.',
+  'Now stay exactly where you are. Don\'t move. Lock it in, and keep your eyes on it.',
+];
+const TOTAL_CHARS = LINES.reduce((n, l) => n + l.length, 0);
+const EXPECTED = LINES.map((l) => l.length / TOTAL_CHARS);
+// Mean absolute error in the length proportions, above which the fit is not
+// trustworthy enough to write files.
+const MAX_MISFIT = 0.030;
 
 // ffmpeg writes its analysis to STDERR, so both streams have to be read --
 // reading only stdout returns nothing and looks exactly like "no gaps found".
@@ -56,25 +82,55 @@ if (gaps.length < NEEDED - 1) {
   process.exit(1);
 }
 
-const bySize = [...gaps].sort((a, b) => b.len - a.len);
-const separators = bySize.slice(0, NEEDED - 1);
-const longestInline = bySize[NEEDED - 1];
-const ratio = separators[separators.length - 1].len / longestInline.len;
-
-console.log(`  shortest separator ${separators[separators.length - 1].len.toFixed(2)}s`);
-console.log(`  longest in-line pause ${longestInline.len.toFixed(2)}s`);
-console.log(`  ratio ${ratio.toFixed(2)}x  (need ${SEPARATION}x)`);
-
-if (ratio < SEPARATION) {
-  console.error(`
-REFUSING TO SPLIT. The line breaks are not clearly longer than the pauses
-inside sentences, so any split would be guesswork -- and a mis-assigned line
-puts the wrong words at the finish of the routine.
-
-Regenerate with stacked [long pause] separators, or generate the eight lines
-separately. See tools/voiceover-script.txt.`);
+/* Try every plausible set of boundaries and keep the one whose segment lengths
+ * best match the script. Only gaps long enough to be a line break are
+ * considered, which keeps the search tiny -- a dozen or so candidates choose 7,
+ * a couple of thousand combinations. */
+const candidates = gaps.filter((g) => g.len >= 0.40);
+if (candidates.length < NEEDED - 1) {
+  console.error(`\nREFUSING: only ${candidates.length} gaps long enough to be line breaks, need ${NEEDED - 1}.`);
   process.exit(1);
 }
+console.log(`  ${candidates.length} candidate boundaries`);
+
+function misfit(chosen) {
+  const segs = [];
+  let from = 0;
+  for (const c of chosen) { segs.push(c.start - from); from = c.end; }
+  segs.push(duration - from);
+  if (segs.some((d) => d < 0.6)) return Infinity;      // no line is that short
+  const total = segs.reduce((a, b) => a + b, 0);
+  return segs.reduce((sum, d, i) => sum + Math.abs(d / total - EXPECTED[i]), 0) / segs.length;
+}
+
+let best = null;
+const pick = (start, chosen) => {
+  if (chosen.length === NEEDED - 1) {
+    const m = misfit(chosen);
+    if (!best || m < best.m) best = { m, chosen: [...chosen] };
+    return;
+  }
+  for (let i = start; i < candidates.length; i++) {
+    // enough candidates must remain to finish the set
+    if (candidates.length - i < NEEDED - 1 - chosen.length) break;
+    chosen.push(candidates[i]);
+    pick(i + 1, chosen);
+    chosen.pop();
+  }
+};
+pick(0, []);
+
+console.log(`  best fit misfit ${best.m.toFixed(4)}  (refuse above ${MAX_MISFIT})`);
+if (best.m > MAX_MISFIT) {
+  console.error(`
+REFUSING TO SPLIT. No set of boundaries produces segment lengths that match the
+script, so the file probably does not contain these eight lines in this order.
+Splitting anyway would put the wrong words at the finish of the routine.
+
+See tools/voiceover-script.txt -- the fallback is eight separate generations.`);
+  process.exit(1);
+}
+const separators = best.chosen;
 
 // Boundaries, back in time order.
 separators.sort((a, b) => a.start - b.start);
