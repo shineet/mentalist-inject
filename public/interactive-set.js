@@ -277,6 +277,25 @@
     ],
   };
 
+  /* Filler that LOOKS alike, whatever its codepoint.
+   *
+   * The old rule only stopped the same emoji appearing twice nearby, which
+   * misses the actual problem: ⛅ 🌧️ ⛈️ are three different characters that all
+   * read as "a cloud", and three of them in one corner looks like a repeat.
+   * Same for the stars and the hearts.
+   *
+   * Filler is assigned to slots family-aware for that reason -- positions are
+   * frozen, so this only chooses WHICH picture goes where, and cannot move
+   * anything or affect the routine.
+   */
+  const FILLER_FAMILY = {
+    '☁️': 'cloud', '⛅': 'cloud', '🌧️': 'cloud', '⛈️': 'cloud',
+    '⭐': 'star', '🌟': 'star', '💫': 'star', '✨': 'star', '☄️': 'star',
+    '❤️': 'heart', '💙': 'heart', '💜': 'heart', '🤍': 'heart',
+    '🌀': 'swirl', '🌪️': 'swirl', '💨': 'swirl',
+  };
+  const familyOf = (e) => FILLER_FAMILY[e] || e;
+
   // Which roster list fills a slot, and what tags that slot carries.
   const SIGNATURES = {
     'face+animal':       { list: 'faceAnimal',      tags: ['face', 'animal'] },
@@ -973,13 +992,44 @@
     });
   }
 
+  /* Reassigns the filler pictures so no two of a kind sit near each other.
+   *
+   * Deterministic and position-preserving: the slots do not move, this only
+   * decides which picture occupies each one, so it cannot touch the routine.
+   * Walked in a fixed order and each slot takes the least-used picture whose
+   * family is absent from its neighbourhood, falling back to least-used
+   * overall if a dense pocket leaves no clean option -- a distant repeat beats
+   * an empty slot.
+   */
+  function spreadFillerFamilies(items) {
+    const NEAR = 0.34;
+    const pool = ROSTER.filler;
+    const usedCount = new Map(pool.map((e) => [e, 0]));
+    const slots = items.filter((i) => i.kind === 'filler');
+
+    slots.forEach((slot) => {
+      const nearbyFamilies = new Set(
+        slots.filter((o) => o !== slot && o.emoji &&
+                     Math.hypot(o.x - slot.x, o.y - slot.y) < NEAR)
+             .map((o) => familyOf(o.emoji))
+      );
+      const rank = (e) => usedCount.get(e);
+      const clean = pool.filter((e) => !nearbyFamilies.has(familyOf(e)));
+      const choose = (clean.length ? clean : pool).sort((a, b) => rank(a) - rank(b))[0];
+      slot.emoji = choose;
+      slot.label = choose;
+      usedCount.set(choose, usedCount.get(choose) + 1);
+    });
+    return items;
+  }
+
   function buildSet(config) {
     const set = {
       id: config.id,
       box: { w: BOX_W, h: BOX_H },
       clientSlot: config.clientSlot,
       wantsLogos: !!config.wantsLogos,
-      items: buildFromLayout(config.which, config.wantsLogos),
+      items: spreadFillerFamilies(buildFromLayout(config.which, config.wantsLogos)),
       rounds: OPENING_ROUNDS.concat([config.finish]),
     };
     return set;
