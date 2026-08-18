@@ -520,6 +520,23 @@ well the targets spread across the screen. The layout that failed had been
 picked for spread. The host panel prints the margin ("holds even if everyone
 misjudges every distance by up to 30%") and `tools/search-seed.mjs` ranks on it.
 
+**Rounds also declare AMBIGUITY.** A round's `requires` is the narrow reading;
+`maybe` names categories a reasonable spectator might also include. The verifier
+computes plausible choices under both readings and takes the union, so a set
+passes only if the room converges whichever way people read the instruction.
+
+Round 3 says "the nearest thing you could pick up and hold" and declares
+`maybe: ['food']`, because a carrot plainly IS something you could pick up, as
+is every burger and apple on screen. That gap existed from v150 (when the
+wording changed from "not alive and not food", which excluded food explicitly)
+until Shine asked the obvious question in v164.
+
+**When adding or rewording a round, ask what else on screen satisfies the words
+as spoken** -- not what you intended them to mean. The same discipline applies
+to filler: it must satisfy NO rule, judged by how each emoji actually draws.
+Two have been caught that way -- ❇️ is called "sparkle" and renders as a solid
+green tile, and 🟠/🔶 render as 3D balls and gems that are obviously holdable.
+
 `verifySet()` also still refuses a set that does not end on exactly one item,
 that ends on something other than a logo, that strands anyone, that lets anyone
 stand still, that lets filler become reachable, or whose closing survivors are
