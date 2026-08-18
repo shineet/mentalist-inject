@@ -74,22 +74,24 @@
   // 1 layout in 250 converges cleanly, so it is not something to guess at --
   // the host panel's verified badge is the backstop.
   //
-  // 8514 puts 95 things on screen and funnels 13 -> 7 -> 7 -> 5 -> 1.
+  // 8514 puts ~100 things on screen and funnels 13 -> 7 -> 13 -> 8 -> 1.
   //
-  // Chosen for ROBUSTNESS, not for looks, and that is a deliberate reversal.
-  // The previous seed was picked because its five logos spanned 93% of the
-  // width, which photographed well and broke in an actual show: on the closing
-  // move the right answer was 6.8% nearer than the wrong one, Shine could not
-  // tell them apart, and the room did not converge.
+  // Chosen for robustness, not for looks -- a deliberate reversal after the
+  // previous seed, picked for how well its logos spread, failed in a real show.
+  // This one holds together if everyone misjudges every distance by up to 30%,
+  // and it is one of the few that ALSO survives round 3 being read the widest
+  // way anyone plausibly could: counting food and animals as things you could
+  // pick up, not just the ten objects.
   //
-  // This layout keeps converging even if every spectator misjudges every
-  // distance by up to 30% -- more than four times the margin that failed. Its
-  // logos are less spread as a result, which is the price. Correctness first;
-  // a routine that looks arranged still works, a routine that looks beautiful
-  // and lands on the wrong thing does not.
+  // Worth knowing before swapping it: passing the wide reading does NOT imply
+  // passing the narrow one. Widening `maybe` changes WHICH items are nearest,
+  // not merely how many qualify, so the two tests are independent. Seed 12413
+  // passes food+animal and fails food-only.
   //
-  // Five animals funnel into the logo from different parts of the field, and it
-  // raises no clustering warnings.
+  // The emoji set cannot cover the animal reading at all -- with animals
+  // counted, rounds 3 and 4 both target animals and the funnel will not close,
+  // in 25,000 seeds. That is why the spoken wording rules animals out
+  // explicitly rather than leaving it to the layout.
   const SEED = 8514;
 
   // The layout index the room converges on. Established by the search that
@@ -427,7 +429,7 @@
     },
     {
       key: 'thing', type: 'relational', excludeSelf: true,
-      say: 'Now move to the NEAREST thing you could pick up and hold.',
+      say: 'Now move to the nearest OBJECT you could pick up and hold. Not food, and nothing alive.',
       requires: ['thing'],
       // Food is the honest ambiguity here, and it is the one that broke a
       // performance. A carrot IS something you could pick up and hold, as is

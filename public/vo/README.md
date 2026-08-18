@@ -34,7 +34,7 @@ macOS `say` version.
 | `intro.mp3` | Look at the screen. Take a moment. And think of any one of these. |
 | `round1.mp3` | Now, move to the closest one that has a face. Not your own. If two look equally close, take either. |
 | `round2.mp3` | Now, move to the food nearest to you. |
-| `round3.mp3` | Now, move to the nearest thing you could pick up and hold. |
+| `round3.mp3` | Now, move to the nearest object you could pick up and hold. Not food, and nothing alive. |
 | `round4.mp3` | Now, move to the animal nearest to you. |
 | `round5-logo.mp3` | And finally. Move to the nearest logo. |
 | `round5-green.mp3` | And finally. Move to the green thing nearest to you. |
@@ -43,6 +43,12 @@ macOS `say` version.
 Both round 5 files are needed: the app plays the logo one when a client logo is
 configured for the gig and the green one when it is not. Record both even if
 only one gets used this month.
+
+**Round 3's wording is load-bearing.** "Something you could pick up and hold"
+on its own is satisfied by every carrot, burger and apple on screen, and
+arguably by the animals -- which is not what the routine targets, and it broke a
+performance. The two exclusions are not padding; do not trim them when
+re-recording.
 
 ## Direction
 
