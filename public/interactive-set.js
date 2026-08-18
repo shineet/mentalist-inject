@@ -293,7 +293,59 @@
       };
     });
 
+    relax(live);
     return live.concat(buildFiller(live, seed));
+  }
+
+  /**
+   * Pushes overlapping LIVE items apart.
+   *
+   * Filler respects PACK by construction -- it is only ever placed where there
+   * is room. Live items are not: they sit on a lattice with jitter, and two
+   * neighbours that happen to jitter toward each other end up closer than a
+   * glyph is wide, so they visibly touch. Cell width is 0.1875 and the jitter
+   * is +/-0.0638, which puts the worst case at 0.060 apart against a glyph
+   * about 0.082 across.
+   *
+   * Shrinking the jitter would fix it and would also make the lattice show
+   * through as rows, which is the thing the jitter is there to hide. So instead
+   * the overlaps are relaxed out afterwards: a few passes of pushing any too-close
+   * pair apart along the line between them. Deterministic, no randomness, so the
+   * layout stays identical on every device -- and the seed search runs against
+   * the relaxed positions, so what is verified is what is drawn.
+   */
+  function relax(items) {
+    const MIN = PACK;
+    const EDGE = 0.012;
+    for (let pass = 0; pass < 60; pass++) {
+      let moved = false;
+      for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+          const a = items[i], b = items[j];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d = Math.hypot(dx, dy);
+          if (d >= MIN) continue;
+          if (d < 1e-6) { dx = 1e-3; dy = 0; d = 1e-3; }   // exact overlap: pick an axis
+          const push = (MIN - d) / 2;
+          const ux = (dx / d) * push, uy = (dy / d) * push;
+          a.x -= ux; a.y -= uy;
+          b.x += ux; b.y += uy;
+          moved = true;
+        }
+      }
+      // Keep everything inside the box, or the relaxation walks items off the edge.
+      items.forEach((it) => {
+        it.x = Math.min(BOX_W - EDGE, Math.max(EDGE, it.x));
+        it.y = Math.min(BOX_H - EDGE, Math.max(EDGE, it.y));
+      });
+      if (!moved) break;
+    }
+    // Half-of-field tags are derived from position, so they have to be redone.
+    items.forEach((it) => {
+      it.tags = it.tags.filter((t) => !['leftHalf', 'rightHalf', 'topHalf', 'bottomHalf'].includes(t));
+      it.tags.push(it.x < BOX_W / 2 ? 'leftHalf' : 'rightHalf');
+      it.tags.push(it.y < BOX_H / 2 ? 'topHalf' : 'bottomHalf');
+    });
   }
 
   /**
