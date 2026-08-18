@@ -1,24 +1,31 @@
 # Voice over files
 
-**Current state: all eight lines are Shine's recorded voice.** Both finishes
-report clean in the host panel. The machine-voice `.m4a` files remain beside
-them purely as a backstop -- delete any `.mp3` and that one line reverts.
+**Current state: all eight lines are the recorded voice**, re-recorded
+2026-08-18 with the corrected round 3 wording, split from
+`tools/voiceover-master.mp3`. Both finishes report clean in the host panel. The
+machine-voice `.m4a` files remain beside them as a backstop -- delete any
+`.mp3` and that one line reverts on the next page load.
 
-Sources:
+## Re-recording
 
-- `tools/voiceover-master.mp3` -- seven lines, in this order:
-  intro, faces, food, pick-up, animal, **round5-green**, **hold**.
-  No logo ending in it.
-- `tools/voiceover-master-logo.mp3` -- the logo ending is the **final phrase**,
-  from about 34.0s to the end. Note that the ~0.6s gaps in that file are
-  deliberate pauses inside sentences, not line breaks, so a naive split on
-  silence cuts lines in half.
+`tools/voiceover-script.txt` has the exact text, the ElevenLabs tag syntax and
+the direction. Generate one file, then:
 
-**Establish which segment is which by listening, never by reasoning from
-durations.** Three separate attempts to infer the order from segment lengths
-were wrong; two of the segments differ by 0.15s and nothing but the words tells
-them apart. The way that works: cut the candidates, play them aloud labelled
-A/B/C, and ask an open question about what each one says.
+```bash
+node tools/split-voiceover.mjs ~/Downloads/take.mp3
+```
+
+**The splitter matches segment LENGTHS against the script, not gap sizes**, and
+that distinction is the whole difficulty. Gap length is not a usable signal
+here: three takes produced three different behaviours, the v2-style
+`<break time="3.0s" />` tags were ignored outright, and in the take that
+finally worked one genuine separator was 0.87s while a pause *inside* a
+sentence was 1.05s. Taking the longest gaps would have written eight
+plausible-looking files with the wrong words in them.
+
+It refuses when no boundary set fits the script. **Trust that refusal** -- it
+means regenerate, not work around. The fallback is eight separate generations,
+listed at the end of the script file.
 
 Drop replacement recordings in this folder. **That is the whole installation
 step** — no rename, no code change, no redeploy config.
