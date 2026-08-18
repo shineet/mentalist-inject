@@ -187,8 +187,7 @@
   // prettier-ignore
   const FILLER = [
     '⭐', '🌟', '💫', '✨', '☄️', '🌠', '🌙', '☀️', '☁️', '⚡', '❄️', '💧',
-    '🌊', '🔥', '💥', '💨', '🌀', '🎵', '🎶', '✴️', '❤️', '💙', '💜',
-    '🤍', '🔷', '🔶', '🔺', '🟣', '🟠', '🟡', '🔵',
+    '🌊', '🔥', '💥', '💨', '🌀', '🎵', '🎶', '✴️', '❤️', '💙', '💜', '🤍',
   ];
 
   const TAGS = {};
@@ -430,6 +429,13 @@
       key: 'thing', type: 'relational', excludeSelf: true,
       say: 'Now move to the NEAREST thing you could pick up and hold.',
       requires: ['thing'],
+      // Food is the honest ambiguity here, and it is the one that broke a
+      // performance. A carrot IS something you could pick up and hold, as is
+      // every apple, burger and slice of pizza on screen -- but the tags only
+      // ever counted the ten objects. Rather than argue with the spectator,
+      // the verifier now walks BOTH readings and a set only passes if the room
+      // converges either way.
+      maybe: ['food'],
     },
     {
       key: 'animal', type: 'relational', excludeSelf: true,
@@ -496,7 +502,27 @@
   function setTolerance(t) { TOLERANCE = t; }
 
   function allowedTargets(items, round, from) {
-    let candidates = items.filter((item) => matches(item, round.requires));
+    // A round can be read more than one way. `requires` is the narrow reading;
+    // `maybe` names categories a reasonable spectator might also include. Each
+    // reading produces its own set of plausible choices and the union is what
+    // the verifier has to survive -- because different people in the same room
+    // WILL read it differently, and the routine has to work for all of them.
+    if (round.maybe && round.maybe.length) {
+      const narrow = nearestWithin(items, round, from, round.requires);
+      const wide = nearestWithin(items, round, from, round.requires.concat(round.maybe), true);
+      const seen = new Map();
+      narrow.concat(wide).forEach((c) => seen.set(c.id, c));
+      return Array.from(seen.values());
+    }
+    return nearestWithin(items, round, from, round.requires);
+  }
+
+  // `anyOf` true means an item qualifies if it matches ANY of the tags rather
+  // than all of them -- which is what a widened reading means in practice.
+  function nearestWithin(items, round, from, tags, anyOf) {
+    let candidates = items.filter((item) =>
+      anyOf ? tags.some((t) => matches(item, [t])) : matches(item, tags)
+    );
     if (round.excludeSelf && from) {
       candidates = candidates.filter((c) => c.id !== from.id);
     }
