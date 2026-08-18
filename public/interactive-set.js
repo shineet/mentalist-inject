@@ -245,10 +245,17 @@
     // Animals with faces. Answer round 1 (face) AND round 4 (animal).
     faceAnimal: ['🐼', '🐨', '🐶', '🐱', '🦁', '🐵', '🐷', '🦊'],
     // Faces that are not animals. Answer round 1 only.
-    // 🤖 was here and was pulled: a robot is not alive and not food, so it
-    // answers round 3's "an object you could pick up and hold" just as well as
-    // it answers round 1. Faces that are plainly not objects only.
-    faceOnly: ['👻', '😎', '😀'],
+    // Plain faces with NO props, deliberately. A robot 🤖 was pulled because it
+    // is not alive and not food, so it answers round 3's "an object you could
+    // pick up and hold" as well as round 1. A ghost 👻 was pulled because
+    // nobody is sure what it is -- alive, an object, a creature -- and a
+    // spectator hesitating is the cost.
+    //
+    // Props are the trap when picking replacements: 😴 repeats the 💤 in the
+    // filler, 🤠's hat competes with 🎩 and 🧢 in the things you can pick up,
+    // 🤩's star eyes and 🥰's hearts echo the filler. A bare face clashes with
+    // nothing.
+    faceOnly: ['😲', '😎', '😀'],
     // Green animals with faces. Answer rounds 1, 4 and the green finish.
     faceAnimalGreen: ['🐸', '🐢'],
     // Green things that answer nothing else.
