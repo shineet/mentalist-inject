@@ -531,9 +531,80 @@ function showOnly(key) {
 // rebuilds the field instead of leaving the previous one on screen.
 let interactiveDrawn = null;
 
+/* Fills the letterboxing with decoration.
+ *
+ * The field is a fixed 3:2 shape and has to stay one: it is what makes a phone
+ * and a projector compute the same answers. On a wider screen that leaves black
+ * bars, which Shine could see.
+ *
+ * Filler is the way out. It answers no instruction, so it can be placed
+ * anywhere at all -- including outside the proven region -- without touching
+ * the routine. Someone starting on a margin item still moves to the nearest
+ * face on round 1, and every face converges. So the live geometry stays exactly
+ * as verified while the decoration runs to the edges of whatever screen it is
+ * on.
+ *
+ * Positions are generated per device, since the margin depends on the screen.
+ * That is fine precisely because none of it can be chosen by any instruction.
+ */
+function fillMargins(grid, set, box) {
+  grid.querySelectorAll(".marginCell").forEach((c) => c.remove());
+  const stage = grid.parentElement;
+  if (!stage) return;
+  const view = stage.parentElement;
+  if (!view) return;
+
+  const g = grid.getBoundingClientRect();
+  const v = view.getBoundingClientRect();
+  if (!g.width || !v.width) return;
+
+  // How far the screen extends past the field, as a fraction of the field.
+  const overX = Math.max(0, (v.width - g.width) / 2 / g.width);
+  const overY = Math.max(0, (v.height - g.height) / 2 / g.height);
+  if (overX < 0.02 && overY < 0.02) return;
+
+  const kit = globalThis.InteractiveSet;
+  const pool = (kit && kit.ROSTER && kit.ROSTER.filler) || [];
+  if (!pool.length) return;
+
+  // Same spacing as the field itself, so the margins do not read as a
+  // different, looser band of decoration.
+  const step = (kit.PACK || 0.118) / box.w;
+  const placed = set.items.map((i) => ({
+    x: INTERACTIVE_INSET + (i.x / box.w) * (1 - 2 * INTERACTIVE_INSET),
+    y: INTERACTIVE_INSET + (i.y / box.h) * (1 - 2 * INTERACTIVE_INSET),
+  }));
+
+  // Deterministic per device, so it does not reshuffle on every re-render.
+  let seed = Math.round(v.width * 7 + v.height * 13);
+  const rand = () => {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+
+  let n = 0;
+  for (let i = 0; i < 900 && n < 60; i++) {
+    const x = -overX + rand() * (1 + 2 * overX);
+    const y = -overY + rand() * (1 + 2 * overY);
+    // Only the margins -- the field itself is already full.
+    if (x > -0.01 && x < 1.01 && y > -0.01 && y < 1.01) continue;
+    if (placed.some((p) => Math.hypot((p.x - x) * box.w, (p.y - y) * box.h) < (kit.PACK || 0.118))) continue;
+    placed.push({ x, y });
+
+    const cell = document.createElement("div");
+    cell.className = "cell marginCell";
+    cell.textContent = pool[Math.floor(rand() * pool.length)];
+    cell.style.left = x * 100 + "%";
+    cell.style.top = y * 100 + "%";
+    cell.style.setProperty("--tilt", ((rand() * 2 - 1) * 14).toFixed(2) + "deg");
+    grid.appendChild(cell);
+    n += 1;
+  }
+}
+
 // Fraction of the box kept clear on all four sides. See the note where it is
 // applied: presentational only, and provably harmless to the geometry.
-const INTERACTIVE_INSET = 0.05;
+const INTERACTIVE_INSET = 0.018;
 
 function renderInteractive(state) {
   const kit = globalThis.InteractiveSet;
@@ -611,6 +682,8 @@ function renderInteractive(state) {
     });
     interactiveDrawn = set.id;
   }
+
+  fillMargins(grid, set, box);
 
   // Applied on every render, not just at build, because the host can change the
   // logo while the field is already on screen. Within a set the geometry never

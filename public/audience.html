@@ -282,6 +282,9 @@
     margin: 0 auto;
     flex: 0 0 auto;
   }
+  /* The grid must not clip: the margin decoration deliberately sits outside
+     the 3:2 field, which is what lets the screen fill on a wider display. */
+  .emojiGrid { overflow: visible; }
   .emojiGrid {
     position: absolute;
     left: 50%;
