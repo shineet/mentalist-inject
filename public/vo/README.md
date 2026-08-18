@@ -1,5 +1,11 @@
 # Voice over files
 
+**Current state:** seven of the eight lines are Shine's recorded voice, split
+from a single take (`tools/voiceover-master.mp3`, 2026-08-17). Only
+`round5-green` is still the machine voice, because it was not in that take. It
+is used only on a show with NO client logo configured, and the host panel says
+so when that finish is armed.
+
 Drop replacement recordings in this folder. **That is the whole installation
 step** — no rename, no code change, no redeploy config.
 
@@ -53,6 +59,22 @@ cd public/vo
 for f in *.mp3; do
   ffmpeg -y -i "$f" -af "loudnorm=I=-16:TP=-1.5:LRA=11" "norm-$f" && mv "norm-$f" "$f"
 done
+```
+
+## Re-splitting the master take
+
+`tools/voiceover-master.mp3` is the original single-file recording. To re-cut
+it, find the gaps and slice on them:
+
+```bash
+ffmpeg -i tools/voiceover-master.mp3 -af "silencedetect=noise=-38dB:d=0.45" -f null -
+```
+
+Each line is then trimmed at the edges, given 150ms of head padding and 200ms
+of tail, and loudness-normalised, so they all sit at the same level:
+
+```bash
+ffmpeg -i in.mp3 -af "silenceremove=start_periods=1:start_silence=0.05:start_threshold=-45dB:detection=peak,areverse,silenceremove=start_periods=1:start_silence=0.05:start_threshold=-45dB:detection=peak,areverse,adelay=150,apad=pad_dur=0.2,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=44100" -ac 1 -c:a libmp3lame -b:a 128k out.mp3
 ```
 
 ## Falling back
