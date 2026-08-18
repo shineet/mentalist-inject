@@ -74,25 +74,29 @@
   // 1 layout in 250 converges cleanly, so it is not something to guess at --
   // the host panel's verified badge is the backstop.
   //
-  // 8514 puts ~100 things on screen and funnels 13 -> 7 -> 13 -> 8 -> 1.
+  // 138566 puts 96 things on screen and funnels 13 -> 8 -> 10 -> 7 -> 1.
   //
-  // Chosen for robustness, not for looks -- a deliberate reversal after the
-  // previous seed, picked for how well its logos spread, failed in a real show.
-  // This one holds together if everyone misjudges every distance by up to 30%,
-  // and it is one of the few that ALSO survives round 3 being read the widest
-  // way anyone plausibly could: counting food and animals as things you could
-  // pick up, not just the ten objects.
+  // Chosen for robustness and balance, not for looks -- a deliberate reversal
+  // after an earlier seed, picked for how well its logos spread, failed in a
+  // real show. This one holds together if everyone misjudges every distance by
+  // up to 21%, and every round has at least two targets on each side of the
+  // screen so no instruction drags the whole room in one direction.
   //
-  // Worth knowing before swapping it: passing the wide reading does NOT imply
-  // passing the narrow one. Widening `maybe` changes WHICH items are nearest,
-  // not merely how many qualify, so the two tests are independent. Seed 12413
-  // passes food+animal and fails food-only.
+  // That balance costs robustness: unbalanced layouts reach 31% and higher,
+  // because lopsidedness is what makes a category funnel. 21% is still three
+  // times the 6.8% margin that actually failed in performance, and being
+  // dragged across the field is a giveaway in its own right, so the trade is
+  // worth making -- but it is a trade, not a free win.
   //
-  // The emoji set cannot cover the animal reading at all -- with animals
-  // counted, rounds 3 and 4 both target animals and the funnel will not close,
-  // in 25,000 seeds. That is why the spoken wording rules animals out
+  // Worth knowing before swapping it: passing a WIDER reading of round 3 does
+  // not imply passing the narrow one. Widening `maybe` changes WHICH items are
+  // nearest, not merely how many qualify, so the two tests are independent.
+  //
+  // The emoji set cannot cover animals being read as holdable at all -- with
+  // animals counted, rounds 3 and 4 both target animals and the funnel will not
+  // close, in 25,000 seeds. That is why the spoken wording rules animals out
   // explicitly rather than leaving it to the layout.
-  const SEED = 8514;
+  const SEED = 138566;
 
   // The layout index the room converges on. Established by the search that
   // chose SEED, re-checked by verifySet on every load. The client's logo is
@@ -100,7 +104,7 @@
   //
   // It lands near the middle of the field, which is where you want it: the
   // reveal grows from the centre of the screen rather than an edge.
-  const CLIENT_SLOT = 27;
+  const CLIENT_SLOT = 20;
 
   const LOGO_COUNT = 5;
 
@@ -205,7 +209,11 @@
   // something you pick up and hold, so outside the green round they match
   // nothing -- live items that behave like filler.
   TAGS['🌵'] = ['green'];
-  TAGS['🥑'] = ['food', 'green'];
+  // NOT tagged green, deliberately. The avocado emoji shows a big brown pit
+  // and pale yellow-green flesh -- nobody scanning for "the green thing" picks
+  // it, and it was the emoji set's target until Shine said so. Every remaining
+  // green is unmistakable at a glance: frog, cactus, clover, turtle.
+  TAGS['🥑'] = ['food'];
   TAGS['🍀'] = ['green'];
 
   const EMOJI = [].concat(
@@ -258,9 +266,22 @@
 
   function buildItems(specs, seed, cols, rows) {
     const rand = mulberry32(seed);
-    // Shuffle first so the category blocks are not laid down in reading order
-    // -- otherwise all the food would sit in one band of the screen, and worse,
-    // the five logos would land in a row along the bottom.
+
+    /* Shuffled so the category blocks are not laid down in reading order --
+     * otherwise all the food would sit in one band of the screen and the logos
+     * would land in a row along the bottom.
+     *
+     * NOT stratified, and that is a finding rather than an oversight. Dealing
+     * the categories out evenly across the lattice balances every one of them
+     * perfectly and drops convergence to ZERO in 40,000 seeds. It is the same
+     * tension as density: if every category is spread evenly then "the nearest
+     * food" is always a local one, the reachable set never shrinks, and the
+     * room never funnels to a single item. The unevenness IS the mechanism.
+     *
+     * So balance is a search criterion instead of a construction rule -- see
+     * tools/search-seed.mjs, which requires every round to have targets on both
+     * sides of the screen and reports how lopsided the worst one is.
+     */
     const shuffled = specs.slice();
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(rand() * (i + 1));
@@ -693,10 +714,17 @@
     finish: GREEN_FINISH,
     cols: 8,
     rows: 5,          // 8 x 5 = 40 slots for 34 live emoji
-    // 97 items on screen, funnels 13 -> 6 -> 2 -> 3 -> 1 onto the avocado.
-    // Holds together even if every spectator misjudges every distance by up to
-    // 48%, which is the most forgiving layout found anywhere in the search.
-    seed: 27044,
+    // 102 items on screen, funnels 13 -> 5 -> 6 -> 6 -> 1 onto the cactus, and
+    // holds together even if every spectator misjudges every distance by 20%.
+    //
+    // Two constraints beyond convergence, both from things Shine hit in
+    // testing. The finish must be UNMISTAKABLY green -- the avocado was the
+    // target until he pointed out that it reads brown-pit-and-pale-flesh and
+    // nobody would pick it. And every round's targets must exist on both sides
+    // of the screen: all nine foods landed on the left half here, so anyone
+    // starting on the right was dragged across the whole field on round 2.
+    // Only 16 layouts in 60,000 satisfy the lot.
+    seed: 67255,
     clientSlot: null,
     wantsLogos: false,
   };

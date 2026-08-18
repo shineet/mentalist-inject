@@ -48,6 +48,28 @@ function search(config, label) {
     K.setTolerance(0.18);
     report.holds = holds;
 
+    // Every round must have targets on BOTH sides of the screen. Without this
+    // an instruction drags the whole room in one direction -- all nine foods
+    // landed on the left half once, so anyone starting on the right crossed the
+    // entire field on round 2, which is conspicuous and looks arranged.
+    //
+    // Note this fights convergence: lopsidedness is what makes a category
+    // funnel, and requiring two per side cuts the surviving seeds from hundreds
+    // to a handful and costs about ten points of tolerance. Stratifying the
+    // categories at build time balances them perfectly and drops convergence to
+    // zero in 40,000 seeds, so it has to be a search criterion, not a
+    // construction rule.
+    let balanced = true;
+    let worstSplit = 0;
+    for (const round of set.rounds) {
+      const items = set.items.filter((i) => K.matches(i, round.requires));
+      const left = items.filter((i) => i.x < BOX_W / 2).length;
+      if (left < 2 || items.length - left < 2) balanced = false;
+      worstSplit = Math.max(worstSplit, Math.abs(left - (items.length - left)) / items.length);
+    }
+    if (!balanced) continue;
+    report.worstSplit = worstSplit;
+
     const entry = { seed, report, spread: 1, minPair: 1 };
 
     if (config.wantsLogos) {
@@ -100,6 +122,7 @@ function search(config, label) {
       `seed ${String(f.seed).padStart(7)}  ${f.report.sizes.join('->').padEnd(24)}` +
       `  ends on ${String(f.report.target.label).padEnd(6)} idx ${String(f.report.targetIndex).padStart(2)}` +
       `  holds to ${(f.report.holds * 100).toFixed(0)}%` +
+      `  worst split ${(f.report.worstSplit * 100).toFixed(0)}%` +
       `  span ${(f.spanW * 100).toFixed(0)}x${(f.spanH * 100).toFixed(0)}%` +
       `  closest ${f.minPair.toFixed(2)}  on screen ${f.total}`
     );
