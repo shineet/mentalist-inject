@@ -395,14 +395,26 @@
    * layout stays identical on every device -- and the seed search runs against
    * the relaxed positions, so what is verified is what is drawn.
    */
+  // Two things answering the SAME instruction get pushed further apart than two
+  // unrelated ones. A banana beside an ice cream makes "the nearest food" look
+  // like a coin flip even when both lead to the same reveal, and a spectator
+  // hesitating is a cost whether or not the maths cares. Unrelated neighbours
+  // are only ever scenery to each other, so PACK is enough for them.
+  const SAME_CATEGORY_PACK = PACK * 1.5;
+
+  const CATEGORIES = ['face', 'food', 'thing', 'animal', 'green', 'logo'];
+  function sharesCategory(a, b) {
+    return CATEGORIES.some((c) => a.tags.includes(c) && b.tags.includes(c));
+  }
+
   function relax(items) {
-    const MIN = PACK;
     const EDGE = 0.012;
     for (let pass = 0; pass < 60; pass++) {
       let moved = false;
       for (let i = 0; i < items.length; i++) {
         for (let j = i + 1; j < items.length; j++) {
           const a = items[i], b = items[j];
+          const MIN = sharesCategory(a, b) ? SAME_CATEGORY_PACK : PACK;
           let dx = b.x - a.x, dy = b.y - a.y;
           let d = Math.hypot(dx, dy);
           if (d >= MIN) continue;
@@ -779,6 +791,53 @@
    * is packed tight enough that there is almost nowhere free to put anything.
    * The filler was answering nothing, so promoting it costs nothing.
    */
+  /* Moves a green that sits too close to the people still walking.
+   *
+   * addSafeGreens() below holds NEW greens to a safety margin, but the original
+   * four were never tested that way -- and Shine spotted the gap on screen: the
+   * clover was only 30% further from the turtle than the cactus, against a 35%
+   * standard. Comfortably converging, but close enough to LOOK equidistant, and
+   * how it looks is what a spectator acts on.
+   *
+   * Only greens that answer nothing else can move: the frog and the turtle are
+   * also a face and an animal, so relocating them would change rounds 1 and 4
+   * and need a new seed. The rest swap positions with a piece of filler that
+   * already sits somewhere safe -- a straight exchange, so the field stays
+   * evenly packed and nothing else moves.
+   */
+  function relocateCrowdedGreens(set) {
+    if (set.rounds[set.rounds.length - 1].key !== 'green') return set;
+    const report = verifySet(set);
+    if (!report.ok) return set;
+    const target = report.target;
+    const survivors = report.layers[report.layers.length - 2];
+    const SAFETY = 1.35;
+
+    const safeFor = (spot) =>
+      survivors.every((s) => distance(s, spot) > distance(s, target) * SAFETY);
+
+    // A green is movable only if green is the ONLY thing it answers.
+    const movable = (i) =>
+      i.tags.includes('green') && i.id !== target.id &&
+      !i.tags.includes('face') && !i.tags.includes('animal') &&
+      !i.tags.includes('food') && !i.tags.includes('thing');
+
+    set.items.filter((i) => movable(i) && !safeFor(i)).forEach((green) => {
+      const swap = set.items.find((f) => f.kind === 'filler' && safeFor(f));
+      if (!swap) return;
+      const gx = green.x, gy = green.y, gt = green.tilt;
+      green.x = swap.x; green.y = swap.y; green.tilt = swap.tilt;
+      swap.x = gx; swap.y = gy; swap.tilt = gt;
+      // Half-of-field tags are derived from position, so both need redoing.
+      [green, swap].forEach((it) => {
+        it.tags = it.tags.filter((t) => !['leftHalf', 'rightHalf', 'topHalf', 'bottomHalf'].includes(t));
+        it.tags.push(it.x < BOX_W / 2 ? 'leftHalf' : 'rightHalf');
+        it.tags.push(it.y < BOX_H / 2 ? 'topHalf' : 'bottomHalf');
+      });
+    });
+    return set;
+  }
+
   function addSafeGreens(set) {
     if (set.rounds[set.rounds.length - 1].key !== 'green') return set;
     const report = verifySet(set);
@@ -816,7 +875,10 @@
       items: buildItems(config.specs, config.seed, config.cols, config.rows),
       rounds: OPENING_ROUNDS.concat([config.finish]),
     };
-    return addSafeGreens(set);
+    // Relocate BEFORE adding. The safe positions are a small, fixed supply --
+    // three of them here -- and adding greens consumes them, so running these
+    // the other way round leaves the crowded green with nowhere to go.
+    return addSafeGreens(relocateCrowdedGreens(set));
   }
 
   /*
@@ -841,8 +903,8 @@
     finish: GREEN_FINISH,
     cols: 8,
     rows: 5,          // 8 x 5 = 40 slots for 34 live emoji
-    // 102 items on screen, funnels 13 -> 5 -> 6 -> 6 -> 1 onto the cactus, and
-    // holds together even if every spectator misjudges every distance by 20%.
+    // 61 items on screen, funnels 13 -> 7 -> 8 -> 5 -> 1, and holds together
+    // even if every spectator misjudges every distance by 23%.
     //
     // Two constraints beyond convergence, both from things Shine hit in
     // testing. The finish must be UNMISTAKABLY green -- the avocado was the
@@ -851,7 +913,7 @@
     // of the screen: all nine foods landed on the left half here, so anyone
     // starting on the right was dragged across the whole field on round 2.
     // Only 16 layouts in 60,000 satisfy the lot.
-    seed: 67255,
+    seed: 30163,
     clientSlot: null,
     wantsLogos: false,
   };
