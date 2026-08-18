@@ -109,38 +109,51 @@
   const LOGO_COUNT = 5;
 
   /* ---------------------------------------------------------------------- *
-   * Decoy marks
+   * Decoy logos
    *
-   * Drawn here as inline SVG rather than fetched, so the routine has no
-   * external dependency and works on a room's bad wifi. They are abstract on
-   * purpose: no real company's mark, nothing anyone can recognise and wonder
-   * about. What they have to be is unmistakably a LOGO at a glance, since the
-   * closing instruction depends on a spectator sorting them from the emoji
-   * without hesitating.
+   * These have to READ as corporate logos, not merely be tagged as them. The
+   * first version was abstract geometric glyphs, and next to a real client mark
+   * they looked like icons -- Shine put a Visa logo in and reported "there is
+   * only one logo", which is precisely right and collapses the closing round
+   * into a naked force at the most exposed moment of the routine.
+   *
+   * A symbol plus a wordmark is what makes something read as a company. The
+   * names are invented, so there is no real brand on screen to recognise or
+   * wonder about, and short so they stay legible on a phone.
+   *
+   * Drawn as inline SVG rather than fetched, so the routine has no external
+   * dependency and works on a room's bad wifi.
    * ---------------------------------------------------------------------- */
-  function mark(inner) {
+  function logoMark(inner, name) {
     return (
       'data:image/svg+xml;utf8,' +
       encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" ' +
-        'stroke="#111" stroke-width="6" stroke-linecap="round" stroke-linejoin="round">' +
-        inner + '</svg>'
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' +
+        '<g fill="none" stroke="#141414" stroke-width="7" stroke-linecap="round" ' +
+        'stroke-linejoin="round" transform="translate(28,16)">' + inner + '</g>' +
+        // textLength pins the wordmark to the plate width whatever the name is,
+        // so a longer one condenses instead of running off the edges.
+        '<text x="60" y="106" text-anchor="middle" fill="#141414" ' +
+        'font-family="Helvetica Neue, Helvetica, Arial, sans-serif" ' +
+        'font-size="24" font-weight="700" textLength="96" ' +
+        'lengthAdjust="spacingAndGlyphs">' + name + '</text>' +
+        '</svg>'
       )
     );
   }
 
   const DECOY_LOGOS = [
-    mark('<circle cx="32" cy="32" r="20"/><circle cx="32" cy="32" r="5" fill="#111" stroke="none"/>'),
-    mark('<path d="M32 12 L54 50 H10 Z"/><path d="M20 38 H44"/>'),
-    mark('<path d="M32 10 L52 22 V42 L32 54 L12 42 V22 Z"/><path d="M22 40 L42 24"/>'),
-    mark('<rect x="12" y="12" width="26" height="26" rx="4"/><rect x="26" y="26" width="26" height="26" rx="4"/>'),
-    mark('<path d="M14 26 L32 14 L50 26"/><path d="M14 42 L32 30 L50 42"/>'),
+    logoMark('<path d="M32 4 L60 52 H4 Z"/>', 'NORVEX'),
+    logoMark('<path d="M32 2 L60 18 V50 L32 66 L4 50 V18 Z"/><path d="M16 44 L48 24"/>', 'HEXA'),
+    logoMark('<circle cx="32" cy="34" r="26"/><circle cx="32" cy="34" r="8" fill="#141414" stroke="none"/>', 'LUMEN'),
+    logoMark('<rect x="4" y="6" width="34" height="34" rx="5"/><rect x="26" y="28" width="34" height="34" rx="5"/>', 'ARBOR'),
+    logoMark('<path d="M6 40 L32 12 L58 40"/><path d="M6 62 L32 34 L58 62"/>', 'ASCEND'),
   ];
 
-  // Used at CLIENT_SLOT when a gig has no logo configured. Deliberately in the
-  // same abstract family as the decoys, so an unconfigured show looks like five
-  // sibling marks rather than four marks and a hole.
-  const DEFAULT_LOGO = mark('<circle cx="32" cy="32" r="20"/><path d="M32 12 V32 L46 42"/>');
+  // Used at CLIENT_SLOT when a gig has no logo configured, so an unconfigured
+  // show looks like five sibling companies rather than four and a hole.
+  const DEFAULT_LOGO = logoMark(
+    '<circle cx="32" cy="34" r="26"/><path d="M32 12 V34 L50 46"/>', 'ORBIT');
 
   /* ---------------------------------------------------------------------- *
    * THE TWO KINDS OF THING ON SCREEN

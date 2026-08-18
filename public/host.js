@@ -719,15 +719,18 @@ voicePlayer.preload = "auto";
   reportVoiceSet();
 })();
 
-/* Music bed. Loops under the whole routine from this same device, and ducks
- * while a line is spoken so the voice always sits on top. Starts when the
- * field appears and fades out over the reveal, so the finish lands in silence.
+/* Music for the reveal.
+ *
+ * Starts on Vanish & Reveal, not when the field goes up. Underscoring the
+ * instructions competes with the voice for the whole routine and makes the
+ * finish arrive at the same energy as the setup; holding it back means the
+ * music IS the reveal. Loops, because the vanish takes about three seconds and
+ * whatever follows is Shine's to time.
  */
 const musicBed = new Audio();
 musicBed.loop = true;
 musicBed.preload = "auto";
-const MUSIC_FULL = 0.55;     // under a spoken voice, not competing with it
-const MUSIC_DUCKED = 0.16;
+const MUSIC_FULL = 0.7;      // nothing competing with it now, so it can sit up
 let musicFade = null;
 
 function musicUrl() {
@@ -736,7 +739,7 @@ function musicUrl() {
 
 function startMusic() {
   const url = musicUrl();
-  if (!url || !els.interactiveVoice?.checked) return;
+  if (!url) return;
   try {
     if (musicFade) { clearInterval(musicFade); musicFade = null; }
     if (musicBed.src !== url) musicBed.src = url;
@@ -759,17 +762,6 @@ function stopMusic(fadeMs) {
   }, step);
 }
 
-function duckMusic(durationMs) {
-  if (musicBed.paused) return;
-  musicBed.volume = MUSIC_DUCKED;
-  // Back up once the line has finished, not on a timer tied to the file being
-  // decoded -- the line length is known from the audio element itself.
-  clearTimeout(duckMusic._t);
-  duckMusic._t = setTimeout(() => {
-    if (!musicBed.paused && !musicFade) musicBed.volume = MUSIC_FULL;
-  }, durationMs);
-}
-
 function voiceUrlForRound(round) {
   const entry = round < 0 ? VOICE_LINES.intro : VOICE_LINES[round];
   if (!entry) return null;
@@ -790,9 +782,6 @@ function playVoiceUrl(url) {
     voicePlayer.pause();
     voicePlayer.currentTime = 0;
     voicePlayer.src = url;
-    voicePlayer.onloadedmetadata = () => {
-      duckMusic((voicePlayer.duration || 3) * 1000 + 400);
-    };
     const p = voicePlayer.play();
     if (p && p.catch) {
       p.catch(() => {
@@ -987,13 +976,16 @@ function speakRoundIfChanged(st) {
   }
 
   if (st.interactive?.revealed) {
-    // The hold line is NOT played here. It is its own beat now, triggered
-    // before the reveal by the Lock it in button, so Shine controls the pause
-    // between "stay where you are" and the vanish rather than having them
-    // land on top of each other.
+    // The hold line is NOT played here. It is its own beat, triggered before
+    // the reveal by the Lock it in button, so Shine controls the pause between
+    // "stay where you are" and the vanish rather than having them land on top
+    // of each other.
+    //
+    // The music starts HERE, on the reveal. Guarded because state is
+    // re-broadcast about once a second and this must not restart the track.
     if (!spokeHold) {
       spokeHold = true;
-      stopMusic(7000);   // fade out so the finish lands in silence
+      startMusic();
     }
     return;
   }
@@ -1002,7 +994,6 @@ function speakRoundIfChanged(st) {
   const round = st.interactive?.round ?? -1;
   markInteractiveRound(round);
   if (round === lastSpokenRound) return;         // a re-broadcast, not a move
-  if (lastSpokenRound === null) startMusic();    // field just came up
   lastSpokenRound = round;
   playVoice(round);
 }
