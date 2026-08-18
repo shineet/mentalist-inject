@@ -198,10 +198,21 @@
   // pulled after seeing it on screen: it is described as a "sparkle" but Apple
   // draws it as a solid GREEN tile. Check new filler by looking at it rendered,
   // not by reading its name. The spectator sees the picture, not the codepoint.
+  //
+  // Also pulled on sight: 🌊, drawn much wider than tall so it reads as a
+  // cropped picture rather than an object; 🎶, close enough to 🎵 that the two
+  // together looked like a duplicate; and 🎆 🎇, which Apple draws inside a
+  // white border so they read as framed photographs -- and a framed photograph
+  // is arguably something you could pick up and hold, which is round 3. 🌠 went
+  // for the same reason. And 🌫️ (fog) draws as a plain grey square that reads
+  // as a broken image rather than as anything at all. Filler is free to change
+  // -- it matches no instruction, so swapping any of it cannot affect the
+  // routine and needs no new seed search.
   // prettier-ignore
   const FILLER = [
-    '⭐', '🌟', '💫', '✨', '☄️', '🌠', '🌙', '☀️', '☁️', '⚡', '❄️', '💧',
-    '🌊', '🔥', '💥', '💨', '🌀', '🎵', '🎶', '✴️', '❤️', '💙', '💜', '🤍',
+    '⭐', '🌟', '💫', '✨', '☄️', '🌙', '☀️', '☁️', '⛅',
+    '⚡', '❄️', '💧', '🔥', '💥', '💨', '🌀', '🌪️', '💤', '🎵', '🌧️', '⛈️',
+    '❤️', '💙', '💜', '🤍',
   ];
 
   const TAGS = {};
@@ -459,8 +470,27 @@
         if (dx * dx + dy * dy < PACK * PACK) { ok = false; break; }
       }
       if (!ok) continue;
+      /* Never the same emoji twice in the same neighbourhood.
+       *
+       * Filler was picked at random from the pool, which meant the same one
+       * could land beside itself -- two snowflakes touching, two music notes
+       * -- and a visible duplicate reads as a pattern rather than a jumble,
+       * which is the one thing the field must not look like.
+       *
+       * So candidates already used nearby are excluded. If every one is (a
+       * dense pocket, more neighbours than the pool has members), it falls
+       * back to the full pool rather than leaving a hole -- a repeat is better
+       * than a gap, and by then it is far enough away not to read as one.
+       */
+      const NEAR = PACK * 2.6;
+      const usedNearby = new Set(
+        out.filter((o) => Math.hypot(o.x - x, o.y - y) < NEAR).map((o) => o.emoji)
+      );
+      const free = FILLER.filter((e) => !usedNearby.has(e));
+      const pool = free.length ? free : FILLER;
+
       placed.push({ x, y });
-      const emoji = FILLER[Math.floor(rand() * FILLER.length)];
+      const emoji = pool[Math.floor(rand() * pool.length)];
       out.push({
         id: 'f' + out.length,
         // Indices continue after the live items, so a live item's index -- and
