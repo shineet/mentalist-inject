@@ -1,48 +1,71 @@
 ELEVENLABS SCRIPT — interactive routine voice over
 
-RECORD EACH LINE AS ITS OWN GENERATION. Eight short generations, eight
-downloads, named as below. Do not try to put them in one file.
+TAG SYNTAX
+ElevenLabs v3 uses square-bracket audio tags: [short pause], [long pause].
+The angle-bracket <break time="..."> form is the v2/turbo syntax and was
+ignored by whatever model produced the last take -- every gap came back
+between 0.30s and 0.68s, which is why it could not be split.
 
-Why: a single-file take was tried twice and could not be split safely. The
-second attempt used <break time="3.0s" /> separators, which ElevenLabs simply
-did not honour -- the longest gap in the returned audio was 0.68s, against
-in-sentence pauses of 0.30-0.62s. Nothing distinguishes a line break from a
-breath, and a mis-assigned line means the wrong words at the most exposed
-moment of the routine. Separate generations remove the problem rather than
-managing it.
+TRY THIS FIRST: ONE FILE
+Paste everything between the ==== markers as a single generation.
+
+The separators are THREE [long pause] tags in a row. That is deliberate. A
+single long pause came back at well under a second last time, indistinguishable
+from the pauses inside a sentence. Three should accumulate into something
+clearly longer. What the splitter needs is not a specific duration, just a gap
+between lines that is obviously bigger than any gap inside a line.
+
+Send the file and it will be checked before anything is installed: if the
+segment count is not exactly 8, nothing gets written. If the gaps come back
+uniform again, fall back to the eight separate generations at the bottom.
+
+ORDER (this is what the splitter assumes -- do not reorder)
+  1 intro   2 round1   3 round2   4 round3
+  5 round4  6 round5-logo   7 round5-green   8 hold
 
 VOICE SETTINGS
 Calm, warm, unhurried. Slightly slower than conversational. These are
 instructions spoken to a room over a PA while people search a screen, not
 narration read to someone holding a phone. No rising inflection at the ends --
-they are instructions, not questions. Keep the level even across all eight.
+they are instructions, not questions. Keep the level even line to line.
 
-THE EIGHT LINES
-Paste each block on its own, generate, download, and name the file as shown.
+Do not add performance tags like [dramatically] or [excited]. The delivery
+should be identical across all eight lines, or the reveal sounds like a
+different person from the setup.
 
---- intro.mp3 ---
-Look at the screen. <break time="0.4s" /> Take a moment. <break time="0.4s" /> And think of any one of these.
+====
 
---- round1.mp3 ---
-Now, <break time="0.4s" /> move to the closest one that has a face. <break time="0.4s" /> Not your own. <break time="0.4s" /> If two look equally close, take either.
+Look at the screen. [short pause] Take a moment. [short pause] And think of any one of these.
 
---- round2.mp3 ---
-Now, <break time="0.4s" /> move to the food nearest to you.
+[long pause] [long pause] [long pause]
 
---- round3.mp3 ---
-Now, <break time="0.4s" /> move to the nearest object you could pick up and hold. <break time="0.4s" /> Not food, <break time="0.4s" /> and nothing alive.
+Now, [short pause] move to the closest one that has a face. [short pause] Not your own. [short pause] If two look equally close, take either.
 
---- round4.mp3 ---
-Now, <break time="0.4s" /> move to the animal nearest to you.
+[long pause] [long pause] [long pause]
 
---- round5-logo.mp3 ---
-And finally. <break time="0.4s" /> Move to the nearest logo.
+Now, [short pause] move to the food nearest to you.
 
---- round5-green.mp3 ---
-And finally. <break time="0.4s" /> Move to the green thing nearest to you.
+[long pause] [long pause] [long pause]
 
---- hold.mp3 ---
-Now stay exactly where you are. <break time="0.4s" /> Don't move. <break time="0.4s" /> Lock it in, <break time="0.4s" /> and keep your eyes on it.
+Now, [short pause] move to the nearest object you could pick up and hold. [short pause] Not food, [short pause] and nothing alive.
+
+[long pause] [long pause] [long pause]
+
+Now, [short pause] move to the animal nearest to you.
+
+[long pause] [long pause] [long pause]
+
+And finally. [short pause] Move to the nearest logo.
+
+[long pause] [long pause] [long pause]
+
+And finally. [short pause] Move to the green thing nearest to you.
+
+[long pause] [long pause] [long pause]
+
+Now stay exactly where you are. [short pause] Don't move. [short pause] Lock it in, [short pause] and keep your eyes on it.
+
+====
 
 NOTE ON ROUND 3
 "Not food, and nothing alive" is not padding. Without the first, every carrot
@@ -50,6 +73,31 @@ and burger on screen answers the instruction; without the second, so do the
 animals. Both exclusions are load-bearing -- the routine failed in performance
 because that line was ambiguous.
 
-IF YOU DO END UP WITH ONE FILE ANYWAY
-tools/split-voiceover.sh will try, but it refuses to write anything unless it
-finds exactly 8 segments separated by gaps over 1.5s. Trust that refusal.
+FALLBACK: EIGHT SEPARATE GENERATIONS
+If the single file still comes back with uniform gaps, generate these one at a
+time and name each download as shown. Eight short generations, no splitting,
+no risk of a line landing in the wrong slot.
+
+--- intro.mp3 ---
+Look at the screen. [short pause] Take a moment. [short pause] And think of any one of these.
+
+--- round1.mp3 ---
+Now, [short pause] move to the closest one that has a face. [short pause] Not your own. [short pause] If two look equally close, take either.
+
+--- round2.mp3 ---
+Now, [short pause] move to the food nearest to you.
+
+--- round3.mp3 ---
+Now, [short pause] move to the nearest object you could pick up and hold. [short pause] Not food, [short pause] and nothing alive.
+
+--- round4.mp3 ---
+Now, [short pause] move to the animal nearest to you.
+
+--- round5-logo.mp3 ---
+And finally. [short pause] Move to the nearest logo.
+
+--- round5-green.mp3 ---
+And finally. [short pause] Move to the green thing nearest to you.
+
+--- hold.mp3 ---
+Now stay exactly where you are. [short pause] Don't move. [short pause] Lock it in, [short pause] and keep your eyes on it.
