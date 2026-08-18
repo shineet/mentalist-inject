@@ -503,6 +503,31 @@ visible and position alone decides which one a spectator reaches. The seed was
 also chosen for logo SPREAD — most converging layouts huddle all five logos into
 one corner, which converges easily and looks arranged.
 
+**THE LAYOUT IS FROZEN, AND THE PICTURES ARE SWAPPABLE.** This is the most
+useful thing to know about the routine.
+
+`public/interactive-layout.js` holds every position and the category at each
+position. Those were found by a seed search that had grown to roughly one seed
+in 40,000 once convergence, balance, logo spread and category spacing were all
+required, and they are now fixed rather than regenerated.
+
+The convergence depends only on WHERE things are and WHICH CATEGORY is at each
+spot -- never on which particular picture. So editing the `ROSTER` in
+`interactive-set.js` gives a completely different show, revealing whatever ends
+up in the target slot, with no search and no risk of breaking anything.
+
+The signature is the full tag set and must match exactly. 🐶 is `face+animal`
+and any other animal with a face can replace it; 👻 is `face` alone and cannot,
+because swapping it would change which items answer the animal round.
+
+    node tools/check-roster.mjs     after any roster edit; prints the reveal
+    node tools/audit-routine.mjs    the full proof, seconds to run
+    node tools/freeze-layout.mjs    regenerate positions, ONLY after a new search
+
+Do not put a picture in a list it does not honestly answer. Every failure this
+routine has had in performance came from that, and no tool can check it -- look
+at the field.
+
 **The verifier checks against EYESIGHT, not arithmetic.** This is the most
 important thing on this page. Anything within `TOLERANCE` (18%) of the nearest
 valid target counts as a legitimate choice, and `verifySet()` walks every such
