@@ -245,12 +245,20 @@
     // Animals with faces. Answer round 1 (face) AND round 4 (animal).
     faceAnimal: ['🐼', '🐨', '🐶', '🐱', '🦁', '🐵', '🐷', '🦊'],
     // Faces that are not animals. Answer round 1 only.
-    faceOnly: ['👻', '🤖', '😀'],
+    // 🤖 was here and was pulled: a robot is not alive and not food, so it
+    // answers round 3's "an object you could pick up and hold" just as well as
+    // it answers round 1. Faces that are plainly not objects only.
+    faceOnly: ['👻', '😎', '😀'],
     // Green animals with faces. Answer rounds 1, 4 and the green finish.
     faceAnimalGreen: ['🐸', '🐢'],
     // Green things that answer nothing else.
-    green: ['🌵', '🍀', '💚', '🌳', '♻️'],
-    food: ['🍎', '🍌', '🍕', '🍉', '🍦', '🍔', '🍇', '🥕', '🥑'],
+    // 🌳 was here and was pulled: Apple draws the deciduous tree almost
+    // identically to 🥦 broccoli, and broccoli is FOOD. A palm is unmistakable.
+    green: ['🌵', '🍀', '💚', '🌴', '♻️'],
+    // No item here carries enough green to be mistaken for one at the finish.
+    // 🥑 and 🥕 were pulled for exactly that: the avocado is half pale green,
+    // and the carrot has a leafy green top.
+    food: ['🍎', '🍌', '🍕', '🍉', '🍦', '🍔', '🍇', '🍩', '🥐'],
     // Things you could pick up and hold. Not food, nothing alive.
     thing: ['⚽', '🎸', '🔑', '📚', '⌚', '📱', '✏️', '🎩', '🧢', '🔨'],
     // Answers no instruction at all. Pure decoration, and what lets the screen
