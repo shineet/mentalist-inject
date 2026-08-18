@@ -1,66 +1,55 @@
 ELEVENLABS SCRIPT — interactive routine voice over
-Paste everything between the ==== markers as one generation.
 
-HOW THE SPLIT WORKS
-Within a line the pauses are 0.4s. Between lines they are 3.0s, which is
-ElevenLabs' maximum. That 7x gap is what makes the file splittable with no
-guesswork: cut at every silence longer than 1.5s and you get exactly 8
-segments in the order below.
+RECORD EACH LINE AS ITS OWN GENERATION. Eight short generations, eight
+downloads, named as below. Do not try to put them in one file.
 
-This matters because the first take could not be split automatically -- its
-within-sentence pauses were 0.6s and its line breaks 1.5s, close enough that
-silence detection merged and mis-assigned lines, and it took three rounds of
-listening to sort out which was which.
-
-DO NOT reorder the lines, and do not delete a <break> tag between them.
-Trimming a pause inside a line is fine if it sounds better.
-
-ORDER (this is what the splitter assumes)
-  1 intro   2 round1   3 round2   4 round3
-  5 round4  6 round5-logo   7 round5-green   8 hold
+Why: a single-file take was tried twice and could not be split safely. The
+second attempt used <break time="3.0s" /> separators, which ElevenLabs simply
+did not honour -- the longest gap in the returned audio was 0.68s, against
+in-sentence pauses of 0.30-0.62s. Nothing distinguishes a line break from a
+breath, and a mis-assigned line means the wrong words at the most exposed
+moment of the routine. Separate generations remove the problem rather than
+managing it.
 
 VOICE SETTINGS
 Calm, warm, unhurried. Slightly slower than conversational. These are
 instructions spoken to a room over a PA while people search a screen, not
 narration read to someone holding a phone. No rising inflection at the ends --
-they are instructions, not questions. Keep the level even line to line.
+they are instructions, not questions. Keep the level even across all eight.
 
-====
+THE EIGHT LINES
+Paste each block on its own, generate, download, and name the file as shown.
 
+--- intro.mp3 ---
 Look at the screen. <break time="0.4s" /> Take a moment. <break time="0.4s" /> And think of any one of these.
 
-<break time="3.0s" />
-
+--- round1.mp3 ---
 Now, <break time="0.4s" /> move to the closest one that has a face. <break time="0.4s" /> Not your own. <break time="0.4s" /> If two look equally close, take either.
 
-<break time="3.0s" />
-
+--- round2.mp3 ---
 Now, <break time="0.4s" /> move to the food nearest to you.
 
-<break time="3.0s" />
-
+--- round3.mp3 ---
 Now, <break time="0.4s" /> move to the nearest object you could pick up and hold. <break time="0.4s" /> Not food, <break time="0.4s" /> and nothing alive.
 
-<break time="3.0s" />
-
+--- round4.mp3 ---
 Now, <break time="0.4s" /> move to the animal nearest to you.
 
-<break time="3.0s" />
-
+--- round5-logo.mp3 ---
 And finally. <break time="0.4s" /> Move to the nearest logo.
 
-<break time="3.0s" />
-
+--- round5-green.mp3 ---
 And finally. <break time="0.4s" /> Move to the green thing nearest to you.
 
-<break time="3.0s" />
-
+--- hold.mp3 ---
 Now stay exactly where you are. <break time="0.4s" /> Don't move. <break time="0.4s" /> Lock it in, <break time="0.4s" /> and keep your eyes on it.
-
-====
 
 NOTE ON ROUND 3
 "Not food, and nothing alive" is not padding. Without the first, every carrot
 and burger on screen answers the instruction; without the second, so do the
 animals. Both exclusions are load-bearing -- the routine failed in performance
 because that line was ambiguous.
+
+IF YOU DO END UP WITH ONE FILE ANYWAY
+tools/split-voiceover.sh will try, but it refuses to write anything unless it
+finds exactly 8 segments separated by gaps over 1.5s. Trust that refusal.
