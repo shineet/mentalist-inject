@@ -107,6 +107,7 @@ const els = {
   btnInteractiveReveal: document.getElementById("btnInteractiveReveal"),
   interactiveStatus: document.getElementById("interactiveStatus"),
   interactiveScript: document.getElementById("interactiveScript"),
+  interactivePos: document.getElementById("interactivePos"),
 
   reviewUrl: document.getElementById("reviewUrl"),
   btnGoToReview: document.getElementById("btnGoToReview"),
@@ -590,6 +591,43 @@ els.btnSendReview.addEventListener("click", () => {
 // The panel runs the verifier on load and shows the result. If a set is ever
 // edited and stops converging, that has to be visible HERE, before a show,
 // rather than discovered as a soft reaction in the room.
+/* Which round the room is actually on, and marking it in the script.
+ *
+ * The host is the only thing driving the routine now -- the audience screen has
+ * no caption and the voice over follows the same broadcast -- so a missed press
+ * skips a round for everybody at once, silently. That is not hypothetical:
+ * Shine's second reported failure traced to exactly this. From the blue cap the
+ * correct path is round 4 to an animal and then round 5 to the cactus; skipping
+ * round 4 and going straight to the nearest green lands on the turtle, which is
+ * the ending he described.
+ *
+ * The maths cannot defend against a round nobody performed. Making the position
+ * impossible to lose track of can.
+ */
+// Declared here, ABOVE initInteractive, on purpose. This file has now bitten
+// twice with `Cannot access X before initialization`: initInteractive runs at
+// parse time and calls into this, so anything it touches must be declared
+// earlier in the file. A crash here renders as an empty panel, which reads as
+// "nothing to report" rather than as a failure -- check the console.
+let lastKnownRound = -1;
+function markInteractiveRound(round) {
+  lastKnownRound = round;
+  const rows = els.interactiveScript?.querySelectorAll(".scriptRow");
+  if (!rows || !rows.length) return;
+  rows.forEach((row) => {
+    const i = Number(row.dataset.round);
+    row.classList.toggle("done", i < round);
+    row.classList.toggle("live", i === round);
+  });
+  if (els.interactivePos) {
+    const total = rows.length;
+    els.interactivePos.textContent =
+      round < 0 ? `Field up — no instruction given yet. ${total} to go.`
+      : round >= total - 1 ? `Last instruction given. Next: Lock it in, then Vanish & Reveal.`
+      : `Instruction ${round + 1} of ${total} given. ${total - round - 1} still to go.`;
+  }
+}
+
 /* ── Voice over ─────────────────────────────────────────────────────────────
  * Pre-rendered lines, played from THIS device rather than the audience phones.
  * Fifty phones speaking a beat apart would be noise; one voice through the PA
@@ -874,9 +912,14 @@ function currentInteractiveLogo() {
 
     // The script, so the wording is in front of Shine while he performs rather
     // than remembered. It changes with the set, since only the last line does.
+    // Rendered as addressable rows so the live round can be marked -- see
+    // markInteractiveRound().
     els.interactiveScript.innerHTML = set.rounds
-      .map((r, i) => (i + 1) + ". " + r.say)
-      .join("<br>");
+      .map((r, i) =>
+        `<div class="scriptRow" data-round="${i}">` +
+        `<b>${i + 1}.</b> ${r.say}</div>`)
+      .join("");
+    markInteractiveRound(lastKnownRound);
   }
 
   // Show the logo the way the room will see it -- on its white plate, at the
@@ -938,6 +981,7 @@ function speakRoundIfChanged(st) {
   if (!st || st.phase !== "interactive") {
     lastSpokenRound = null;
     spokeHold = false;
+    markInteractiveRound(-1);
     stopMusic(600);
     return;
   }
@@ -956,6 +1000,7 @@ function speakRoundIfChanged(st) {
 
   spokeHold = false;
   const round = st.interactive?.round ?? -1;
+  markInteractiveRound(round);
   if (round === lastSpokenRound) return;         // a re-broadcast, not a move
   if (lastSpokenRound === null) startMusic();    // field just came up
   lastSpokenRound = round;

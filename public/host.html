@@ -80,6 +80,13 @@
     .dockBtn.primary { background:var(--accent); }
     .dockBtn.muted { flex:0 0 auto; padding:15px 12px; background:#1b1b30; color:var(--muted); }
     @media (max-width:430px){ .dockBtn{ font-size:13px; padding:14px 4px; } #dockPhase{ display:none; } }
+
+    /* The live instruction, marked in the script. A skipped round is silent --
+       the audience screen has no caption and the voice over follows the same
+       broadcast -- so the only place it can be noticed is here. */
+    .scriptRow { padding:5px 8px; border-radius:8px; border-left:3px solid transparent; }
+    .scriptRow.done { opacity:.4; }
+    .scriptRow.live { background:rgba(255,209,102,.12); border-left-color:#ffd166; color:#fff; }
   </style>
 </head>
 <body>
@@ -192,6 +199,7 @@
         </div>
         <div class="field" style="grid-column:1/-1">
           <div id="interactiveStatus" class="hint">Checking the set…</div>
+          <div id="interactivePos" class="hint" style="margin-top:8px;font-weight:800;color:#ffd166"></div>
           <div id="interactiveScript" class="hint" style="margin-top:6px;line-height:1.5"></div>
         </div>
       </div>
