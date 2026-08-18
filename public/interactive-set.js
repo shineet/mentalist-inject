@@ -227,16 +227,17 @@
   // or as "cluttered", and the two are only a hair apart.
   //
   // The number that matters is this against the rendered glyph size. A glyph
-  // occupies roughly 0.85 of its font-size, and audience.css sets font-size to
-  // 0.052 of the field width -- so a glyph is about 0.066 box units across. At
-  // PACK below that, items overlap and the field turns to mush; a little above
-  // it, they sit shoulder to shoulder with the screen still full. Keep the two
-  // in step if either changes.
+  // occupies roughly 0.85 of its font-size, and audience.html sets font-size to
+  // 0.064 of the field width -- so a glyph is about 0.082 box units across. At
+  // PACK below that they overlap and the field turns to mush; at PACK well
+  // above it they read as separate objects with air between them, which is
+  // what makes a busy screen legible rather than cluttered. Keep the two in
+  // step: raising the font size without raising this turns the field to soup.
   //
   // Live items keep their own much wider lattice spacing, so packing the gaps
   // never makes "the nearest face" harder to judge -- the faces are still
   // exactly where they were.
-  const PACK = 0.076;
+  const PACK = 0.094;
 
   // Small deterministic PRNG. Same seed, same scatter, every device.
   function mulberry32(a) {

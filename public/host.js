@@ -62,6 +62,7 @@ const els = {
   interactiveVoice: document.getElementById("interactiveVoice"),
   interactiveMusicUrl: document.getElementById("interactiveMusicUrl"),
   btnVoiceTest: document.getElementById("btnVoiceTest"),
+  btnInteractiveHold: document.getElementById("btnInteractiveHold"),
   voiceStatus: document.getElementById("voiceStatus"),
   interactiveLogoPreview: document.getElementById("interactiveLogoPreview"),
   skipAnimation: document.getElementById("skipAnimation"),
@@ -718,18 +719,41 @@ function currentInteractiveLogo() {
  * voice he never chose could turn up mid-performance.
  */
 const VOICE_LINES = {
-  intro: "/vo/intro.m4a",
-  0: "/vo/round1.m4a",
-  1: "/vo/round2.m4a",
-  2: "/vo/round3.m4a",
-  3: "/vo/round4.m4a",
+  intro: "/vo/intro",
+  0: "/vo/round1",
+  1: "/vo/round2",
+  2: "/vo/round3",
+  3: "/vo/round4",
   // Round 5 depends on which finish is armed, exactly like the script does.
-  4: { logo: "/vo/round5-logo.m4a", green: "/vo/round5-green.m4a" },
+  4: { logo: "/vo/round5-logo", green: "/vo/round5-green" },
 };
+
+/* Extension is resolved at load, not hardcoded.
+ *
+ * The committed files are .m4a from macOS `say`. A properly recorded set --
+ * ElevenLabs or a real voice artist -- normally arrives as .mp3, and dropping
+ * those into public/vo/ should be the entire installation step. So each line
+ * probes for .mp3 first and falls back to .m4a, and whichever answers is used.
+ * That means no code change, no rename, and no chance of a half-swapped set
+ * where two lines are in one voice and five in another.
+ */
+const VOICE_EXT = new Map();
+async function resolveVoiceExt(base) {
+  for (const ext of [".mp3", ".m4a"]) {
+    try {
+      const r = await fetch(base + ext, { method: "HEAD" });
+      if (r.ok) { VOICE_EXT.set(base, ext); return; }
+    } catch {}
+  }
+  VOICE_EXT.set(base, ".m4a");
+}
+function voiceFile(base) {
+  return base + (VOICE_EXT.get(base) || ".m4a");
+}
 // Played when the reveal is triggered, over the start of the vanish. Without
 // it the routine simply stopped talking after the last move and the room had
 // no idea it was finished choosing.
-const VOICE_HOLD = "/vo/hold.m4a";
+const VOICE_HOLD = "/vo/hold";
 
 // One element, reused. A new Audio per line would stack overlapping voices if
 // Shine pressed Next twice quickly, which is precisely the moment it must not.
@@ -739,10 +763,11 @@ voicePlayer.preload = "auto";
 // Every line fetched up front. A 2-second line that starts buffering when the
 // button is pressed arrives late, and late is worse than absent when the room
 // is waiting.
-(function preloadVoice() {
-  const urls = [VOICE_LINES.intro, VOICE_LINES[0], VOICE_LINES[1], VOICE_LINES[2],
-                VOICE_LINES[3], VOICE_LINES[4].logo, VOICE_LINES[4].green, VOICE_HOLD];
-  urls.forEach((u) => { const a = new Audio(); a.preload = "auto"; a.src = u; });
+(async function preloadVoice() {
+  const bases = [VOICE_LINES.intro, VOICE_LINES[0], VOICE_LINES[1], VOICE_LINES[2],
+                 VOICE_LINES[3], VOICE_LINES[4].logo, VOICE_LINES[4].green, VOICE_HOLD];
+  await Promise.all(bases.map(resolveVoiceExt));
+  bases.forEach((b) => { const a = new Audio(); a.preload = "auto"; a.src = voiceFile(b); });
 })();
 
 /* Music bed. Loops under the whole routine from this same device, and ducks
@@ -799,8 +824,10 @@ function duckMusic(durationMs) {
 function voiceUrlForRound(round) {
   const entry = round < 0 ? VOICE_LINES.intro : VOICE_LINES[round];
   if (!entry) return null;
-  if (typeof entry === "string") return entry;
-  return currentInteractiveLogo() ? entry.logo : entry.green;
+  const base = typeof entry === "string"
+    ? entry
+    : (currentInteractiveLogo() ? entry.logo : entry.green);
+  return voiceFile(base);
 }
 
 function playVoice(round) {
@@ -832,7 +859,7 @@ function playVoiceUrl(url) {
 }
 
 els.btnVoiceTest?.addEventListener("click", () => {
-  const p = voicePlayer.play ? (voicePlayer.src = VOICE_LINES.intro, voicePlayer.play()) : null;
+  const p = voicePlayer.play ? (voicePlayer.src = voiceFile(VOICE_LINES.intro), voicePlayer.play()) : null;
   if (p && p.then) {
     p.then(() => {
       if (els.voiceStatus) {
@@ -864,12 +891,13 @@ function speakRoundIfChanged(st) {
   }
 
   if (st.interactive?.revealed) {
-    // One "hold still" line over the start of the vanish, then the music fades
-    // so the finish lands in silence. Guarded, because state is re-broadcast.
+    // The hold line is NOT played here. It is its own beat now, triggered
+    // before the reveal by the Lock it in button, so Shine controls the pause
+    // between "stay where you are" and the vanish rather than having them
+    // land on top of each other.
     if (!spokeHold) {
       spokeHold = true;
-      playVoiceUrl(VOICE_HOLD);
-      stopMusic(7000);
+      stopMusic(7000);   // fade out so the finish lands in silence
     }
     return;
   }
@@ -891,6 +919,11 @@ function interactiveEmit(event, action) {
   const set = kit && kit.setFor ? kit.setFor(currentInteractiveLogo()) : null;
   emitHostAction(event, action, { room: ROOM, totalRounds: set ? set.rounds.length : 0 });
 }
+
+// Speaks only -- deliberately sends nothing to the server. The audience screen
+// does not change on this beat; the room is being told to hold still on what
+// it is already looking at, and the next press is the vanish.
+els.btnInteractiveHold?.addEventListener("click", () => playVoiceUrl(voiceFile(VOICE_HOLD)));
 
 els.btnStartInteractive?.addEventListener("click", () => interactiveEmit("host:startInteractive", "startInteractive"));
 els.btnInteractiveNext?.addEventListener("click", () => interactiveEmit("host:interactiveNext", "interactiveNext"));
