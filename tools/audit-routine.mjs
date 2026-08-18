@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
+await import(path.join(here, '..', 'public', 'interactive-layout.js'));
 await import(path.join(here, '..', 'public', 'interactive-set.js'));
 const K = globalThis.InteractiveSet;
 

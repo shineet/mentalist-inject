@@ -215,6 +215,65 @@
     '❤️', '💙', '💜', '🤍',
   ];
 
+
+  /* ------------------------------------------------------------------ *
+   * THE ROSTER — the only thing to edit for a new show.
+   *
+   * The layout is frozen (see interactive-layout.js): every position, and the
+   * category at each position, is fixed and proven. What sits AT each position
+   * is free. Swap these lists for a different show and the routine still works,
+   * revealing whatever ends up in the target slot.
+   *
+   * The rules for editing, and they are the whole contract:
+   *
+   *  1. Keep each list at least as long as the number of slots that need it.
+   *     Counts are printed by tools/check-roster.mjs.
+   *  2. Put a picture only in a list it HONESTLY answers, judged by what a
+   *     spectator sees. The routine's failures have all come from a picture
+   *     that answered an instruction nobody intended -- a "sparkle" that draws
+   *     green, a shape that reads as a solid ball you could pick up.
+   *  3. faceAnimal and faceOnly are separate lists on purpose. Both answer
+   *     round 1; only faceAnimal answers round 4. A ghost cannot stand in for
+   *     a dog.
+   *  4. Filler must answer NOTHING: no face, not food, not an animal, not
+   *     holdable, not green.
+   *
+   * The reveal is whatever occupies the target slot, and check-roster.mjs
+   * prints it. To change what the show reveals, change that one entry.
+   * ------------------------------------------------------------------ */
+  const ROSTER = {
+    // Animals with faces. Answer round 1 (face) AND round 4 (animal).
+    faceAnimal: ['🐼', '🐨', '🐶', '🐱', '🦁', '🐵', '🐷', '🦊'],
+    // Faces that are not animals. Answer round 1 only.
+    faceOnly: ['👻', '🤖', '😀'],
+    // Green animals with faces. Answer rounds 1, 4 and the green finish.
+    faceAnimalGreen: ['🐸', '🐢'],
+    // Green things that answer nothing else.
+    green: ['🌵', '🍀', '💚', '🌳', '♻️'],
+    food: ['🍎', '🍌', '🍕', '🍉', '🍦', '🍔', '🍇', '🥕', '🥑'],
+    // Things you could pick up and hold. Not food, nothing alive.
+    thing: ['⚽', '🎸', '🔑', '📚', '⌚', '📱', '✏️', '🎩', '🧢', '🔨'],
+    // Answers no instruction at all. Pure decoration, and what lets the screen
+    // be busy without breaking the funnel.
+    filler: [
+      '⭐', '🌟', '💫', '✨', '☄️', '🌙', '☀️', '☁️', '⛅', '⚡', '❄️', '💧',
+      '🔥', '💥', '💨', '🌀', '🌪️', '💤', '🎵', '🌧️', '⛈️',
+      '❤️', '💙', '💜', '🤍',
+    ],
+  };
+
+  // Which roster list fills a slot, and what tags that slot carries.
+  const SIGNATURES = {
+    'face+animal':       { list: 'faceAnimal',      tags: ['face', 'animal'] },
+    'face':              { list: 'faceOnly',        tags: ['face'] },
+    'face+animal+green': { list: 'faceAnimalGreen', tags: ['face', 'animal', 'green'] },
+    'green':             { list: 'green',           tags: ['green'] },
+    'food':              { list: 'food',            tags: ['food'] },
+    'thing':             { list: 'thing',           tags: ['thing'] },
+    'filler':            { list: 'filler',          tags: [] },
+    'logo':              { list: null,              tags: ['logo'] },
+  };
+
   const TAGS = {};
   GROUPS.face.forEach((e) => (TAGS[e] = ['face', 'animal']));
   ['👻', '🤖', '😀'].forEach((e) => (TAGS[e] = ['face']));   // faces, not animals
@@ -863,22 +922,52 @@
     return set;
   }
 
+  /* Builds the field from the FROZEN layout plus the roster.
+   *
+   * Nothing is searched, shuffled or relaxed here any more. Every position and
+   * every category was settled once, at enormous cost -- roughly one seed in
+   * 40,000 satisfied convergence, balance, logo spread and category spacing
+   * together -- and is now simply read back. What changes between shows is the
+   * pictures, and pictures cannot move anything.
+   */
+  function buildFromLayout(which, wantsLogos) {
+    const layout = root.InteractiveLayout && root.InteractiveLayout[which];
+    if (!layout) return [];
+    const used = {};
+    return layout.slots.map(([x, y, tilt, sig], index) => {
+      const spec = SIGNATURES[sig] || SIGNATURES.filler;
+      const tags = spec.tags.slice();
+      tags.push(x < BOX_W / 2 ? 'leftHalf' : 'rightHalf');
+      tags.push(y < BOX_H / 2 ? 'topHalf' : 'bottomHalf');
+
+      if (sig === 'logo') {
+        const n = used.logo = (used.logo || 0);
+        used.logo += 1;
+        return { id: 'i' + index, index, x, y, tilt: 0, tags,
+                 kind: 'logo', logo: n, label: 'LOGO' + (n + 1) };
+      }
+
+      const list = ROSTER[spec.list] || ROSTER.filler;
+      const n = used[spec.list] = (used[spec.list] || 0);
+      used[spec.list] += 1;
+      // Wraps rather than running out, so a short roster still draws a full
+      // field -- it just repeats, which check-roster.mjs warns about.
+      const emoji = list[n % list.length];
+      return { id: 'i' + index, index, x, y, tilt, tags,
+               kind: sig === 'filler' ? 'filler' : 'emoji', emoji, label: emoji };
+    });
+  }
+
   function buildSet(config) {
     const set = {
       id: config.id,
       box: { w: BOX_W, h: BOX_H },
-      cols: config.cols,
-      rows: config.rows,
-      seed: config.seed,
       clientSlot: config.clientSlot,
       wantsLogos: !!config.wantsLogos,
-      items: buildItems(config.specs, config.seed, config.cols, config.rows),
+      items: buildFromLayout(config.which, config.wantsLogos),
       rounds: OPENING_ROUNDS.concat([config.finish]),
     };
-    // Relocate BEFORE adding. The safe positions are a small, fixed supply --
-    // three of them here -- and adding greens consumes them, so running these
-    // the other way round leaves the crowded green with nowhere to go.
-    return addSafeGreens(relocateCrowdedGreens(set));
+    return set;
   }
 
   /*
@@ -899,10 +988,8 @@
   // either one at any seed without duplicating what a set is made of.
   const EMOJI_CONFIG = {
     id: 'emoji-green-finish',
-    specs: EMOJI_SPECS,
+    which: 'emoji',
     finish: GREEN_FINISH,
-    cols: 8,
-    rows: 5,          // 8 x 5 = 40 slots for 34 live emoji
     // 61 items on screen, funnels 13 -> 7 -> 8 -> 5 -> 1, and holds together
     // even if every spectator misjudges every distance by 23%.
     //
@@ -913,18 +1000,14 @@
     // of the screen: all nine foods landed on the left half here, so anyone
     // starting on the right was dragged across the whole field on round 2.
     // Only 16 layouts in 60,000 satisfy the lot.
-    seed: 30163,
     clientSlot: null,
     wantsLogos: false,
   };
 
   const LOGO_CONFIG = {
     id: 'logo-logo-finish',
-    specs: LOGO_SPECS,
+    which: 'logo',
     finish: LOGO_FINISH,
-    cols: COLS,
-    rows: ROWS,
-    seed: SEED,
     clientSlot: CLIENT_SLOT,
     wantsLogos: true,
   };
@@ -961,7 +1044,7 @@
   root.InteractiveSet = {
     EMOJI_SET, LOGO_SET, EMOJI_CONFIG, LOGO_CONFIG, setFor, buildSet, buildItems,
     verifySet, allowedTargets, matches, distance,
-    EMOJI_SPECS, LOGO_SPECS, FILLER, PACK, OPENING_ROUNDS, LOGO_FINISH, GREEN_FINISH,
+    ROSTER, SIGNATURES, FILLER, PACK, OPENING_ROUNDS, LOGO_FINISH, GREEN_FINISH,
     setTolerance,
     BOX_W, BOX_H, SEED, CLIENT_SLOT, DEFAULT_LOGO, logoSrc,
   };
