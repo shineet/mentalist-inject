@@ -1,25 +1,24 @@
 # Voice over files
 
-**Current state:** seven of the eight lines are Shine's recorded voice, split
-from a single take (`tools/voiceover-master.mp3`, 2026-08-17). Only
-**`round5-logo`** is still the machine voice -- it was simply never recorded.
-That is the ending used on every show WITH a client logo, so it is the one
-worth recording next. The host panel names whatever is still missing for the
-finish actually armed.
+**Current state: all eight lines are Shine's recorded voice.** Both finishes
+report clean in the host panel. The machine-voice `.m4a` files remain beside
+them purely as a backstop -- delete any `.mp3` and that one line reverts.
 
-**What is in the master take, in order.** Establish this by listening, never by
-reasoning from durations -- three separate attempts to infer it from segment
-lengths were wrong, and the last two segments differ by 0.15s:
+Sources:
 
-1. intro
-2. round1 (faces)
-3. round2 (food)
-4. round3 (pick up and hold)
-5. round4 (animal)
-6. round5-**green**
-7. **hold** (lock it in)
+- `tools/voiceover-master.mp3` -- seven lines, in this order:
+  intro, faces, food, pick-up, animal, **round5-green**, **hold**.
+  No logo ending in it.
+- `tools/voiceover-master-logo.mp3` -- the logo ending is the **final phrase**,
+  from about 34.0s to the end. Note that the ~0.6s gaps in that file are
+  deliberate pauses inside sentences, not line breaks, so a naive split on
+  silence cuts lines in half.
 
-There is no logo ending in it.
+**Establish which segment is which by listening, never by reasoning from
+durations.** Three separate attempts to infer the order from segment lengths
+were wrong; two of the segments differ by 0.15s and nothing but the words tells
+them apart. The way that works: cut the candidates, play them aloud labelled
+A/B/C, and ask an open question about what each one says.
 
 Drop replacement recordings in this folder. **That is the whole installation
 step** — no rename, no code change, no redeploy config.
