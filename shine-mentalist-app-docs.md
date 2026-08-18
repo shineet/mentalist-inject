@@ -503,9 +503,27 @@ visible and position alone decides which one a spectator reaches. The seed was
 also chosen for logo SPREAD — most converging layouts huddle all five logos into
 one corner, which converges easily and looks arranged.
 
-**The verifier is the backstop.** `verifySet()` refuses a set that does not end
-on exactly one item, that ends on something other than a logo, that strands
-anyone, that lets anyone stand still, or whose closing survivors are clustered.
+**The verifier checks against EYESIGHT, not arithmetic.** This is the most
+important thing on this page. Anything within `TOLERANCE` (18%) of the nearest
+valid target counts as a legitimate choice, and `verifySet()` walks every such
+branch. A set passes only if the room converges whichever plausible option each
+person takes.
+
+That rule exists because of a real failure on 2026-08-18. The verifier used to
+prove convergence assuming everyone computes exact Euclidean distance; Shine
+performed the routine, and on his closing move the right answer was 6.8% nearer
+than the wrong one. He could not tell them apart, picked the other, and the
+routine broke. **A margin you cannot see is not a margin.**
+
+So seeds are now chosen for how much misjudgement they survive, NOT for how
+well the targets spread across the screen. The layout that failed had been
+picked for spread. The host panel prints the margin ("holds even if everyone
+misjudges every distance by up to 30%") and `tools/search-seed.mjs` ranks on it.
+
+`verifySet()` also still refuses a set that does not end on exactly one item,
+that ends on something other than a logo, that strands anyone, that lets anyone
+stand still, that lets filler become reachable, or whose closing survivors are
+clustered.
 The host panel runs it on load and shows ✅ or ⛔ **DO NOT PERFORM**. It also
 checks that the converged index still equals `CLIENT_SLOT`. If that badge is not
 green, the routine is broken — do not perform it.
