@@ -178,6 +178,14 @@
           <p class="hint">Set this and the routine runs the <b>logo finish</b>: five logos sit in the field and the room converges on the client's. Leave it blank and it runs the <b>emoji finish</b> instead -- no logos on screen at all, everyone ends on the turtle. Blank falls back to the Logo URL in General Settings first. Changing it is safe at any time. Use a PNG or SVG with a transparent or white background.</p>
           <div id="interactiveLogoPreview" class="hint" style="margin-top:6px"></div>
         </div>
+        <div style="grid-column:1/-1">
+          <label class="checkrow"><input id="interactiveVoice" type="checkbox" checked />Voice over (speaks each instruction)</label>
+          <p class="hint">Plays from <b>this device</b>, not the audience phones -- one voice through the PA rather than fifty a beat apart. Fires automatically when you press Show Grid and each Next. Tap <b>Test voice</b> once before doors open: browsers block audio until the page has had a tap, and that tap is what unlocks it.</p>
+          <div class="actions" style="margin-top:6px">
+            <button id="btnVoiceTest" class="secondary" type="button">🔊 Test voice</button>
+            <span id="voiceStatus" class="hint" style="align-self:center"></span>
+          </div>
+        </div>
         <div class="field" style="grid-column:1/-1">
           <div id="interactiveStatus" class="hint">Checking the set…</div>
           <div id="interactiveScript" class="hint" style="margin-top:6px;line-height:1.5"></div>
