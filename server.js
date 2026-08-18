@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v155-interactive-voiceover";
+const REVISION = "v156-vanish-stages-music-hold";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -279,6 +279,11 @@ const defaultState = () => ({
   // default mark -- so an unconfigured show still runs, it just finishes on an
   // abstract logo instead of the client's.
   interactiveLogoUrl: "",
+
+  // Optional music bed for the interactive routine, played by the HOST device
+  // alongside the voice over. Same reasoning as the logo above: configuration,
+  // not round state, so it must survive both a settings save and startInteractive.
+  interactiveMusicUrl: "",
 
   clientSplash: {
     enabled: true,

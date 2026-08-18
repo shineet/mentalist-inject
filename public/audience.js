@@ -554,8 +554,20 @@ function renderInteractive(state) {
   // restart the CSS transition and make the final vanish stutter -- but the
   // field HAS to be rebuilt if the set itself changed, which happens when a
   // logo is pasted or cleared while the routine is already on screen.
+  // Read from the verified set rather than from server state, so the reveal can
+  // never disagree with the routine that produced it.
+  const targetItem = kit.verifySet(set).target;
+
   if (interactiveDrawn !== set.id) {
     grid.innerHTML = "";
+    // The vanish collapses INWARD: whatever sits furthest from the survivor
+    // goes first and the field closes in on it, rather than everything fading
+    // at once. Same information, but it reads as the room narrowing to one
+    // thing instead of as a screen being cleared. The delay is baked in per
+    // cell here, so the whole animation is CSS at reveal time.
+    const far = targetItem
+      ? Math.max(...set.items.map((i) => kit.distance(i, targetItem)))
+      : 1;
     set.items.forEach((item) => {
       const cell = document.createElement("div");
       cell.className = "cell";
@@ -589,6 +601,12 @@ function renderInteractive(state) {
       cell.style.left = (INTERACTIVE_INSET + (item.x / box.w) * (1 - 2 * INTERACTIVE_INSET)) * 100 + "%";
       cell.style.top = (INTERACTIVE_INSET + (item.y / box.h) * (1 - 2 * INTERACTIVE_INSET)) * 100 + "%";
       cell.style.setProperty("--tilt", (item.tilt || 0).toFixed(2) + "deg");
+      // 1 at the furthest point, 0 at the survivor. CSS turns this into a
+      // delay, so items go out in rings closing on the target.
+      const nearness = targetItem && far > 0
+        ? 1 - kit.distance(item, targetItem) / far
+        : 0;
+      cell.style.setProperty("--nearness", nearness.toFixed(3));
       grid.appendChild(cell);
     });
     interactiveDrawn = set.id;
@@ -628,20 +646,78 @@ function renderInteractive(state) {
   say.textContent = "";
   say.dataset.round = String(state.interactive?.round ?? -1);
 
-  // Read from the verified set rather than from server state, so the reveal
-  // can never disagree with the routine that produced it.
-  const targetId = kit.verifySet(set).target?.id;
+  const targetId = targetItem?.id;
 
-  grid.classList.toggle("revealed", revealed);
+  runVanish(grid, revealed, targetId);
+}
+
+/* THE VANISH.
+ *
+ * Driven from JS with one timer per cell rather than from CSS transition
+ * delays. The CSS version read better but did not survive contact with this
+ * page: renderInteractive re-runs on every state broadcast, roughly once a
+ * second, and something in that churn kept resetting the transitions so the
+ * field never actually faded. Explicit timers and inline styles cannot be
+ * out-cascaded or restarted by a re-render, and the staging is exactly what
+ * the numbers here say it is.
+ *
+ * Order is by distance from the survivor: whatever sits furthest away goes
+ * first and the field closes inward, so it reads as the room narrowing to one
+ * thing rather than as a screen being cleared.
+ */
+let vanishTimers = [];
+let vanishRunning = false;
+
+function clearVanish(grid) {
+  vanishTimers.forEach(clearTimeout);
+  vanishTimers = [];
+  vanishRunning = false;
   grid.querySelectorAll(".cell").forEach((cell) => {
-    // Everything the reveal does -- fading the field, drifting the survivor to
-    // the middle, scaling it up, keeping it upright -- is CSS driven off this
-    // one class. It used to be an inline transform computed from measured
-    // screen boxes, which stopped being correct the moment the field could be
-    // rotated on a portrait phone: the rects are in screen space but the
-    // transform applies in the field's own rotated space.
-    cell.classList.toggle("target", revealed && cell.dataset.id === targetId);
+    cell.style.opacity = "";
+    cell.style.transform = "";
+    cell.classList.remove("target");
   });
+}
+
+function runVanish(grid, revealed, targetId) {
+  if (!revealed) {
+    if (vanishRunning) clearVanish(grid);
+    return;
+  }
+  if (vanishRunning) return;      // a re-broadcast, not a fresh reveal
+  vanishRunning = true;
+
+  const all = [...grid.querySelectorAll(".cell")];
+  const target = all.find((c) => c.dataset.id === targetId);
+  const others = all.filter((c) => c !== target);
+
+  // Ordered by RANK, not by raw distance. Ranking matters: area grows with
+  // radius, so most items sit at a middling distance from the survivor and
+  // pacing by distance alone sends a hundred of them out in one clump. Sorting
+  // and spreading evenly across the window makes the field retreat at a steady
+  // rate, which is what actually looks deliberate.
+  const near = (c) => parseFloat(c.style.getPropertyValue("--nearness")) || 0;
+  others.sort((a, b) => near(a) - near(b));      // furthest away first
+
+  const SPREAD = 2200;            // how long the field takes to close in
+  const HOLD = 350;               // beat between the last item going and the finish
+
+  others.forEach((cell, i) => {
+    const tilt = cell.style.getPropertyValue("--tilt") || "0deg";
+    const at = (i / Math.max(1, others.length - 1)) * SPREAD;
+    vanishTimers.push(setTimeout(() => {
+      cell.style.opacity = "0";
+      cell.style.transform = `translate(-50%, -50%) rotate(${tilt}) scale(.55)`;
+    }, at));
+  });
+
+  if (target) {
+    vanishTimers.push(setTimeout(() => {
+      target.classList.add("target");
+      const scale = target.classList.contains("logoCell") ? 4.6 : 3;
+      target.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }, SPREAD + HOLD));
+  }
 }
 
 function showRevealAs(type) {

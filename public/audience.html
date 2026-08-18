@@ -337,21 +337,18 @@
      needed while the plate is small. Scaled 4.6x at the reveal it becomes a
      fuzzy grey ring around the client's logo, so drop it there. */
   .emojiGrid.revealed .cell.logoCell.target { box-shadow: none; }
-  .emojiGrid.revealed .cell { opacity: 0; }
-  /* The survivor stays exactly where it sat in the field. It used to drift to
-     the middle, which read as the app presenting an answer; holding position
-     reads as the thing they were already looking at being the only one left.
-     So no left/top override here -- the inline position audience.js wrote at
-     build time is left alone, and only opacity and scale change. */
-  .emojiGrid.revealed .cell.target {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(3);
+  /* The vanish itself is scheduled in audience.js -- see runVanish(). CSS only
+     supplies the easing here, because the per-cell timing has to survive this
+     view re-rendering once a second, and transition-delay did not. */
+  .emojiGrid .cell {
+    transition: opacity .8s ease, transform .8s ease;
   }
-  .emojiGrid.revealed .cell.logoCell.target {
-    /* A logo goes bigger than an emoji would. It is the client's mark on screen
-       at the peak of the routine, and a plate the size of a magnified emoji
-       undersells the moment. */
-    transform: translate(-50%, -50%) scale(4.6);
+  .emojiGrid.revealed .cell.target {
+    transition: opacity .5s ease, transform 1.1s cubic-bezier(.22, 1, .36, 1);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .emojiGrid .cell,
+    .emojiGrid.revealed .cell.target { transition-duration: .25s; }
   }
   .emojiSay {
     margin: 1.8vh auto 0;

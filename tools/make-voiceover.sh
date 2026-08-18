@@ -25,7 +25,7 @@
 set -euo pipefail
 
 VOICE="${1:-Samantha}"
-RATE="${2:-158}"
+RATE="${2:-142}"
 OUT="$(cd "$(dirname "$0")/.." && pwd)/public/vo"
 
 command -v ffmpeg >/dev/null || { echo "ffmpeg required: brew install ffmpeg"; exit 1; }
@@ -54,13 +54,29 @@ gen() {
 }
 
 echo "Voice: $VOICE at $RATE wpm -> $OUT"
-gen intro        "Look at the screen. Take a moment. And think of any one of these."
-gen round1       "Now, move to the closest one that has a face. Not your own. If two look equally close, take either."
-gen round2       "Now move to the food nearest to you."
-gen round3       "Now move to the nearest thing you could pick up and hold."
-gen round4       "Now move to the animal nearest to you."
-gen round5-logo  "And finally. Move to the nearest logo."
-gen round5-green "And finally. Move to the green thing nearest to you."
+
+# The [[slnc N]] markers are `say`'s embedded pause command, in milliseconds,
+# and [[pbas]] sets the pitch base. They are most of the difference between
+# "robotic" and "delivered": a synthesised voice reading a sentence flat out
+# is what sounds machine-made, and real speakers breathe at the commas. Do not
+# strip them when editing the wording -- rewrite around them.
+#
+# The single biggest quality win is not here though. It is installing a
+# Premium voice: System Settings > Accessibility > Spoken Content >
+# System Voice > Manage Voices, pick an English (US) voice marked Premium,
+# download it, then re-run this script naming that voice. Free, a few minutes,
+# and a different class of result from the built-in voices.
+gen intro        "[[pbas 44]][[slnc 150]]Look at the screen. [[slnc 320]] Take a moment. [[slnc 360]] And think of any one of these. [[slnc 200]]"
+gen round1       "[[pbas 44]][[slnc 120]]Now, [[slnc 240]] move to the closest one that has a face. [[slnc 320]] Not your own. [[slnc 360]] If two look equally close, [[slnc 160]] take either."
+gen round2       "[[pbas 44]][[slnc 120]]Now, [[slnc 200]] move to the food [[slnc 150]] nearest to you."
+gen round3       "[[pbas 44]][[slnc 120]]Now, [[slnc 200]] move to the nearest thing [[slnc 220]] you could pick up and hold."
+gen round4       "[[pbas 44]][[slnc 120]]Now, [[slnc 200]] move to the animal [[slnc 150]] nearest to you."
+gen round5-logo  "[[pbas 44]][[slnc 150]]And finally. [[slnc 420]] Move to the nearest logo."
+gen round5-green "[[pbas 44]][[slnc 150]]And finally. [[slnc 420]] Move to the green thing nearest to you."
+# Played when the reveal is triggered, over the start of the vanish. Without it
+# the routine simply stopped talking after the last move and the room did not
+# know it was finished choosing.
+gen hold         "[[pbas 44]][[slnc 150]]Now stay exactly where you are. [[slnc 340]] Don't move. [[slnc 380]] Lock it in, [[slnc 220]] and keep your eyes on it."
 echo
 echo "Done. Hear the whole run:"
 echo "  for f in intro round1 round2 round3 round4 round5-logo; do afplay $OUT/\$f.m4a; sleep 1.2; done"

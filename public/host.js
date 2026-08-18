@@ -60,6 +60,7 @@ const els = {
   logoUrl: document.getElementById("logoUrl"),
   interactiveLogoUrl: document.getElementById("interactiveLogoUrl"),
   interactiveVoice: document.getElementById("interactiveVoice"),
+  interactiveMusicUrl: document.getElementById("interactiveMusicUrl"),
   btnVoiceTest: document.getElementById("btnVoiceTest"),
   voiceStatus: document.getElementById("voiceStatus"),
   interactiveLogoPreview: document.getElementById("interactiveLogoPreview"),
@@ -199,6 +200,7 @@ function applySettingsToForm(s) {
   els.revealUrl.value = s.revealUrl ?? randomRevealUrl();
   els.logoUrl.value = s.logoUrl ?? "";
   if (els.interactiveLogoUrl) els.interactiveLogoUrl.value = s.interactiveLogoUrl ?? "";
+  if (els.interactiveMusicUrl) els.interactiveMusicUrl.value = s.interactiveMusicUrl ?? "";
   els.skipAnimation.checked = !!s.skipAnimation;
 
   els.logoMs.value = s.logoMs ?? 4000;
@@ -267,6 +269,7 @@ function applyServerStateToForm(st) {
     revealUrl: st.revealUrl,
     logoUrl: st.logoUrl,
     interactiveLogoUrl: st.interactiveLogoUrl,
+    interactiveMusicUrl: st.interactiveMusicUrl,
     skipAnimation: st.skipAnimation,
     logoMs: st.timings?.logoMs,
     animationMs: st.timings?.animationMs,
@@ -393,6 +396,7 @@ function saveSettings() {
     revealUrl: els.revealUrl.value.trim() || randomRevealUrl(),
     logoUrl: els.logoUrl.value.trim(),
     interactiveLogoUrl: (els.interactiveLogoUrl?.value || "").trim(),
+    interactiveMusicUrl: (els.interactiveMusicUrl?.value || "").trim(),
     skipAnimation: !!els.skipAnimation.checked,
 
     logoMs: Number(els.logoMs.value || 0),
@@ -449,6 +453,7 @@ function payloadFromUI() {
     revealUrl: s.revealUrl,
     logoUrl: s.logoUrl,
     interactiveLogoUrl: s.interactiveLogoUrl,
+    interactiveMusicUrl: s.interactiveMusicUrl,
     skipAnimation: s.skipAnimation,
     timings: { logoMs: s.logoMs, animationMs: s.animationMs },
 
@@ -721,6 +726,10 @@ const VOICE_LINES = {
   // Round 5 depends on which finish is armed, exactly like the script does.
   4: { logo: "/vo/round5-logo.m4a", green: "/vo/round5-green.m4a" },
 };
+// Played when the reveal is triggered, over the start of the vanish. Without
+// it the routine simply stopped talking after the last move and the room had
+// no idea it was finished choosing.
+const VOICE_HOLD = "/vo/hold.m4a";
 
 // One element, reused. A new Audio per line would stack overlapping voices if
 // Shine pressed Next twice quickly, which is precisely the moment it must not.
@@ -732,9 +741,60 @@ voicePlayer.preload = "auto";
 // is waiting.
 (function preloadVoice() {
   const urls = [VOICE_LINES.intro, VOICE_LINES[0], VOICE_LINES[1], VOICE_LINES[2],
-                VOICE_LINES[3], VOICE_LINES[4].logo, VOICE_LINES[4].green];
+                VOICE_LINES[3], VOICE_LINES[4].logo, VOICE_LINES[4].green, VOICE_HOLD];
   urls.forEach((u) => { const a = new Audio(); a.preload = "auto"; a.src = u; });
 })();
+
+/* Music bed. Loops under the whole routine from this same device, and ducks
+ * while a line is spoken so the voice always sits on top. Starts when the
+ * field appears and fades out over the reveal, so the finish lands in silence.
+ */
+const musicBed = new Audio();
+musicBed.loop = true;
+musicBed.preload = "auto";
+const MUSIC_FULL = 0.55;     // under a spoken voice, not competing with it
+const MUSIC_DUCKED = 0.16;
+let musicFade = null;
+
+function musicUrl() {
+  return (els.interactiveMusicUrl?.value || "").trim();
+}
+
+function startMusic() {
+  const url = musicUrl();
+  if (!url || !els.interactiveVoice?.checked) return;
+  try {
+    if (musicFade) { clearInterval(musicFade); musicFade = null; }
+    if (musicBed.src !== url) musicBed.src = url;
+    musicBed.volume = MUSIC_FULL;
+    musicBed.play()?.catch(() => {});
+  } catch {}
+}
+
+function stopMusic(fadeMs) {
+  if (musicFade) clearInterval(musicFade);
+  if (!fadeMs) { try { musicBed.pause(); } catch {} return; }
+  const step = 60;
+  const drop = musicBed.volume / Math.max(1, fadeMs / step);
+  musicFade = setInterval(() => {
+    musicBed.volume = Math.max(0, musicBed.volume - drop);
+    if (musicBed.volume <= 0.001) {
+      clearInterval(musicFade); musicFade = null;
+      try { musicBed.pause(); } catch {}
+    }
+  }, step);
+}
+
+function duckMusic(durationMs) {
+  if (musicBed.paused) return;
+  musicBed.volume = MUSIC_DUCKED;
+  // Back up once the line has finished, not on a timer tied to the file being
+  // decoded -- the line length is known from the audio element itself.
+  clearTimeout(duckMusic._t);
+  duckMusic._t = setTimeout(() => {
+    if (!musicBed.paused && !musicFade) musicBed.volume = MUSIC_FULL;
+  }, durationMs);
+}
 
 function voiceUrlForRound(round) {
   const entry = round < 0 ? VOICE_LINES.intro : VOICE_LINES[round];
@@ -744,13 +804,19 @@ function voiceUrlForRound(round) {
 }
 
 function playVoice(round) {
+  playVoiceUrl(voiceUrlForRound(round));
+}
+
+function playVoiceUrl(url) {
   if (!els.interactiveVoice?.checked) return;
-  const url = voiceUrlForRound(round);
   if (!url) return;
   try {
     voicePlayer.pause();
     voicePlayer.currentTime = 0;
     voicePlayer.src = url;
+    voicePlayer.onloadedmetadata = () => {
+      duckMusic((voicePlayer.duration || 3) * 1000 + 400);
+    };
     const p = voicePlayer.play();
     if (p && p.catch) {
       p.catch(() => {
@@ -788,11 +854,30 @@ els.btnVoiceTest?.addEventListener("click", () => {
  * for a round the server did not actually move to.
  */
 let lastSpokenRound = null;
+let spokeHold = false;
 function speakRoundIfChanged(st) {
-  if (!st || st.phase !== "interactive") { lastSpokenRound = null; return; }
-  if (st.interactive?.revealed) return;          // the finish is silent
+  if (!st || st.phase !== "interactive") {
+    lastSpokenRound = null;
+    spokeHold = false;
+    stopMusic(600);
+    return;
+  }
+
+  if (st.interactive?.revealed) {
+    // One "hold still" line over the start of the vanish, then the music fades
+    // so the finish lands in silence. Guarded, because state is re-broadcast.
+    if (!spokeHold) {
+      spokeHold = true;
+      playVoiceUrl(VOICE_HOLD);
+      stopMusic(7000);
+    }
+    return;
+  }
+
+  spokeHold = false;
   const round = st.interactive?.round ?? -1;
   if (round === lastSpokenRound) return;         // a re-broadcast, not a move
+  if (lastSpokenRound === null) startMusic();    // field just came up
   lastSpokenRound = round;
   playVoice(round);
 }
