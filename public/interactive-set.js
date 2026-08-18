@@ -245,22 +245,24 @@
     }))
   );
 
-  // How close two things may sit, in box units (the box is BOX_W wide). Filler
-  // is packed down to this, so it decides whether the screen reads as "full"
-  // or as "cluttered", and the two are only a hair apart.
+  // The closest two things may sit, in box units (the box is BOX_W = 1.5 wide).
   //
-  // The number that matters is this against the rendered glyph size. A glyph
-  // occupies roughly 0.85 of its font-size, and audience.html sets font-size to
-  // 0.064 of the field width -- so a glyph is about 0.082 box units across. At
-  // PACK below that they overlap and the field turns to mush; at PACK well
-  // above it they read as separate objects with air between them, which is
-  // what makes a busy screen legible rather than cluttered. Keep the two in
-  // step: raising the font size without raising this turns the field to soup.
+  // MEASURED against the rendered glyphs, not estimated from the font size.
+  // That distinction cost two rounds of "they are still touching": the estimate
+  // assumed a glyph occupies 0.85 of its font-size, so PACK 0.094 looked like
+  // comfortable clearance. Measuring the real boxes in the browser showed emoji
+  // render at 0.097 to 0.116 box units wide -- WIDER than the spacing meant to
+  // separate them -- and 133 pairs were overlapping.
   //
-  // Live items keep their own much wider lattice spacing, so packing the gaps
-  // never makes "the nearest face" harder to judge -- the faces are still
-  // exactly where they were.
-  const PACK = 0.094;
+  // 0.118 is about 1.18x the widest glyph at the current font size, which
+  // leaves visible air on every
+  // side. Raising it costs items: the field holds roughly BOX_W * BOX_H / PACK^2
+  // things, so this is fewer and bigger rather than more and touching. That is
+  // the trade Shine asked for, twice.
+  //
+  // Re-measure after changing the font size, with the audit tool. Do not
+  // estimate it.
+  const PACK = 0.118;
 
   // Small deterministic PRNG. Same seed, same scatter, every device.
   function mulberry32(a) {
