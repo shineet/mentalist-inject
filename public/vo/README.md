@@ -1,10 +1,16 @@
 # Voice over files
 
 **Current state:** seven of the eight lines are Shine's recorded voice, split
-from a single take (`tools/voiceover-master.mp3`, 2026-08-17). Only
-`round5-green` is still the machine voice, because it was not in that take. It
-is used only on a show with NO client logo configured, and the host panel says
-so when that finish is armed.
+from a single take (`tools/voiceover-master.mp3`, 2026-08-17). Both round-5
+endings are covered. Only **`hold`** is still the machine voice, because it was
+not in that take -- it is the line the "Lock it in" button plays. The host
+panel names it whenever it is still missing.
+
+Note for whoever re-splits that take: the last two segments in it are
+round5-**green** then round5-**logo**, in that order. They are within 0.15s of
+each other in length and cannot be told apart without listening, and getting
+them the wrong way round puts the wrong line at the most exposed moment of the
+routine. Do not infer the order from durations.
 
 Drop replacement recordings in this folder. **That is the whole installation
 step** — no rename, no code change, no redeploy config.
