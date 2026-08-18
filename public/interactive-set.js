@@ -74,12 +74,12 @@
   // 1 layout in 250 converges cleanly, so it is not something to guess at --
   // the host panel's verified badge is the backstop.
   //
-  // 138566 puts 96 things on screen and funnels 13 -> 8 -> 10 -> 7 -> 1.
+  // 29271 puts 96 things on screen and funnels 13 -> 6 -> 5 -> 3 -> 1.
   //
   // Chosen for robustness and balance, not for looks -- a deliberate reversal
   // after an earlier seed, picked for how well its logos spread, failed in a
   // real show. This one holds together if everyone misjudges every distance by
-  // up to 21%, and every round has at least two targets on each side of the
+  // up to 20%, and every round has at least two targets on each side of the
   // screen so no instruction drags the whole room in one direction.
   //
   // That balance costs robustness: unbalanced layouts reach 31% and higher,
@@ -96,7 +96,7 @@
   // animals counted, rounds 3 and 4 both target animals and the funnel will not
   // close, in 25,000 seeds. That is why the spoken wording rules animals out
   // explicitly rather than leaving it to the layout.
-  const SEED = 138566;
+  const SEED = 29271;
 
   // The layout index the room converges on. Established by the search that
   // chose SEED, re-checked by verifySet on every load. The client's logo is
@@ -104,25 +104,30 @@
   //
   // It lands near the middle of the field, which is where you want it: the
   // reveal grows from the centre of the screen rather than an edge.
-  const CLIENT_SLOT = 20;
+  const CLIENT_SLOT = 19;
 
   const LOGO_COUNT = 5;
 
   /* ---------------------------------------------------------------------- *
-   * Decoy logos
+   * The logo plates
    *
-   * These have to READ as corporate logos, not merely be tagged as them. The
-   * first version was abstract geometric glyphs, and next to a real client mark
-   * they looked like icons -- Shine put a Visa logo in and reported "there is
-   * only one logo", which is precisely right and collapses the closing round
-   * into a naked force at the most exposed moment of the routine.
+   * ALL FIVE show the same logo -- the client's.
    *
-   * A symbol plus a wordmark is what makes something read as a company. The
-   * names are invented, so there is no real brand on screen to recognise or
-   * wonder about, and short so they stay legible on a phone.
+   * They used to be four invented wordmarks plus the client's, which was a
+   * mistake Shine spotted: at a corporate show the room already knows the
+   * finish will be their own logo, so the client mark is the only one that
+   * matters and spotting it tells you the ending before the reveal happens.
+   * The surprise was leaking out through the decoys.
    *
-   * Drawn as inline SVG rather than fetched, so the routine has no external
-   * dependency and works on a room's bad wifi.
+   * Making them identical costs nothing, because the decoys were never doing
+   * the work people assume. They exist so that "move to the nearest logo" has
+   * more than one honest answer and does not feel forced -- and five identical
+   * plates satisfy that just as well as five different ones. The CONVERGENCE is
+   * what puts everybody on the same plate, and it is purely geometric: the
+   * plates are interchangeable, so what is drawn on them cannot affect it.
+   *
+   * The reveal is unaffected for the same reason. Everyone genuinely ends on
+   * the same plate, so nobody watches a different plate survive.
    * ---------------------------------------------------------------------- */
   function logoMark(inner, name) {
     return (
@@ -131,8 +136,6 @@
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' +
         '<g fill="none" stroke="#141414" stroke-width="7" stroke-linecap="round" ' +
         'stroke-linejoin="round" transform="translate(28,16)">' + inner + '</g>' +
-        // textLength pins the wordmark to the plate width whatever the name is,
-        // so a longer one condenses instead of running off the edges.
         '<text x="60" y="106" text-anchor="middle" fill="#141414" ' +
         'font-family="Helvetica Neue, Helvetica, Arial, sans-serif" ' +
         'font-size="24" font-weight="700" textLength="96" ' +
@@ -142,16 +145,8 @@
     );
   }
 
-  const DECOY_LOGOS = [
-    logoMark('<path d="M32 4 L60 52 H4 Z"/>', 'NORVEX'),
-    logoMark('<path d="M32 2 L60 18 V50 L32 66 L4 50 V18 Z"/><path d="M16 44 L48 24"/>', 'HEXA'),
-    logoMark('<circle cx="32" cy="34" r="26"/><circle cx="32" cy="34" r="8" fill="#141414" stroke="none"/>', 'LUMEN'),
-    logoMark('<rect x="4" y="6" width="34" height="34" rx="5"/><rect x="26" y="28" width="34" height="34" rx="5"/>', 'ARBOR'),
-    logoMark('<path d="M6 40 L32 12 L58 40"/><path d="M6 62 L32 34 L58 62"/>', 'ASCEND'),
-  ];
-
-  // Used at CLIENT_SLOT when a gig has no logo configured, so an unconfigured
-  // show looks like five sibling companies rather than four and a hole.
+  // Drawn on every plate when a gig has no logo configured, so an unconfigured
+  // show still reads as five of one company rather than five different ones.
   const DEFAULT_LOGO = logoMark(
     '<circle cx="32" cy="34" r="26"/><path d="M32 12 V34 L50 46"/>', 'ORBIT');
 
@@ -281,24 +276,62 @@
     const rand = mulberry32(seed);
 
     /* Shuffled so the category blocks are not laid down in reading order --
-     * otherwise all the food would sit in one band of the screen and the logos
-     * would land in a row along the bottom.
+     * otherwise all the food would sit in one band of the screen.
      *
      * NOT stratified, and that is a finding rather than an oversight. Dealing
      * the categories out evenly across the lattice balances every one of them
-     * perfectly and drops convergence to ZERO in 40,000 seeds. It is the same
-     * tension as density: if every category is spread evenly then "the nearest
-     * food" is always a local one, the reachable set never shrinks, and the
-     * room never funnels to a single item. The unevenness IS the mechanism.
-     *
-     * So balance is a search criterion instead of a construction rule -- see
-     * tools/search-seed.mjs, which requires every round to have targets on both
-     * sides of the screen and reports how lopsided the worst one is.
+     * perfectly and drops convergence to ZERO in 40,000 seeds. Same tension as
+     * density: if every category is spread evenly then "the nearest food" is
+     * always a local one, the reachable set never shrinks, and the room never
+     * funnels to a single item. The unevenness IS the mechanism.
      */
-    const shuffled = specs.slice();
-    for (let i = shuffled.length - 1; i > 0; i--) {
+    const emojiSpecs = specs.filter((sp) => sp.kind !== 'logo');
+    const logoSpecs = specs.filter((sp) => sp.kind === 'logo');
+    for (let i = emojiSpecs.length - 1; i > 0; i--) {
       const j = Math.floor(rand() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      [emojiSpecs[i], emojiSpecs[j]] = [emojiSpecs[j], emojiSpecs[i]];
+    }
+
+    /* Logos are PLACED, not shuffled.
+     *
+     * Left to the shuffle they landed in consecutive lattice slots -- three of
+     * the five ended up touching in the top-left corner, which reads as
+     * arranged and wastes the whole point of having five. Searching for a seed
+     * that happened to spread them failed completely: converging, balanced and
+     * spread together was 0 seeds in 60,000, because each constraint is fighting
+     * the others.
+     *
+     * So the grid is cut into as many horizontal bands as there are logos, and
+     * one slot is taken from each. Spread is then guaranteed by construction
+     * rather than hoped for, and the seed only has to solve convergence -- which
+     * is the thing a search is actually good at. Same move as separating live
+     * items from filler: make the constraint structural, then search the rest.
+     */
+    const slots = cols * rows;
+    const taken = new Set();
+    const logoSlots = [];
+    const band = Math.floor(slots / Math.max(1, logoSpecs.length));
+    logoSpecs.forEach((_, i) => {
+      // A random slot within this logo's own band, avoiding the extreme edges
+      // of the band so two neighbouring logos cannot end up adjacent.
+      const lo = i * band + Math.floor(band * 0.15);
+      const hi = i * band + Math.ceil(band * 0.85);
+      let slot = lo + Math.floor(rand() * Math.max(1, hi - lo));
+      while (taken.has(slot)) slot = (slot + 1) % slots;
+      taken.add(slot);
+      logoSlots.push(slot);
+    });
+
+    const shuffled = new Array(slots).fill(null);
+    logoSpecs.forEach((spec, i) => { shuffled[logoSlots[i]] = spec; });
+    let next = 0;
+    for (let i = 0; i < slots && next < emojiSpecs.length; i++) {
+      if (!shuffled[i]) shuffled[i] = emojiSpecs[next++];
+    }
+    // Trailing empty slots are simply gaps in the lattice, which is what the
+    // 8x6 grid holding 39 items already relies on to look natural.
+    for (let i = shuffled.length - 1; i >= 0; i--) {
+      if (!shuffled[i]) shuffled.splice(i, 1);
     }
 
     const cellW = BOX_W / cols;
@@ -766,14 +799,16 @@
   }
 
   /**
-   * The picture to draw at a given item, given the gig's configured logo.
-   * Everything about per-gig configuration lives here: one slot varies, the
-   * rest are constant.
+   * The picture to draw at a given logo item.
+   *
+   * Every plate gets the same thing -- see the note at the top. CLIENT_SLOT
+   * still matters, because it is the plate the room converges ON and the seed
+   * search is pinned to it; it just no longer looks any different from the
+   * others.
    */
   function logoSrc(item, clientLogoUrl) {
     if (item.kind !== 'logo') return null;
-    if (item.index === CLIENT_SLOT) return clientLogoUrl || DEFAULT_LOGO;
-    return DECOY_LOGOS[item.logo % DECOY_LOGOS.length];
+    return clientLogoUrl || DEFAULT_LOGO;
   }
 
   // globalThis rather than an export: this loads as a classic <script> in the
@@ -785,6 +820,6 @@
     verifySet, allowedTargets, matches, distance,
     EMOJI_SPECS, LOGO_SPECS, FILLER, PACK, OPENING_ROUNDS, LOGO_FINISH, GREEN_FINISH,
     setTolerance,
-    BOX_W, BOX_H, SEED, CLIENT_SLOT, DEFAULT_LOGO, DECOY_LOGOS, logoSrc,
+    BOX_W, BOX_H, SEED, CLIENT_SLOT, DEFAULT_LOGO, logoSrc,
   };
 })(globalThis);

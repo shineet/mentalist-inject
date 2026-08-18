@@ -59,6 +59,10 @@ function search(config, label) {
     // categories at build time balances them perfectly and drops convergence to
     // zero in 40,000 seeds, so it has to be a search criterion, not a
     // construction rule.
+    // Logos are placed in bands at build time so they cannot cluster, but the
+    // seed still has to converge with them where they are -- and that is the
+    // binding constraint now: converging, balanced and spread together was 1
+    // seed in 40,000. Widen the range before assuming a change is impossible.
     let balanced = true;
     let worstSplit = 0;
     for (const round of set.rounds) {
