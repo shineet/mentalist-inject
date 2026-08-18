@@ -74,17 +74,23 @@
   // 1 layout in 250 converges cleanly, so it is not something to guess at --
   // the host panel's verified badge is the backstop.
   //
-  // 1951 puts 109 things on screen and funnels 13 -> 8 -> 5 -> 4 -> 1. It was
-  // chosen over the other converging layouts on two counts the maths does not
-  // care about but the room does:
+  // 8514 puts 95 things on screen and funnels 13 -> 7 -> 7 -> 5 -> 1.
   //
-  //  - The five logos span 93% of the width and 71% of the height, with no two
-  //    closer than 0.37. Most converging layouts huddle all five logos into one
-  //    corner, because that is the easy way for everybody's nearest logo to be
-  //    the same one -- and it looks exactly as arranged as it is.
-  //  - Four survivors go into the last round from different parts of the field,
-  //    so the closing move is a real convergence rather than a formality.
-  const SEED = 1951;
+  // Chosen for ROBUSTNESS, not for looks, and that is a deliberate reversal.
+  // The previous seed was picked because its five logos spanned 93% of the
+  // width, which photographed well and broke in an actual show: on the closing
+  // move the right answer was 6.8% nearer than the wrong one, Shine could not
+  // tell them apart, and the room did not converge.
+  //
+  // This layout keeps converging even if every spectator misjudges every
+  // distance by up to 30% -- more than four times the margin that failed. Its
+  // logos are less spread as a result, which is the price. Correctness first;
+  // a routine that looks arranged still works, a routine that looks beautiful
+  // and lands on the wrong thing does not.
+  //
+  // Five animals funnel into the logo from different parts of the field, and it
+  // raises no clustering warnings.
+  const SEED = 8514;
 
   // The layout index the room converges on. Established by the search that
   // chose SEED, re-checked by verifySet on every load. The client's logo is
@@ -414,6 +420,29 @@
     );
   }
 
+  /* How much closer one candidate must be before a spectator can reliably tell.
+   *
+   * This is the difference between a routine that works on paper and one that
+   * works in a room. The verifier used to assume everyone computes exact
+   * Euclidean distance and picks the true nearest. They do not: a target 7%
+   * nearer than the runner-up looks identical from across a table, and the
+   * choice becomes a coin flip.
+   *
+   * That is not hypothetical. Shine ran it, started on the pencil, and finished
+   * on the cactus instead of the turtle -- because on his last move the turtle
+   * was 0.394 away and the cactus 0.421, a 6.8% margin. The maths said one
+   * thing, his eyes said either, and the routine broke.
+   *
+   * So anything within this fraction of the nearest counts as a legitimate
+   * choice, and verifySet walks EVERY such branch. A set only passes if the
+   * room converges no matter which of the plausible options each person takes.
+   */
+  let TOLERANCE = 0.18;
+  // Adjustable only so tools/search-seed.mjs can find the point at which a
+  // candidate layout breaks, which is the honest measure of how much room for
+  // human error it has. Nothing at runtime changes it.
+  function setTolerance(t) { TOLERANCE = t; }
+
   function allowedTargets(items, round, from) {
     let candidates = items.filter((item) => matches(item, round.requires));
     if (round.excludeSelf && from) {
@@ -422,15 +451,21 @@
     if (round.type !== 'relational' || !from) return candidates;
     if (!candidates.length) return [];
     const best = Math.min(...candidates.map((c) => distance(from, c)));
-    // Everything at the minimum distance, not just one: a tie is a genuine free
-    // choice, and the verifier has to walk all of them to prove anything.
-    return candidates.filter((c) => distance(from, c) === best);
+    // Everything a spectator could plausibly read as nearest, not just the one
+    // that actually is. Exact equality was useless here -- two floats are never
+    // equal -- so the old version only ever returned a single target and proved
+    // a guarantee that did not survive contact with human eyesight.
+    return candidates.filter((c) => distance(from, c) <= best * (1 + TOLERANCE));
   }
 
   function verifySet(set) {
     const items = set.items;
     const problems = [];
     const warnings = [];
+    // The closest call a spectator has to make anywhere on any live path,
+    // as a percentage. Reported so a set that only just passes is visible as
+    // such rather than looking as safe as one that passes comfortably.
+    let tightest = Infinity;
     const sizes = [items.length];
     const layers = [];
 
@@ -445,6 +480,15 @@
 
       reachable.forEach((from) => {
         const targets = allowedTargets(items, round, from);
+
+        // Record how obvious the decision was from here.
+        const pool = items
+          .filter((i) => matches(i, round.requires) && !(round.excludeSelf && i.id === from.id))
+          .map((i) => distance(from, i))
+          .sort((a, b) => a - b);
+        if (pool.length > 1 && pool[0] > 0) {
+          tightest = Math.min(tightest, (pool[1] - pool[0]) / pool[0]);
+        }
         if (targets.length === 0) {
           problems.push(
             `Round ${i + 1} (${round.key}): nothing to move to from ${from.label}.`
@@ -520,6 +564,8 @@
       ok: problems.length === 0,
       problems,
       warnings,
+      tolerance: TOLERANCE,
+      tightestCallPct: isFinite(tightest) ? tightest * 100 : null,
       sizes,
       layers,
       target,
@@ -567,10 +613,10 @@
     finish: GREEN_FINISH,
     cols: 8,
     rows: 5,          // 8 x 5 = 40 slots for 34 live emoji
-    // 112 items on screen, funnels 13 -> 5 -> 4 -> 3 -> 1 onto the turtle.
-    // Chosen for green spread: the five greens span 92% of the width and 73%
-    // of the height, so the closing move is a real journey across the field.
-    seed: 174,
+    // 97 items on screen, funnels 13 -> 6 -> 2 -> 3 -> 1 onto the avocado.
+    // Holds together even if every spectator misjudges every distance by up to
+    // 48%, which is the most forgiving layout found anywhere in the search.
+    seed: 27044,
     clientSlot: null,
     wantsLogos: false,
   };
@@ -617,6 +663,7 @@
     EMOJI_SET, LOGO_SET, EMOJI_CONFIG, LOGO_CONFIG, setFor, buildSet, buildItems,
     verifySet, allowedTargets, matches, distance,
     EMOJI_SPECS, LOGO_SPECS, FILLER, PACK, OPENING_ROUNDS, LOGO_FINISH, GREEN_FINISH,
+    setTolerance,
     BOX_W, BOX_H, SEED, CLIENT_SLOT, DEFAULT_LOGO, DECOY_LOGOS, logoSrc,
   };
 })(globalThis);

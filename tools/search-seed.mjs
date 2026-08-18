@@ -36,6 +36,18 @@ function search(config, label) {
     const report = verifySet(set);
     if (!report.ok || report.warnings.length) continue;
 
+    // How much misjudgement the layout survives. This, not target spread, is
+    // the thing to maximise: the routine's one real-world failure was a
+    // closing move where the right answer was only 6.8% nearer than the wrong
+    // one, on a layout that had been chosen for how well its targets spread.
+    let holds = 0;
+    for (let t = 0.05; t <= 0.60; t += 0.01) {
+      K.setTolerance(t);
+      if (verifySet(buildSet({ ...config, seed })).ok) holds = t; else break;
+    }
+    K.setTolerance(0.18);
+    report.holds = holds;
+
     const entry = { seed, report, spread: 1, minPair: 1 };
 
     if (config.wantsLogos) {
@@ -76,6 +88,7 @@ function search(config, label) {
   //   3. More survivors funnelling in, so the last move is a real convergence
   //      rather than a formality.
   found.sort((a, b) =>
+    (b.report.holds - a.report.holds) ||
     (b.spread - a.spread) ||
     (b.minPair - a.minPair) ||
     (b.report.sizes[b.report.sizes.length - 2] - a.report.sizes[a.report.sizes.length - 2])
@@ -86,6 +99,7 @@ function search(config, label) {
     console.log(
       `seed ${String(f.seed).padStart(7)}  ${f.report.sizes.join('->').padEnd(24)}` +
       `  ends on ${String(f.report.target.label).padEnd(6)} idx ${String(f.report.targetIndex).padStart(2)}` +
+      `  holds to ${(f.report.holds * 100).toFixed(0)}%` +
       `  span ${(f.spanW * 100).toFixed(0)}x${(f.spanH * 100).toFixed(0)}%` +
       `  closest ${f.minPair.toFixed(2)}  on screen ${f.total}`
     );

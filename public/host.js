@@ -804,6 +804,22 @@ function currentInteractiveLogo() {
   // set that happens to be the inactive one today is still broken, and finding
   // that out the first time a gig has no logo configured is finding out too
   // late.
+  /* How badly a spectator can misjudge a distance before the room stops
+   * converging. This is the number that matters: the routine failed in a real
+   * show at 6.8%, because the verifier only ever checked exact-nearest paths.
+   * Shown on the panel so the margin is visible rather than assumed.
+   */
+  function holdsTo(set) {
+    if (!kit.setTolerance) return null;
+    let last = 0;
+    for (let t = 0.05; t <= 0.60; t += 0.01) {
+      kit.setTolerance(t);
+      if (kit.verifySet(set).ok) last = t; else break;
+    }
+    kit.setTolerance(0.18);
+    return last;
+  }
+
   function describe(set) {
     const r = kit.verifySet(set);
     if (!r.ok) {
@@ -826,6 +842,7 @@ function currentInteractiveLogo() {
       ends: set.wantsLogos ? "the client logo" : r.target.label,
       sizes: r.sizes.join(" → "),
       warnings: r.warnings,
+      holds: holdsTo(set),
     };
   }
 
@@ -846,6 +863,10 @@ function currentInteractiveLogo() {
           ? "five logos in the field, every path ends on the client logo"
           : "no logo set, so no logos in the field; every path ends on " + mine.ends) +
         " &nbsp;·&nbsp; " + mine.sizes + " items" +
+        (mine.holds
+          ? "<br>Holds even if everyone misjudges every distance by up to <b>" +
+            Math.round(mine.holds * 100) + "%</b>."
+          : "") +
         (mine.warnings.length ? "<br>⚠️ " + mine.warnings.join(" ") : "") +
         (theirs.ok ? "" : "<br>⚠️ The other finish is broken: " + theirs.html);
       els.interactiveStatus.style.color = "#8fe0a5";
