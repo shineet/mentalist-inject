@@ -756,8 +756,56 @@
     };
   }
 
+  // Green things that answer ONLY the green round: no face, not an animal, not
+  // food, and not something you could pick up (a tree is alive, a heart and a
+  // recycling mark are neither objects nor creatures). Anything that also
+  // matched an earlier round would change rounds 1-4 and require a new seed.
+  const EXTRA_GREENS = ['💚', '🌳', '♻️'];
+
+  /* Adds more green things WITHOUT touching the convergence.
+   *
+   * Four greens is the thinnest category in the routine, so the closing
+   * instruction has the fewest honest answers -- and Shine asked for more.
+   * Adding them anywhere is not safe: a green near the people still walking
+   * would catch some of them and split the room.
+   *
+   * But rounds 1-4 never mention green, so an extra green can only affect the
+   * final step, and that makes the safe region computable rather than a matter
+   * of luck. A position is safe when every survivor of round 4 still finds the
+   * real target clearly nearer -- 35% nearer here, well beyond the 18% a person
+   * might misjudge.
+   *
+   * Existing FILLER is converted rather than new items added, because the field
+   * is packed tight enough that there is almost nowhere free to put anything.
+   * The filler was answering nothing, so promoting it costs nothing.
+   */
+  function addSafeGreens(set) {
+    if (set.rounds[set.rounds.length - 1].key !== 'green') return set;
+    const report = verifySet(set);
+    if (!report.ok) return set;
+    const target = report.target;
+    const survivors = report.layers[report.layers.length - 2];
+    const SAFETY = 1.35;
+
+    let added = 0;
+    set.items.forEach((item) => {
+      if (item.kind !== 'filler' || added >= EXTRA_GREENS.length) return;
+      const safe = survivors.every(
+        (s) => distance(s, item) > distance(s, target) * SAFETY
+      );
+      if (!safe) return;
+      item.kind = 'emoji';
+      item.emoji = EXTRA_GREENS[added];
+      item.label = EXTRA_GREENS[added];
+      item.tags = item.tags.filter((t) => ['leftHalf', 'rightHalf', 'topHalf', 'bottomHalf'].includes(t));
+      item.tags.push('green');
+      added += 1;
+    });
+    return set;
+  }
+
   function buildSet(config) {
-    return {
+    const set = {
       id: config.id,
       box: { w: BOX_W, h: BOX_H },
       cols: config.cols,
@@ -768,6 +816,7 @@
       items: buildItems(config.specs, config.seed, config.cols, config.rows),
       rounds: OPENING_ROUNDS.concat([config.finish]),
     };
+    return addSafeGreens(set);
   }
 
   /*
