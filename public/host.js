@@ -728,13 +728,19 @@ voicePlayer.preload = "auto";
  * whatever follows is Shine's to time.
  */
 const musicBed = new Audio();
-musicBed.loop = true;
+// Does NOT loop. It is a sting with a build, an impact and a decay -- looping
+// it would restart the build over the top of the finish.
+musicBed.loop = false;
 musicBed.preload = "auto";
+// Built by tools/make-reveal-music.sh and timed against the vanish: the impact
+// lands at 2.55s, which is SPREAD + HOLD from audience.js, the moment the
+// survivor starts growing. Used unless a gig supplies its own track.
+const DEFAULT_REVEAL_MUSIC = "/reveal-music.mp3";
 const MUSIC_FULL = 0.7;      // nothing competing with it now, so it can sit up
 let musicFade = null;
 
 function musicUrl() {
-  return (els.interactiveMusicUrl?.value || "").trim();
+  return (els.interactiveMusicUrl?.value || "").trim() || DEFAULT_REVEAL_MUSIC;
 }
 
 function startMusic() {
