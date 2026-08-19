@@ -183,7 +183,9 @@
     // which also caught stars, clouds and hearts -- fine when those were live
     // items, fatal once they became filler, because filler must never be a
     // legitimate answer.
-    object: ['⚽', '🎸', '🔑', '📚', '⌚', '📱', '✏️', '🎩', '🧢', '🔨'],
+    // 📕 not 📚 -- the stack's top book is green, which is the emoji set's
+    // closing instruction. See the note on ROSTER.thing below.
+    object: ['⚽', '🎸', '🔑', '📕', '⌚', '📱', '✏️', '🎩', '🧢', '🔨'],
     // Several visibly green things, on purpose. The EMOJI set's closing
     // instruction is "the nearest green thing", and it has to have MORE than
     // one honest answer or it is a naked force at the most exposed moment.
@@ -267,7 +269,12 @@
     // and the carrot has a leafy green top.
     food: ['🍎', '🍌', '🍕', '🍉', '🍦', '🍔', '🍇', '🍩', '🥐'],
     // Things you could pick up and hold. Not food, nothing alive.
-    thing: ['⚽', '🎸', '🔑', '📚', '⌚', '📱', '✏️', '🎩', '🧢', '🔨'],
+    // 📕 not 📚: the book STACK is drawn with a big bright green book on top,
+    // and green is the closing instruction. Shine's daughter went for it on the
+    // last move during a test run, which is the failure this whole category
+    // audit exists to prevent. There is no non-green book stack in the set, so
+    // a single closed book is the nearest thing. 📘 is the equivalent in blue.
+    thing: ['⚽', '🎸', '🔑', '📕', '⌚', '📱', '✏️', '🎩', '🧢', '🔨'],
     // Answers no instruction at all. Pure decoration, and what lets the screen
     // be busy without breaking the funnel.
     filler: [
