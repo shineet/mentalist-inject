@@ -145,6 +145,40 @@ function auditSet(label, set) {
     (divergent.length ? `${divergent.length} DO` : 'no — every close call leads to the same reveal'));
   divergent.slice(0, 8).forEach((d) => console.log(`     ${d}`));
 
+  /* Where can anyone actually BE for the last instruction?
+   *
+   * Shine looked at the field, saw that the nearest green thing to the monkey
+   * is the turtle rather than the clover, and asked whether that broke the
+   * ending. It does not -- nobody can be standing on the monkey by then. The
+   * monkey is a round 1 destination and rounds 2 to 4 move everyone off it.
+   *
+   * That question is going to recur for every emoji on screen, and answering
+   * it by hand each time invites getting it wrong. Reading a picture off the
+   * field says nothing on its own: only the handful of items still REACHABLE
+   * at a given round can affect the outcome. So the audit now names them.
+   */
+  const byId = new Map(set.items.map((i) => [i.id, i]));
+  let reach = new Set(set.items.map((i) => i.id));
+  for (let ri = 0; ri < set.rounds.length - 1; ri++) {
+    const next = new Set();
+    for (const id of reach) {
+      K.allowedTargets(set.items, set.rounds[ri], byId.get(id)).forEach((t) => next.add(t.id));
+    }
+    reach = next;
+  }
+  const last = set.rounds[set.rounds.length - 1];
+  console.log(`\n  the only places anyone can be for the closing "${last.key}" instruction:`);
+  [...reach].map((id) => byId.get(id)).forEach((from) => {
+    const pool = set.items
+      .filter((i) => K.matches(i, last.requires) && i.id !== from.id)
+      .map((i) => ({ i, d: K.distance(from, i) }))
+      .sort((a, b) => a.d - b.d);
+    const pct = ((pool[1].d - pool[0].d) / pool[0].d * 100).toFixed(0);
+    console.log(`     on ${from.label} -> ${pool[0].i.label}   (runner-up ${pool[1].i.label}, ` +
+      `${pct}% further)`);
+  });
+  console.log(`     everything else on screen is unreachable by now and cannot affect the ending.`);
+
   return failures.length === 0 && soleOption.length === 0 && divergent.length === 0;
 }
 
