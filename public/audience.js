@@ -1898,6 +1898,13 @@ async function handleStateUpdate(state) {
 
   if (phase === "interactive") {
     stopKaraoke();
+    // Silence, deliberately. This branch returns before setMusicForPhase, which
+    // is what every other phase relies on to stop the previous bed -- so a room
+    // that had been in reveal or review carried that music on underneath the
+    // whole routine. The routine's entire design is one voice through the PA
+    // rather than fifty phones a beat apart, and this was the one path where a
+    // phone could still be making noise under it.
+    stopAllMusic();
     if (phaseChanged) interactiveDrawn = null;  // fresh field on a fresh run
     showOnly("interactive");
     renderInteractive(state);
