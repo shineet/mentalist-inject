@@ -3,13 +3,15 @@ import http from "http";
 import { Server } from "socket.io";
 import fs from "fs";
 import path from "path";
+import { sequenceFor, defaultsFor, inlineAll } from "./lib/sequence.js";
+import { renderSequence } from "./lib/render.js";
 
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v185-clip-uploads";
+const REVISION = "v186-sequences";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -832,6 +834,53 @@ app.get("/meta.json", (req, res) => {
     nowTs: Date.now(),
     uptimeSec: Math.round(process.uptime()),
   });
+});
+
+// ── Pre-show and post-show sequences ──────────────────────────────────────
+//
+// Same shape for both, and the same page plays either. Held per room alongside
+// everything else, so building one is editing data rather than writing another
+// HTML file by hand -- which is what happened for every school and client until
+// now.
+
+// What a room has, or the built-in pre-show if it has never been configured.
+app.get("/sequence.json", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const room = normalizeRoom(req.query.room);
+  const kind = req.query.kind === "postshow" ? "postshow" : "preshow";
+  res.json({ ok: true, room, kind, sequence: sequenceFor(getState(room), kind) });
+});
+
+// The built-in one, for an app that wants to seed an editor without adopting
+// whatever a room happens to hold.
+app.get("/sequence-default.json", (req, res) => {
+  const kind = req.query.kind === "postshow" ? "postshow" : "preshow";
+  res.json({ ok: true, kind, sequence: defaultsFor(kind) });
+});
+
+// Play it here, for rehearsal. Clips stay as links, which is fine on a machine
+// that can reach this server.
+app.get("/play/:kind", (req, res) => {
+  const kind = req.params.kind === "postshow" ? "postshow" : "preshow";
+  const seq = sequenceFor(getState(normalizeRoom(req.query.room)), kind);
+  res.type("html").send(renderSequence(seq));
+});
+
+// Download a copy that needs nothing: every clip inlined, no server, no
+// network. This is the one that goes on the laptop and gets opened in a hall.
+app.get("/api/export/:kind", async (req, res) => {
+  const kind = req.params.kind === "postshow" ? "postshow" : "preshow";
+  const room = normalizeRoom(req.query.room);
+  try {
+    const seq = sequenceFor(getState(room), kind);
+    const baked = await inlineAll(seq, [MEDIA_DIR, path.join(process.cwd(), "public")]);
+    const name = `${kind}-${room}.html`;
+    res.setHeader("Content-Disposition", `attachment; filename="${name}"`);
+    res.type("html").send(renderSequence(baked, { standalone: true }));
+  } catch (e) {
+    console.error("export failed:", e.message);
+    res.status(500).send("export failed");
+  }
 });
 
 app.get("/state.json", (req, res) => {
