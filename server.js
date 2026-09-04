@@ -9,7 +9,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v184-interactive-silence";
+const REVISION = "v185-clip-uploads";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -55,6 +55,82 @@ app.use((req, res, next) => {
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.static("public"));
+
+// ── Voiceover clips, uploaded from the host app ───────────────────────────
+//
+// A post-show with a recording per message used to mean hand-building the page
+// from files sent over. Uploading them here instead means a sequence can be
+// built and changed without anyone touching code.
+//
+// Stored on the same Fly volume as the room state and served from the same
+// origin as the page that plays them, so there is no CORS to arrange and no
+// third-party key to hold. Clips are small; a whole show's worth is a few
+// hundred kilobytes against a volume already holding a JSON file.
+const MEDIA_DIR = path.join(DATA_DIR, "media");
+try { fs.mkdirSync(MEDIA_DIR, { recursive: true }); } catch {}
+
+// Served read-only. Deliberately a separate path from express.static("public")
+// so an upload can never shadow a file in the repo.
+app.use("/media", express.static(MEDIA_DIR, { maxAge: "1h" }));
+
+const UPLOAD_TYPES = {
+  "audio/mpeg": ".mp3",
+  "audio/mp3": ".mp3",
+  "audio/mp4": ".m4a",
+  "audio/x-m4a": ".m4a",
+  "audio/aac": ".m4a",
+  "audio/wav": ".wav",
+  "audio/x-wav": ".wav",
+};
+
+// Raw bytes rather than multipart: one file per request, and the alternative is
+// a parser dependency for a form this only ever sends from one place.
+app.post("/api/upload",
+  express.raw({ type: Object.keys(UPLOAD_TYPES), limit: "12mb" }),
+  (req, res) => {
+    // The server is public, so this is not open. The token lives in a Fly
+    // secret and is entered once in the app -- never in the repo, which is
+    // public too.
+    const expected = process.env.UPLOAD_TOKEN || "";
+    if (!expected || req.get("x-upload-token") !== expected) {
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    }
+    const ext = UPLOAD_TYPES[(req.get("content-type") || "").split(";")[0].trim()];
+    if (!ext) return res.status(415).json({ ok: false, error: "unsupported type" });
+    if (!req.body || !req.body.length) return res.status(400).json({ ok: false, error: "empty" });
+
+    // The caller's name is a label, not a path. Anything that could climb out
+    // of the media folder is stripped rather than rejected, and a timestamp
+    // keeps two clips of the same name apart.
+    const label = String(req.get("x-upload-name") || "clip")
+      .replace(/[^a-zA-Z0-9_-]/g, "")
+      .slice(0, 40) || "clip";
+    const name = `${label}-${Date.now().toString(36)}${ext}`;
+
+    try {
+      fs.writeFileSync(path.join(MEDIA_DIR, name), req.body);
+    } catch (e) {
+      console.error("upload failed:", e.message);
+      return res.status(500).json({ ok: false, error: "write failed" });
+    }
+    res.json({ ok: true, url: `/media/${name}`, bytes: req.body.length });
+  });
+
+// What is already uploaded, so a slide can be pointed at an existing clip
+// instead of the same file being sent twice.
+app.get("/api/media", (req, res) => {
+  let files = [];
+  try {
+    files = fs.readdirSync(MEDIA_DIR)
+      .filter((f) => !f.startsWith("."))
+      .map((f) => {
+        const st = fs.statSync(path.join(MEDIA_DIR, f));
+        return { url: `/media/${f}`, bytes: st.size, at: st.mtimeMs };
+      })
+      .sort((a, b) => b.at - a.at);
+  } catch {}
+  res.json({ ok: true, files });
+});
 
 app.get("/health", (_, res) => res.status(200).send("OK"));
 
