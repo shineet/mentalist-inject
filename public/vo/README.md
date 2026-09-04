@@ -6,6 +6,23 @@
 machine-voice `.m4a` files remain beside them as a backstop -- delete any
 `.mp3` and that one line reverts on the next page load.
 
+**2026-09-03: rounds 2, 3 and 4 had their opening "Now," trimmed off.** Four
+lines in a row opening the same way read as a list rather than a sequence.
+Round 1 KEPT its "Now," deliberately: the intro ends on "think of any one of
+these", so it is a real transition from thinking to moving rather than a
+repetition of anything.
+
+`hold.mp3` still opens with "Now" and could not be trimmed the same way -- its
+first pause is not until 2.09s, because "Now stay exactly where you are" is one
+phrase with no comma after the word. Cutting there would remove the whole
+sentence. It needs re-recording if it should change.
+
+The cut was made at the end of the comma pause after "Now" (0.92s, 0.93s and
+0.95s respectively), then re-padded to the same 150ms head and loudness
+normalised with the recipe below, so levels still match line to line. The
+`.m4a` backstops were NOT re-cut and still say "Now" -- if an `.mp3` is ever
+deleted, that line comes back with it.
+
 ## Re-recording
 
 `tools/voiceover-script.txt` has the exact text, the ElevenLabs tag syntax and
@@ -40,9 +57,9 @@ macOS `say` version.
 |---|---|
 | `intro.mp3` | Look at the screen. Take a moment. And think of any one of these. |
 | `round1.mp3` | Now, move to the closest one that has a face. Not your own. If two look equally close, take either. |
-| `round2.mp3` | Now, move to the food nearest to you. |
-| `round3.mp3` | Now, move to the nearest object you could pick up and hold. Not food, and nothing alive. |
-| `round4.mp3` | Now, move to the animal nearest to you. |
+| `round2.mp3` | Move to the food nearest to you. |
+| `round3.mp3` | Move to the nearest object you could pick up and hold. Not food, and nothing alive. |
+| `round4.mp3` | Move to the animal nearest to you. |
 | `round5-logo.mp3` | And finally. Move to the nearest logo. |
 | `round5-green.mp3` | And finally. Move to the green thing nearest to you. |
 | `hold.mp3` | Now stay exactly where you are. Don't move. Lock it in, and keep your eyes on it. |
