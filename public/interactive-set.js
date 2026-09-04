@@ -635,12 +635,12 @@
     },
     {
       key: 'food', type: 'relational', excludeSelf: true,
-      say: 'Now move to the FOOD nearest to you.',
+      say: 'Move to the FOOD nearest to you.',
       requires: ['food'],
     },
     {
       key: 'thing', type: 'relational', excludeSelf: true,
-      say: 'Now move to the nearest OBJECT you could pick up and hold. Not food, and nothing alive.',
+      say: 'Move to the nearest OBJECT you could pick up and hold. Not food, and nothing alive.',
       requires: ['thing'],
       // Food is the honest ambiguity here, and it is the one that broke a
       // performance. A carrot IS something you could pick up and hold, as is
@@ -652,7 +652,7 @@
     },
     {
       key: 'animal', type: 'relational', excludeSelf: true,
-      say: 'Now move to the ANIMAL nearest to you.',
+      say: 'Move to the ANIMAL nearest to you.',
       requires: ['animal'],
     },
   ];
