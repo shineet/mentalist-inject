@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- No maximum-scale and no user-scalable=no. Pinch zoom IS the effect: the
+       whole point is that the lettering is only legible when somebody zooms
+       right into it, so anything that constrains the zoom breaks the trick. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Photo</title>
+  <style>
+    /* Deliberately bare. Nothing on this page may look like an app: a spectator
+       is being shown a photograph, and any chrome invites the thought that the
+       photograph is something a program is doing. */
+    html, body {
+      margin: 0; padding: 0; background: #000;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+    #frame {
+      position: relative;
+      width: 100%;
+      line-height: 0;
+    }
+    #orig { width: 100%; height: auto; display: block; }
+
+    /* The two layers sit exactly over the patch, in percentages of the frame,
+       so they follow the photograph at any width and at any zoom. They are in
+       the document from the start -- laid out, decoded, and merely invisible --
+       so that revealing them is a visibility change and not a load. */
+    #patch, #reveal {
+      position: absolute;
+      display: block;
+      visibility: hidden;
+      /* No transition of any kind, anywhere. A fade is exactly the thing the
+         audience must not catch out of the corner of an eye. */
+      transition: none !important;
+      animation: none !important;
+      image-rendering: auto;
+      pointer-events: none;
+    }
+    #note {
+      position: fixed; left: 0; right: 0; bottom: 0;
+      font: 11px -apple-system, system-ui, sans-serif;
+      color: rgba(255,255,255,0.28);
+      text-align: center; padding: 6px; line-height: 1.3;
+      pointer-events: none;
+    }
+    #note.hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div id="frame">
+    <img id="orig" alt="" draggable="false" />
+    <img id="patch" alt="" draggable="false" />
+    <img id="reveal" alt="" draggable="false" />
+  </div>
+  <div id="note" class="hidden"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+  (function () {
+    "use strict";
+
+    // The room is a capability: holding the link is the whole permission model,
+    // exactly as the plant link already works. This page can only ever READ --
+    // it has no token, and the endpoint that changes anything refuses a request
+    // without one.
+    const params = new URLSearchParams(location.search);
+    const room = (params.get("r") || params.get("room") || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+    const debug = params.get("debug") === "1";
+
+    const orig = document.getElementById("orig");
+    const patch = document.getElementById("patch");
+    const reveal = document.getElementById("reveal");
+    const note = document.getElementById("note");
+
+    let currentSeq = -1;
+    let placed = false;
+    let shown = false;
+
+    function say(text) {
+      if (!debug) return;
+      note.classList.remove("hidden");
+      note.textContent = text;
+    }
+
+    // Where the patch sits, as percentages of the photograph. Percentages
+    // rather than pixels because the photograph is displayed at whatever width
+    // the phone is, and a pixel offset would be right on exactly one device.
+    function place(state) {
+      if (!state.patchRect || !state.imageSize) return;
+      const r = state.patchRect, s = state.imageSize;
+      if (!s.width || !s.height) return;
+      for (const el of [patch, reveal]) {
+        el.style.left = (r.x / s.width * 100) + "%";
+        el.style.top = (r.y / s.height * 100) + "%";
+        el.style.width = (r.width / s.width * 100) + "%";
+        el.style.height = (r.height / s.height * 100) + "%";
+      }
+      placed = true;
+    }
+
+    // Load and fully decode before anything is shown. decode() is the whole
+    // reason there is no flash: it resolves only once the bitmap is ready to
+    // paint, so making the element visible afterwards cannot produce a blank
+    // frame, a partial row or a progressive JPEG crawling into view.
+    function preload(img, url) {
+      return new Promise(function (resolve) {
+        if (!url) return resolve(false);
+        if (img.getAttribute("src") === url && img.complete) return resolve(true);
+        img.onload = function () {
+          const done = img.decode ? img.decode() : Promise.resolve();
+          done.then(function () { resolve(true); }).catch(function () { resolve(true); });
+        };
+        img.onerror = function () { resolve(false); };
+        img.src = url;
+      });
+    }
+
+    function showReveal(state, recvTs) {
+      // Both layers become visible inside one frame. The cleared surface and
+      // the new lettering must arrive together: showing the patch first would
+      // put a blank plate on screen, which is the single most damaging frame
+      // this page could ever draw.
+      requestAnimationFrame(function () {
+        patch.style.visibility = "visible";
+        reveal.style.visibility = "visible";
+        shown = true;
+        const renderTs = Date.now();
+        say("reveal " + state.value + " · " + (renderTs - (state.committedAt || renderTs)) + " ms");
+        try {
+          socket.emit("photo:ack", { room: room, recvTs: recvTs, renderTs: renderTs });
+        } catch (e) {}
+      });
+    }
+
+    function hideReveal() {
+      patch.style.visibility = "hidden";
+      reveal.style.visibility = "hidden";
+      shown = false;
+      say("original");
+    }
+
+    async function apply(state, recvTs) {
+      if (!state || state.seq === currentSeq) return;
+      currentSeq = state.seq;
+
+      // The original is fetched ONCE, ever. Every later state change reuses the
+      // element that is already on screen, so the photograph the spectator is
+      // looking at is never re-requested and never repainted.
+      if (state.originalUrl && orig.getAttribute("src") !== state.originalUrl) {
+        await preload(orig, state.originalUrl);
+      }
+      if (!placed) place(state);
+      if (state.patchUrl) await preload(patch, state.patchUrl);
+
+      if (state.mode === "reveal" && state.revealUrl) {
+        const ok = await preload(reveal, state.revealUrl);
+        if (ok) showReveal(state, recvTs);
+      } else if (shown) {
+        hideReveal();
+      } else {
+        say("original");
+      }
+    }
+
+    // First paint comes from a plain fetch rather than waiting on the socket:
+    // somebody opening the link should see the photograph immediately, and
+    // somebody opening it AFTER the reveal should see the revealed one.
+    fetch("/api/photo/" + encodeURIComponent(room) + "/state", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (j) { if (j && j.ok) apply(j.state, Date.now()); })
+      .catch(function () { say("could not reach the room"); });
+
+    const socket = io({ transports: ["websocket", "polling"] });
+    socket.on("connect", function () { socket.emit("photo:join", { room: room }); });
+    socket.on("photo:state", function (state) { apply(state, Date.now()); });
+
+    // Coming back from the lock screen or the app switcher: re-join, and let
+    // the server's reply correct anything missed while the socket was asleep.
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") {
+        try { socket.emit("photo:join", { room: room }); } catch (e) {}
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

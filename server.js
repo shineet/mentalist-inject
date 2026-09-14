@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v187-voice-unlock";
+const REVISION = "v188-photo-audience-poc";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -893,6 +893,164 @@ app.get("/counts.json", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   const room = normalizeRoom(req.query.room);
   res.json({ ok: true, revision: REVISION, room, ts: Date.now(), counts: computeCounts(room) });
+});
+
+// ── EXPERIMENT: Photo Reveal V2, audience transport ───────────────────────────
+//
+// A second way to deliver the MystIO photo reveal: instead of one phone being
+// handed round, every spectator opens the same photograph on their own phone.
+//
+// Deliberately fenced off from the show. Its own state map, its own socket
+// rooms, its own routes, nothing persisted to state.json. Nothing above this
+// line changes behaviour because of anything below it, so if this experiment is
+// abandoned the block is deleted and the show is untouched.
+//
+// The state a room holds is tiny on purpose:
+//
+//   originalUrl  the genuine photograph, uploaded before the show
+//   patchUrl     the cleared surface, uploaded before the show
+//   revealUrl    a few kilobytes of lettering, uploaded at the moment of commit
+//   mode         "original" until commit, "reveal" after
+//
+// The audience page loads the first two at join time and holds them decoded but
+// hidden. A commit changes `mode` and names the third. Nothing reloads: the
+// photograph the spectator is already looking at is never fetched twice.
+
+const photoRooms = new Map();
+
+function photoRoom(room) {
+  const key = normalizeRoom(room);
+  if (!photoRooms.has(key)) {
+    photoRooms.set(key, {
+      room: key, mode: "original", value: "",
+      originalUrl: "", patchUrl: "", revealUrl: "",
+      patchRect: null, imageSize: null,
+      seq: 0, committedAt: 0, acks: [],
+    });
+  }
+  return photoRooms.get(key);
+}
+
+function photoChannel(room) { return `photo-${normalizeRoom(room)}`; }
+
+function photoAuthorised(req) {
+  const expected = process.env.UPLOAD_TOKEN || "";
+  return Boolean(expected) && req.get("x-upload-token") === expected;
+}
+
+function photoCounts(room) {
+  const channel = photoChannel(room);
+  let clients = 0;
+  for (const s of io.sockets.sockets.values()) {
+    if (s.data?.photoRoom === channel) clients++;
+  }
+  return clients;
+}
+
+// Assets. Same raw-bytes shape and same token as the voiceover upload above,
+// but its own route and its own parser so that endpoint is not altered.
+app.post("/api/photo/:room/asset",
+  express.raw({ type: ["image/jpeg", "image/png"], limit: "24mb" }),
+  (req, res) => {
+    if (!photoAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+    const part = String(req.get("x-photo-part") || "").toLowerCase();
+    if (!["original", "patch", "reveal"].includes(part)) {
+      return res.status(400).json({ ok: false, error: "x-photo-part must be original, patch or reveal" });
+    }
+    if (!req.body || !req.body.length) return res.status(400).json({ ok: false, error: "empty" });
+    const ext = (req.get("content-type") || "").includes("png") ? ".png" : ".jpg";
+    const key = normalizeRoom(req.params.room);
+    const name = `photo-${key}-${part}-${Date.now().toString(36)}${ext}`;
+    try {
+      fs.writeFileSync(path.join(MEDIA_DIR, name), req.body);
+    } catch (e) {
+      return res.status(500).json({ ok: false, error: "write failed" });
+    }
+    const state = photoRoom(key);
+    const url = `/media/${name}`;
+    if (part === "original") state.originalUrl = url;
+    if (part === "patch") state.patchUrl = url;
+    if (part === "reveal") state.revealUrl = url;
+    res.json({ ok: true, url, bytes: req.body.length });
+  });
+
+// The performer's control side. Token-protected: the audience page never calls
+// this and never holds the token.
+app.post("/api/photo/:room/state", express.json({ limit: "64kb" }), (req, res) => {
+  if (!photoAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  const state = photoRoom(key);
+  const body = req.body || {};
+
+  if (body.patchRect) state.patchRect = body.patchRect;
+  if (body.imageSize) state.imageSize = body.imageSize;
+  if (typeof body.revealUrl === "string" && body.revealUrl) state.revealUrl = body.revealUrl;
+
+  if (body.mode === "reveal") {
+    // Committed values only. Partial remote input never reaches here because
+    // the app only posts once its own input has committed, and this endpoint
+    // refuses a reveal that has nothing to draw.
+    if (!state.revealUrl) return res.status(400).json({ ok: false, error: "no reveal image" });
+    state.mode = "reveal";
+    state.value = String(body.value || "");
+    state.committedAt = Date.now();
+    state.acks = [];
+  } else if (body.mode === "original") {
+    state.mode = "original";
+    state.value = "";
+    state.committedAt = 0;
+    state.acks = [];
+  }
+  state.seq += 1;
+  io.to(photoChannel(key)).emit("photo:state", { ...state, serverTs: Date.now() });
+  res.json({ ok: true, state: { ...state, clients: photoCounts(key) } });
+});
+
+// Read-only. What the performer polls for client counts and timings, and what a
+// page falls back to if its socket has not connected yet.
+app.get("/api/photo/:room/state", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const key = normalizeRoom(req.params.room);
+  const state = photoRoom(key);
+  const latencies = state.acks.map((a) => a.renderTs - state.committedAt).filter((n) => n >= 0).sort((a, b) => a - b);
+  res.json({
+    ok: true, revision: REVISION, serverTs: Date.now(),
+    state: { ...state, clients: photoCounts(key) },
+    latency: latencies.length ? {
+      count: latencies.length,
+      min: latencies[0],
+      median: latencies[Math.floor(latencies.length / 2)],
+      max: latencies[latencies.length - 1],
+    } : null,
+  });
+});
+
+io.on("connection", (socket) => {
+  socket.on("photo:join", (payload = {}) => {
+    const key = normalizeRoom(payload.room);
+    const channel = photoChannel(key);
+    if (socket.data.photoRoom && socket.data.photoRoom !== channel) {
+      socket.leave(socket.data.photoRoom);
+    }
+    socket.data.photoRoom = channel;
+    socket.join(channel);
+    // A late joiner gets the CURRENT state immediately, so somebody who opens
+    // the link after the reveal sees the revealed photograph rather than a
+    // picture that will never change.
+    socket.emit("photo:state", { ...photoRoom(key), serverTs: Date.now() });
+  });
+
+  socket.on("photo:ack", (payload = {}) => {
+    const key = normalizeRoom(payload.room);
+    const state = photoRoom(key);
+    if (state.acks.length < 200) {
+      state.acks.push({
+        id: socket.id,
+        recvTs: Number(payload.recvTs) || 0,
+        renderTs: Number(payload.renderTs) || Date.now(),
+      });
+    }
+  });
 });
 
 server.listen(PORT, "0.0.0.0", () => {
