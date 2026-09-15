@@ -76,7 +76,7 @@
     const note = document.getElementById("note");
 
     let currentSeq = -1;
-    let placed = false;
+    let placedFor = "";
     let shown = false;
 
     function say(text) {
@@ -88,17 +88,27 @@
     // Where the patch sits, as percentages of the photograph. Percentages
     // rather than pixels because the photograph is displayed at whatever width
     // the phone is, and a pixel offset would be right on exactly one device.
+    // Re-placed whenever the numbers change, not once and never again.
+    //
+    // It used to place on the first state it saw and guard against doing it
+    // twice. A performer who re-marks and re-cleans a template sends a new
+    // rectangle, and a page already open kept the OLD coordinates while
+    // loading the NEW patch -- so the reveal landed where the previous box had
+    // been, on a page that had every correct number in hand.
     function place(state) {
       if (!state.patchRect || !state.imageSize) return;
       const r = state.patchRect, s = state.imageSize;
       if (!s.width || !s.height) return;
+      const key = [r.x, r.y, r.width, r.height, s.width, s.height].join(",");
+      if (key === placedFor) return;
       for (const el of [patch, reveal]) {
         el.style.left = (r.x / s.width * 100) + "%";
         el.style.top = (r.y / s.height * 100) + "%";
         el.style.width = (r.width / s.width * 100) + "%";
         el.style.height = (r.height / s.height * 100) + "%";
       }
-      placed = true;
+      placedFor = key;
+      say("placed at " + key);
     }
 
     // Load and fully decode before anything is shown. decode() is the whole
@@ -152,7 +162,7 @@
       if (state.originalUrl && orig.getAttribute("src") !== state.originalUrl) {
         await preload(orig, state.originalUrl);
       }
-      if (!placed) place(state);
+      place(state);
       if (state.patchUrl) await preload(patch, state.patchUrl);
 
       if (state.mode === "reveal" && state.revealUrl) {
