@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v188-photo-audience-poc";
+const REVISION = "v189-photo-token";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -933,8 +933,14 @@ function photoRoom(room) {
 
 function photoChannel(room) { return `photo-${normalizeRoom(room)}`; }
 
+// Its own token, falling back to the voiceover upload's.
+//
+// UPLOAD_TOKEN is entered once into the MindGames app as a SecureField, so it
+// cannot be read back out -- which left the photo transport unusable without
+// rotating a secret that something else depends on. PHOTO_TOKEN is a second
+// secret this block alone uses, so setting it breaks nothing.
 function photoAuthorised(req) {
-  const expected = process.env.UPLOAD_TOKEN || "";
+  const expected = process.env.PHOTO_TOKEN || process.env.UPLOAD_TOKEN || "";
   return Boolean(expected) && req.get("x-upload-token") === expected;
 }
 
