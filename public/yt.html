@@ -73,11 +73,38 @@
   function go(videoId) {
     if (gone || !videoId) return;
     gone = true;
-    // The plain web URL, not youtube://. iOS universal links hand this to the
-    // YouTube app when it is installed, and when it is not, Safari plays it --
-    // so one URL covers both phones. A youtube:// scheme on a phone without
-    // the app is a dead end and an error banner.
-    location.href = "https://www.youtube.com/watch?v=" + videoId;
+
+    var web = "https://www.youtube.com/watch?v=" + videoId;
+    var app = "youtube://watch?v=" + videoId;
+
+    // The scheme FIRST, not the web URL, and this is the whole difference
+    // between the video playing in the YouTube app and playing in Safari.
+    //
+    // A https://youtube.com/watch URL reaches the app through a universal
+    // link, and iOS does not fire universal links for a JavaScript
+    // navigation -- only for a real tap or a server redirect. Nothing here is
+    // a tap: a message arriving over a socket is the opposite of a gesture.
+    // So the web URL, which looks like the safe general choice, is exactly
+    // the one that guarantees Safari. Tested: it played, in Safari.
+    //
+    // A custom scheme has no such rule and opens the app from anywhere.
+    //
+    // The cost is the phone with no YouTube app, where the scheme goes
+    // nowhere. Hence the timer: if this page is still on screen a moment
+    // later, the app did not take it, and the web URL runs instead. If the
+    // app DID take it, the page went hidden and the timer is cancelled before
+    // it can fire -- otherwise the phone would bounce back out of YouTube
+    // into Safari a second after it started playing.
+    var fallback = setTimeout(function () { location.href = web; }, 1400);
+    var cancel = function () { clearTimeout(fallback); };
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) cancel();
+    });
+    // Belt and braces: Safari fires pagehide on the way out to another app,
+    // and on some versions it fires before visibilitychange.
+    window.addEventListener("pagehide", cancel);
+
+    location.href = app;
   }
 
   // The safety net. Proven unnecessary in testing -- an automatic navigation
