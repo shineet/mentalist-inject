@@ -97,7 +97,6 @@
   var debug = params.get("debug") === "1";
   var pending = "";
   var gone = false;
-  var scheduled = false;
 
   function say(msg) {
     if (!debug) return;
@@ -114,55 +113,72 @@
   }
 
   function go(videoId) {
-    if (gone || scheduled || !videoId) return;
+    if (gone || !videoId) return;
     pending = videoId;
-
-    // THE PAGE DOES NOT NAVIGATE BY ITSELF, AND THAT IS DELIBERATE.
-    //
-    // Measured on one phone, every combination:
-    //
-    //   a plain <a href>, tapped                        -> the app
-    //   location.href, inside a click handler           -> the app
-    //   a countdown STARTED BY A TAP, then a 302        -> the app
-    //   a countdown started by a tap, direct URL        -> Safari
-    //   a countdown started on page load, 302           -> Safari
-    //   the same, with a stray tap during it            -> Safari
-    //
-    // Every path with a tap behind it opens the YouTube app. Every path
-    // without one lands in Safari. The 302 looked like an exception for a
-    // while; it was not, it was started by tapping a button.
-    //
-    // So a page cannot do this alone, and does not need to. Shine is HOLDING
-    // the phone at this moment -- he loaded the page on it, kept it, and
-    // dials the song before handing it back. His touch is free, invisible,
-    // and already in the routine. The spectator never touches anything, which
-    // was the requirement.
-    //
-    // ?auto=1 restores the automatic attempt for anyone wanting to retest it.
-    scheduled = true;
-    say("ready \u2022 " + videoId + " \u2022 waiting for a touch");
-    if (params.get("auto") !== "1") return;
-
+    say("got " + videoId + " at " + (Date.now() - loadedAt) + "ms"
+        + (armed ? " \u2022 armed, going" : " \u2022 NOT armed"));
+    // If the page was armed by a touch earlier, the watcher created inside
+    // that touch is already running and will take it. Nothing to do here.
+    if (armed) return;
+    // Never armed. Fall back to the automatic redirect, which plays the song
+    // but lands in Safari -- worse than the app and far better than nothing
+    // sitting on a spinner in somebody's hand.
     var wait = Math.max(0, SETTLE_MS - (Date.now() - loadedAt));
-    var target = "/yt-go/" + encodeURIComponent(videoId);
-    say("auto \u2022 waiting " + wait + "ms \u2022 then " + target);
     setTimeout(function () {
+      if (gone) return;
       gone = true;
-      location.href = target;
+      say("unarmed fallback \u2192 Safari");
+      location.href = "/yt-go/" + encodeURIComponent(videoId);
     }, wait);
   }
 
-  // The touch that does everything. It must stay synchronous -- a navigation
-  // counts as coming from the gesture only while the handler is still running,
-  // so a timeout, a promise or an await here would put it straight back into
-  // Safari.
+  // ARMING. One touch, early, while Shine is still holding the phone -- before
+  // the effect, not after. Nothing is touched once the song has been dialled.
   //
-  // The whole screen, not a button: a glance down at a phone in one hand
-  // while talking is not an aimed tap.
+  // WHY THE WATCHER IS CREATED IN HERE AND NOT AT PAGE LOAD
+  //
+  // The full matrix, measured on one phone:
+  //
+  //   a plain <a href>, tapped                     -> the app
+  //   location.href inside a click handler         -> the app
+  //   a countdown STARTED BY A TAP, then a 302     -> the app
+  //   a countdown started by a tap, direct URL     -> Safari
+  //   a countdown started on page load, 302        -> Safari
+  //   the same with a stray tap during it          -> Safari
+  //
+  // Row three is the one that matters and it is the only automatic success.
+  // Its tap was five seconds before the navigation, so what carried the
+  // activation was not the timing -- it was that the TIMER WAS CREATED INSIDE
+  // THE TAP. Row six is the same tap and the same 302 with the timer created
+  // at page load instead, and it fails.
+  //
+  // So this interval is deliberately born inside the touch handler. It then
+  // outlives the touch, waits however long the routine takes, and performs the
+  // navigation itself. Whether the activation really does survive that way is
+  // exactly what this build is here to find out.
+  var armed = false;
   stage.addEventListener("click", function () {
-    if (!pending || gone) return;
-    gone = true;
-    location.href = "https://www.youtube.com/watch?v=" + pending;
+    if (gone) return;
+
+    // Already holding a video when he touches it: go straight out, inside the
+    // gesture, which is the case that has never once failed.
+    if (pending) {
+      gone = true;
+      location.href = "https://www.youtube.com/watch?v=" + pending;
+      return;
+    }
+
+    if (armed) return;
+    armed = true;
+    say("armed at " + (Date.now() - loadedAt) + "ms");
+
+    var watcher = setInterval(function () {
+      if (gone || !pending) return;
+      clearInterval(watcher);
+      gone = true;
+      say("armed watcher \u2192 /yt-go/" + pending);
+      location.href = "/yt-go/" + encodeURIComponent(pending);
+    }, 250);
   });
 
   if (room) {
@@ -185,7 +201,7 @@
     // guest network. Slow on purpose: the socket is the real path and this
     // only has to beat "nothing ever happens".
     setInterval(function () {
-      if (scheduled || gone) return;
+      if (pending || gone) return;
       fetch("/api/yt/" + encodeURIComponent(room) + "/state", { cache: "no-store" })
         .then(function (r) { return r.json(); })
         .then(function (d) {
