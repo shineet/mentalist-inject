@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v209-yt-answer-recorded";
+const REVISION = "v210-ringer-dialler";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1144,6 +1144,61 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), (req, res) => {
   state.seq += 1;
   io.to(ytChannel(key)).emit("yt:state", { ...state, serverTs: Date.now() });
   res.json({ ok: true, state: { ...state, clients: ytCounts(key) } });
+});
+
+// ── The Ringer dialler, on the SPECTATOR'S phone ─────────────────────────────
+//
+// Ringer is a native app on Shine's own phone: it dials through CallKit with
+// the dialled number as a cosmetic handle, and Twilio decides what actually
+// happens -- a hosted voicemail on the first dial of a number, the assistant on
+// the second. No stranger is ever called.
+//
+// This serves the same effect from a web page, so the SPECTATOR can dial on
+// their own phone. What carries across and what does not:
+//
+//   the keypad and in-call screen   a replica, close enough at arm's length
+//   the two-dial rule               identical, and decided in the page
+//   the voicemail and the divert    IDENTICAL -- the page talks to the very
+//                                   same /api/voice-token and
+//                                   /api/voice-twiml the app already uses,
+//                                   with the same modes
+//   CallKit                         does not survive. The call cannot appear
+//                                   in the phone's own Recents, so the page
+//                                   keeps its OWN recents list, which is where
+//                                   anyone who looks will look first
+//
+// The SMS_TOKEN gating the token endpoint sits in Ringer's source, which is
+// fine inside an app binary and a hole in a web page -- anyone viewing source
+// could mint Twilio tokens and place calls on the account. So the browser never
+// sees it: this proxy holds it as a Fly secret, and the page only receives the
+// short-lived Twilio token it actually needs.
+const RINGER_BACKEND = "https://voice-capture-bice.vercel.app";
+
+app.get("/api/ringer/token", async (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const token = process.env.RINGER_SMS_TOKEN || "";
+  if (!token) {
+    return res.status(500).json({ error: "RINGER_SMS_TOKEN is not set on this app" });
+  }
+  try {
+    const r = await fetch(RINGER_BACKEND + "/api/voice-token", {
+      headers: { "x-sms-token": token },
+    });
+    const body = await r.text();
+    res.status(r.status)
+      .type(r.headers.get("content-type") || "application/json")
+      .send(body);
+  } catch (e) {
+    res.status(502).json({ error: "could not reach the voice backend" });
+  }
+});
+
+// The short path, for typing onto a stranger's phone and for writing to an NFC
+// tag. Served rather than redirected so the long URL never appears in the
+// address bar in front of them.
+app.get(["/d", "/d/:room"], (req, res) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  res.sendFile(path.resolve("public", "dialler.html"));
 });
 
 // A 302 to YouTube, as a DIFFERENT mechanism from an in-page navigation.

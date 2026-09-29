@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Phone</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --green: #34c759;
+    --red: #ff3b30;
+    --key: #333336;
+    --keyDown: #58585c;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; background: #000; color: #fff;
+    font: 17px/1.3 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none; user-select: none;
+    overscroll-behavior: none;
+  }
+  .screen { position: fixed; inset: 0; display: none; flex-direction: column; }
+  .screen.on { display: flex; }
+
+  /* ── Keypad ─────────────────────────────────────────────────────────── */
+  #readout {
+    height: 96px; display: flex; align-items: center; justify-content: center;
+    font-size: 38px; font-weight: 300; letter-spacing: 0.5px;
+    padding: 0 20px; margin-top: 8vh;
+    min-height: 96px; word-break: break-all;
+  }
+  .pad { display: grid; grid-template-columns: repeat(3, 1fr);
+         gap: 16px 26px; padding: 0 34px; justify-items: center; }
+  .k {
+    width: 76px; height: 76px; border-radius: 50%; background: var(--key);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: background 90ms;
+  }
+  .k:active, .k.down { background: var(--keyDown); }
+  .k b { font-size: 33px; font-weight: 400; line-height: 1; }
+  .k s { font-size: 10px; letter-spacing: 1.8px; text-decoration: none;
+         margin-top: 3px; opacity: 0.85; }
+  .k.blank s { visibility: hidden; }
+
+  .callrow { display: flex; align-items: center; justify-content: center;
+             gap: 0; padding: 22px 34px 0; position: relative; }
+  .callbtn { width: 76px; height: 76px; border-radius: 50%; background: var(--green);
+             display: flex; align-items: center; justify-content: center; }
+  .callbtn.off { opacity: 0.45; }
+  .callbtn svg { width: 34px; height: 34px; fill: #fff; }
+  #del { position: absolute; right: 34px; width: 76px; height: 76px;
+         display: none; align-items: center; justify-content: center; opacity: 0.9; }
+  #del.on { display: flex; }
+  #del svg { width: 32px; height: 32px; fill: #fff; }
+
+  /* ── Tab bar ────────────────────────────────────────────────────────── */
+  .tabs { margin-top: auto; display: flex; border-top: 0.5px solid #2c2c2e;
+          padding: 9px 0 26px; background: #0a0a0acc; backdrop-filter: blur(20px); }
+  .tab { flex: 1; text-align: center; font-size: 10px; color: #8e8e93; }
+  .tab.sel { color: var(--green); }
+  .tab .ic { font-size: 21px; display: block; margin-bottom: 2px; }
+
+  /* ── In call ────────────────────────────────────────────────────────── */
+  #call { align-items: center; justify-content: flex-start; padding-top: 12vh; }
+  #callNum { font-size: 34px; font-weight: 300; }
+  #callState { color: #a0a0a6; margin-top: 8px; font-size: 16px; }
+  .incall { display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 22px 26px; margin-top: auto; padding: 0 34px; justify-items: center; }
+  .ik { width: 76px; height: 76px; border-radius: 50%; background: #ffffff22;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        font-size: 11px; color: #fff; }
+  .ik.on { background: #fff; color: #000; }
+  .ik .ic { font-size: 23px; margin-bottom: 3px; }
+  .endrow { padding: 30px 0 42px; display: flex; justify-content: center; }
+  .endbtn { width: 76px; height: 76px; border-radius: 50%; background: var(--red);
+            display: flex; align-items: center; justify-content: center; }
+  .endbtn svg { width: 34px; height: 34px; fill: #fff; transform: rotate(135deg); }
+
+  /* ── Recents ────────────────────────────────────────────────────────── */
+  #recents { padding-top: 8vh; }
+  #recents h1 { font-size: 34px; font-weight: 700; padding: 0 18px 10px; margin: 0; }
+  .rlist { flex: 1; overflow-y: auto; }
+  .r { display: flex; align-items: center; gap: 12px; padding: 13px 18px;
+       border-bottom: 0.5px solid #1c1c1e; }
+  .r .n { font-size: 17px; }
+  .r .n.missed { color: var(--red); }
+  .r .s { font-size: 13px; color: #8e8e93; margin-top: 2px; }
+  .r .t { margin-left: auto; font-size: 15px; color: #8e8e93; }
+  .r .ar { font-size: 15px; color: #8e8e93; }
+  .empty { color: #8e8e93; padding: 24px 18px; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<!-- ── Keypad ─────────────────────────────────────────────────────────── -->
+<div class="screen on" id="keypad">
+  <div id="readout"></div>
+  <div class="pad" id="pad"></div>
+  <div class="callrow">
+    <div class="callbtn off" id="callBtn">
+      <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>
+    </div>
+    <div id="del">
+      <svg viewBox="0 0 24 24"><path d="M22 6H9.2c-.5 0-1 .2-1.3.6L2 12l5.9 5.4c.3.4.8.6 1.3.6H22c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-3.3 9.3-1.4 1.4L15 14.4l-2.3 2.3-1.4-1.4 2.3-2.3-2.3-2.3 1.4-1.4 2.3 2.3 2.3-2.3 1.4 1.4-2.3 2.3 2.3 2.3z"/></svg>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab" data-go="recents"><span class="ic">🕐</span>Recents</div>
+    <div class="tab sel" data-go="keypad"><span class="ic">⌗</span>Keypad</div>
+    <div class="tab"><span class="ic">☎️</span>Voicemail</div>
+  </div>
+</div>
+
+<!-- ── In call ────────────────────────────────────────────────────────── -->
+<div class="screen" id="call">
+  <div id="callNum"></div>
+  <div id="callState">calling…</div>
+  <div class="incall">
+    <div class="ik" id="muteBtn"><span class="ic">🔇</span>mute</div>
+    <div class="ik"><span class="ic">⌗</span>keypad</div>
+    <div class="ik on" id="spkBtn"><span class="ic">🔊</span>speaker</div>
+    <div class="ik"><span class="ic">＋</span>add</div>
+    <div class="ik"><span class="ic">🎥</span>FaceTime</div>
+    <div class="ik"><span class="ic">👤</span>contacts</div>
+  </div>
+  <div class="endrow">
+    <div class="endbtn" id="endBtn">
+      <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>
+    </div>
+  </div>
+</div>
+
+<!-- ── Recents ────────────────────────────────────────────────────────── -->
+<div class="screen" id="recents">
+  <h1>Recents</h1>
+  <div class="rlist" id="rlist"><div class="empty">No Recent Calls</div></div>
+  <div class="tabs">
+    <div class="tab sel" data-go="recents"><span class="ic">🕐</span>Recents</div>
+    <div class="tab" data-go="keypad"><span class="ic">⌗</span>Keypad</div>
+    <div class="tab"><span class="ic">☎️</span>Voicemail</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
+<script>
+(function () {
+  // The Ringer dialler, on the spectator's phone.
+  //
+  // The two-dial rule is Ringer's, unchanged: the FIRST dial of a number
+  // reaches a hosted voicemail, and dialling the SAME number again diverts to
+  // the assistant. The dialled number is never called -- it is cosmetic, and
+  // Twilio routes on the mode alone. That logic lives in api/voice-twiml.js and
+  // is shared with the app, so the two cannot drift apart.
+  //
+  // WHAT CANNOT BE COPIED, and what is done instead.
+  //
+  // CallKit. The app puts the dialled number into the phone's real Recents;
+  // a web page cannot. So this page keeps its own Recents, styled like the
+  // real one -- because the first place anybody looks for the call they just
+  // watched being made is the app they watched it being made in, and it is
+  // there. If someone opens the actual Phone app instead, the true answer is
+  // that it was an internet call, which is also why a WhatsApp or FaceTime
+  // audio call never appears there either.
+
+  var SUPABASE_URL = "https://nkhwttlmtidtippylbzs.supabase.co";
+  var SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raHd0dGxtdGlkdGlwcHlsYnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjA0NTMsImV4cCI6MjA5NzEzNjQ1M30.sHMxZaG6aNejyKGICGSY9LqLXsZwgA55JIfJlesZ8Bs";
+
+  // The MystIO remote-input room, from /d/<room> or ?r=<room>. Same room and
+  // same channel plant.html uses, so the number arrives in MystIO as an
+  // ordinary routine input and drives whatever outputs are ticked. Nothing new
+  // had to be built on the app side.
+  var params = new URLSearchParams(location.search);
+  var room = params.get("r") || params.get("room") || "";
+  if (!room) {
+    var m = location.pathname.match(/^\/d(?:\/([A-Za-z0-9_-]+))?\/?$/);
+    if (m && m[1]) room = m[1];
+  }
+  room = room.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40);
+
+  var client = null, channel = null;
+  if (room && window.supabase) {
+    try {
+      client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+      channel = client.channel("vc-" + room, { config: { broadcast: { ack: false } } });
+      channel.subscribe();
+    } catch (e) { client = null; channel = null; }
+  }
+
+  // Sent when they press call, not per keystroke. A digit-by-digit feed would
+  // need MystIO to tell a preview from a commit, and it routes everything it
+  // receives -- so each digit would fire the routine. One send, one number.
+  function sendToApp(number) {
+    if (!number) return;
+    var id = Date.now();
+    if (channel) {
+      try { channel.send({ type: "broadcast", event: "word", payload: { word: number, id: id } }); } catch (e) {}
+    }
+    if (client) {
+      try { client.from("remote_input").insert({ room: room, word: number, msg_id: id }); } catch (e) {}
+    }
+  }
+
+  // ── Keypad ────────────────────────────────────────────────────────────
+  var KEYS = [
+    ["1", ""], ["2", "ABC"], ["3", "DEF"],
+    ["4", "GHI"], ["5", "JKL"], ["6", "MNO"],
+    ["7", "PQRS"], ["8", "TUV"], ["9", "WXYZ"],
+    ["*", ""], ["0", "+"], ["#", ""],
+  ];
+  var pad = document.getElementById("pad");
+  KEYS.forEach(function (k) {
+    var el = document.createElement("div");
+    el.className = "k" + (k[1] ? "" : " blank");
+    el.innerHTML = "<b>" + k[0] + "</b><s>" + (k[1] || "-") + "</s>";
+    el.addEventListener("click", function () { press(k[0]); });
+    pad.appendChild(el);
+  });
+
+  var digits = "";
+  var readout = document.getElementById("readout");
+  var callBtn = document.getElementById("callBtn");
+  var del = document.getElementById("del");
+
+  function pretty(d) {
+    // US grouping, which is what Shine's audiences dial. Anything longer or
+    // shorter is shown as typed rather than mangled into a shape it is not.
+    var n = d.replace(/\D/g, "");
+    if (d.indexOf("+") === 0 || /[*#]/.test(d)) return d;
+    if (n.length === 10) return "(" + n.slice(0, 3) + ") " + n.slice(3, 6) + "-" + n.slice(6);
+    if (n.length === 11 && n[0] === "1") return "1 (" + n.slice(1, 4) + ") " + n.slice(4, 7) + "-" + n.slice(7);
+    if (n.length > 6) return n.slice(0, 3) + "-" + n.slice(3, 6) + "-" + n.slice(6);
+    if (n.length > 3) return n.slice(0, 3) + "-" + n.slice(3);
+    return d;
+  }
+
+  function paint() {
+    readout.textContent = pretty(digits);
+    callBtn.classList.toggle("off", digits.length === 0);
+    del.classList.toggle("on", digits.length > 0);
+  }
+
+  function press(ch) {
+    if (digits.length >= 18) return;
+    digits += ch;
+    paint();
+    if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }
+  }
+
+  del.addEventListener("click", function () { digits = digits.slice(0, -1); paint(); });
+  // Long press clears, exactly like the real keypad.
+  var holdTimer = null;
+  del.addEventListener("touchstart", function () {
+    holdTimer = setTimeout(function () { digits = ""; paint(); }, 600);
+  });
+  del.addEventListener("touchend", function () { clearTimeout(holdTimer); });
+
+  // ── Screens ───────────────────────────────────────────────────────────
+  function show(id) {
+    ["keypad", "call", "recents"].forEach(function (s) {
+      document.getElementById(s).classList.toggle("on", s === id);
+    });
+  }
+  document.querySelectorAll("[data-go]").forEach(function (t) {
+    t.addEventListener("click", function () { show(t.getAttribute("data-go")); });
+  });
+
+  // ── Recents, this page's own ──────────────────────────────────────────
+  var recents = [];
+  try { recents = JSON.parse(sessionStorage.getItem("r") || "[]"); } catch (e) { recents = []; }
+
+  function saveRecents() {
+    try { sessionStorage.setItem("r", JSON.stringify(recents)); } catch (e) {}
+  }
+
+  function addRecent(number, missed) {
+    recents.unshift({ n: number, t: Date.now(), m: !!missed });
+    recents = recents.slice(0, 40);
+    saveRecents();
+    paintRecents();
+  }
+
+  function clockOf(ts) {
+    var d = new Date(ts), h = d.getHours(), m = d.getMinutes();
+    var ap = h >= 12 ? "PM" : "AM";
+    h = h % 12; if (h === 0) h = 12;
+    return h + ":" + (m < 10 ? "0" : "") + m + " " + ap;
+  }
+
+  function paintRecents() {
+    var list = document.getElementById("rlist");
+    if (!recents.length) { list.innerHTML = '<div class="empty">No Recent Calls</div>'; return; }
+    list.innerHTML = recents.map(function (r) {
+      return '<div class="r"><div><div class="n' + (r.m ? " missed" : "") + '">'
+        + pretty(r.n) + '</div><div class="s">' + (r.m ? "Missed" : "Outgoing") + '</div></div>'
+        + '<div class="t">' + clockOf(r.t) + '</div><div class="ar">ⓘ</div></div>';
+    }).join("");
+  }
+  paintRecents();
+
+  // ── The two-dial rule ─────────────────────────────────────────────────
+  // Ringer keeps this in UserDefaults and alternates per number. Same rule
+  // here: a number dialled before diverts, a new number goes to voicemail.
+  var dialled = {};
+  try { dialled = JSON.parse(sessionStorage.getItem("d") || "{}"); } catch (e) { dialled = {}; }
+
+  function modeFor(number) {
+    var key = number.replace(/\D/g, "");
+    var seen = !!dialled[key];
+    dialled[key] = true;
+    try { sessionStorage.setItem("d", JSON.stringify(dialled)); } catch (e) {}
+    return seen ? "divert" : "voicemail";
+  }
+
+  // ── The call ──────────────────────────────────────────────────────────
+  var device = null, conn = null, tick = null, seconds = 0;
+  var callNum = document.getElementById("callNum");
+  var callState = document.getElementById("callState");
+
+  function setState(t) { callState.textContent = t; }
+
+  function startTimer() {
+    seconds = 0;
+    clearInterval(tick);
+    tick = setInterval(function () {
+      seconds += 1;
+      var m = Math.floor(seconds / 60), s = seconds % 60;
+      setState(m + ":" + (s < 10 ? "0" : "") + s);
+    }, 1000);
+  }
+
+  async function getDevice() {
+    if (device) return device;
+    var r = await fetch("/api/ringer/token", { cache: "no-store" });
+    var d = await r.json();
+    if (!d || !d.token) throw new Error((d && d.error) || "no token");
+    device = new Twilio.Device(d.token, { codecPreferences: ["opus", "pcmu"] });
+    return device;
+  }
+
+  callBtn.addEventListener("click", async function () {
+    if (!digits) return;
+    var number = digits;
+    var mode = modeFor(number);
+
+    callNum.textContent = pretty(number);
+    setState("calling…");
+    show("call");
+    sendToApp(number);
+
+    try {
+      var dev = await getDevice();
+      // The dialled number rides along as a parameter for the log only. The
+      // TwiML app routes on `mode`, which is why no stranger is ever called.
+      conn = await dev.connect({ params: { mode: mode, To: number } });
+      conn.on("accept", function () { startTimer(); });
+      conn.on("disconnect", function () { endCall(mode === "voicemail"); });
+      conn.on("error", function () { setState("call failed"); });
+    } catch (e) {
+      setState("call failed");
+    }
+  });
+
+  function endCall(missed) {
+    clearInterval(tick);
+    try { if (conn) conn.disconnect(); } catch (e) {}
+    conn = null;
+    addRecent(digits, missed);
+    digits = ""; paint();
+    show("keypad");
+  }
+
+  document.getElementById("endBtn").addEventListener("click", function () { endCall(false); });
+
+  document.getElementById("muteBtn").addEventListener("click", function () {
+    var b = document.getElementById("muteBtn");
+    var on = !b.classList.contains("on");
+    b.classList.toggle("on", on);
+    try { if (conn) conn.mute(on); } catch (e) {}
+  });
+
+  // Cosmetic only. iOS Safari plays WebRTC audio through the loudspeaker and
+  // gives no way to route it to the earpiece, so this button cannot do what it
+  // says. It is here because a call screen without one looks wrong, and it
+  // starts lit because the loudspeaker is in fact what is happening.
+  document.getElementById("spkBtn").addEventListener("click", function () {
+    document.getElementById("spkBtn").classList.toggle("on");
+  });
+
+  paint();
+})();
+</script>
+</body>
+</html>
