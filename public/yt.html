@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Loading video</title>
+<title>Video</title>
 <style>
   :root { color-scheme: dark; }
   html, body {
@@ -14,9 +14,9 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }
-  /* The whole screen is the button. "Press play" said out loud and a finger
-     landing anywhere near the middle has to work -- a spectator aiming at a
-     48pt circle on someone else's phone is a spectator who misses. */
+  /* The whole screen is the button, not just the circle. Someone picking up a
+     phone and pressing the obvious thing in the middle should not be able to
+     miss, and a near miss reads as the effect failing. */
   #stage {
     position: fixed; inset: 0;
     display: flex; align-items: center; justify-content: center;
@@ -30,7 +30,8 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  #bad { display: none; color: #8e8e93; font-size: 13px; max-width: 28ch; text-align: center; padding: 0 28px; }
+  #bad { display: none; color: #8e8e93; font-size: 13px; max-width: 28ch;
+         text-align: center; padding: 0 28px; }
 </style>
 </head>
 <body>
@@ -42,34 +43,28 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-  // The spectator's phone. It holds a socket open, and when a video arrives it
-  // navigates. Nobody touches it.
+  // The spectator's phone. A spinner, and then the song is playing.
   //
-  // IT MUST NAVIGATE TO /yt-go/<id>, NOT TO youtube.com DIRECTLY.
+  // IT PLAYS IN SAFARI, AND THAT IS THE DESIGN, NOT A COMPROMISE.
   //
-  // That single detail is the difference between the YouTube app and Safari,
-  // and it was found by measurement rather than reasoning, after three wrong
-  // fixes. A diagnostic page offered the same video six ways on the same
-  // phone:
+  // Eight ways of opening a youtube.com link were measured on one phone. The
+  // rule is that a touch has to be in the call stack AT THE MOMENT of
+  // navigation -- not earlier on the page, not the touch that created the
+  // timer, not a navigation begun in a touch and held open server-side (that
+  // one reaches the app but asks "Open in YouTube?" first). There is no
+  // arrangement where nobody touches the phone and the YouTube app opens.
   //
-  //    location.href = youtube.com/watch   on a timer   -> Safari
-  //    location.href = youtu.be/           on a timer   -> Safari
-  //    the same two inside a click handler              -> the app
-  //    a plain <a href>, tapped                         -> the app
-  //    location.href = /yt-go/<id>, a 302, on a timer   -> THE APP
+  // A play button was built to supply that touch and then removed, because it
+  // is the one thing in the whole effect that gives it away: a stranger's
+  // phone showing an unfamiliar button on a page that is plainly not YouTube
+  // announces that an app is involved before anything has happened.
   //
-  // So iOS does want a user gesture for a universal link reached by an
-  // in-page navigation -- but a server redirect is not an in-page navigation,
-  // and the redirect chain gets the app with nothing and nobody touching the
-  // screen. youtube:// was tried too and is worse than both: it opens the app
-  // and asks "Open in YouTube?" first, and a spectator confirming a dialog is
-  // the effect over.
+  // Safari is right for the story anyway. Shine says he is searching Google
+  // for their song. A browser then playing that song is exactly what would
+  // happen if he had.
   //
-  // The page still never names the song. It is a spinner, and then it is gone.
+  // The page never names the song, and nobody touches it.
   var params = new URLSearchParams(location.search);
-  // Two ways in, because Shine TYPES this on the spectator's phone while
-  // appearing to search YouTube: the short /y/<room> path, and the original
-  // ?r=<room> query that existing links still use.
   var room = (params.get("r") || params.get("room") || "");
   if (!room) {
     var m = location.pathname.match(/^\/y(?:\/([A-Za-z0-9_-]+))?\/?$/);
@@ -78,6 +73,7 @@
   room = room.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
 
   var spin = document.getElementById("spin");
+  var bar = document.getElementById("bar");
   var stage = document.getElementById("stage");
 
   if (!room) {
@@ -85,116 +81,49 @@
     document.getElementById("bad").style.display = "block";
   }
 
-  var loadedAt = Date.now();
-  // Overridable for testing: ?settle=5000 reproduces the diagnostic's five
-  // second countdown exactly, ?settle=0 removes the wait entirely. The
-  // diagnostic proved the redirect with a five second countdown and the real
-  // page waits one; that gap is one of the few things left that differs.
-  var SETTLE_MS = parseInt(params.get("settle") || "1200", 10);
-  // ?debug=1 puts what this page is actually doing on the screen. Without it
-  // a page that navigated to the wrong URL and a page that navigated to the
-  // right one look identical from the far side.
-  var debug = params.get("debug") === "1";
   var pending = "";
   var gone = false;
 
-  function say(msg) {
-    if (!debug) return;
-    var d = document.getElementById("dbg");
-    if (!d) {
-      d = document.createElement("div");
-      d.id = "dbg";
-      d.style.cssText = "position:fixed;left:0;right:0;top:0;padding:10px 12px;"
-        + "background:#111;color:#0f0;font:11px/1.4 ui-monospace,Menlo,monospace;"
-        + "white-space:pre-wrap;z-index:99;";
-      document.body.appendChild(d);
-    }
-    d.textContent += msg + "\n";
-  }
+  var loadedAt = Date.now();
+  var SETTLE_MS = parseInt(params.get("settle") || "900", 10);
 
-  function go(videoId) {
-    if (gone || !videoId) return;
+  function ready(videoId) {
+    if (gone || pending || !videoId) return;
     pending = videoId;
-    say("got " + videoId + " at " + (Date.now() - loadedAt) + "ms"
-        + (armed ? " \u2022 armed, going" : " \u2022 NOT armed"));
-    // If the page was armed by a touch earlier, the watcher created inside
-    // that touch is already running and will take it. Nothing to do here.
-    if (armed) return;
-    // Never armed. Fall back to the automatic redirect, which plays the song
-    // but lands in Safari -- worse than the app and far better than nothing
-    // sitting on a spinner in somebody's hand.
+    // A short settle so the jump does not land inside the page load, which is
+    // the one timing case never measured. It costs a beat nobody sees.
     var wait = Math.max(0, SETTLE_MS - (Date.now() - loadedAt));
     setTimeout(function () {
       if (gone) return;
       gone = true;
-      say("unarmed fallback \u2192 Safari");
-      location.href = "/yt-go/" + encodeURIComponent(videoId);
+      location.href = "https://www.youtube.com/watch?v=" + videoId;
     }, wait);
   }
 
-  // ARMING. One touch, early, while Shine is still holding the phone -- before
-  // the effect, not after. Nothing is touched once the song has been dialled.
-  //
-  // WHY THE WATCHER IS CREATED IN HERE AND NOT AT PAGE LOAD
-  //
-  // The full matrix, measured on one phone:
-  //
-  //   a plain <a href>, tapped                     -> the app
-  //   location.href inside a click handler         -> the app
-  //   a countdown STARTED BY A TAP, then a 302     -> the app
-  //   a countdown started by a tap, direct URL     -> Safari
-  //   a countdown started on page load, 302        -> Safari
-  //   the same with a stray tap during it          -> Safari
-  //
-  // Row three is the one that matters and it is the only automatic success.
-  // Its tap was five seconds before the navigation, so what carried the
-  // activation was not the timing -- it was that the TIMER WAS CREATED INSIDE
-  // THE TAP. Row six is the same tap and the same 302 with the timer created
-  // at page load instead, and it fails.
-  //
-  // So this interval is deliberately born inside the touch handler. It then
-  // outlives the touch, waits however long the routine takes, and performs the
-  // navigation itself. Whether the activation really does survive that way is
-  // exactly what this build is here to find out.
-  var armed = false;
+  // MUST stay synchronous. The navigation counts as coming from the touch
+  // only while this handler is still on the stack -- a timeout, a promise or
+  // an await here puts it straight back into Safari, which is the entire
+  // finding above.
+  // A silent safety net, never mentioned and never relied on: if the automatic
+  // jump is ever refused, one touch anywhere finishes it -- and a touch, being
+  // a gesture, opens the YouTube app rather than Safari.
   stage.addEventListener("click", function () {
-    if (gone) return;
-
-    // Already holding a video when he touches it: go straight out, inside the
-    // gesture, which is the case that has never once failed.
-    if (pending) {
-      gone = true;
-      location.href = "https://www.youtube.com/watch?v=" + pending;
-      return;
-    }
-
-    if (armed) return;
-    armed = true;
-    say("armed at " + (Date.now() - loadedAt) + "ms");
-
-    var watcher = setInterval(function () {
-      if (gone || !pending) return;
-      clearInterval(watcher);
-      gone = true;
-      say("armed watcher \u2192 /yt-go/" + pending);
-      location.href = "/yt-go/" + encodeURIComponent(pending);
-    }, 250);
+    if (!pending || gone) return;
+    gone = true;
+    location.href = "https://www.youtube.com/watch?v=" + pending;
   });
 
   if (room) {
     var socket = io({ transports: ["websocket", "polling"] });
 
-    socket.on("connect", function () {
-      say("socket up at " + (Date.now() - loadedAt) + "ms");
-      socket.emit("yt:join", { room: room });
-    });
+    socket.on("connect", function () { socket.emit("yt:join", { room: room }); });
     // A reconnect has to re-join: the server tracks membership per socket and
     // a new socket is in no rooms. Without this a phone that dropped for a
     // moment looks connected and receives nothing.
     socket.io.on("reconnect", function () { socket.emit("yt:join", { room: room }); });
 
     socket.on("yt:state", function (state) {
-      if (state && state.mode === "play" && state.videoId) go(state.videoId);
+      if (state && state.mode === "play" && state.videoId) ready(state.videoId);
     });
 
     // For a socket that never comes up at all -- a captive portal, a hostile
@@ -205,7 +134,7 @@
       fetch("/api/yt/" + encodeURIComponent(room) + "/state", { cache: "no-store" })
         .then(function (r) { return r.json(); })
         .then(function (d) {
-          if (d && d.ok && d.state && d.state.mode === "play" && d.state.videoId) go(d.state.videoId);
+          if (d && d.ok && d.state && d.state.mode === "play" && d.state.videoId) ready(d.state.videoId);
         })
         .catch(function () {});
     }, 4000);

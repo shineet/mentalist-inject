@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v203-yt-armed-watcher";
+const REVISION = "v207-yt-automatic";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1131,6 +1131,8 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), (req, res) => {
     state.videoId = id;
     state.title = String(body.title || "").slice(0, 200);
     state.committedAt = Date.now();
+    // Answer every navigation his tap left open. This is the whole effect.
+    state.released = ytRelease(key, state.videoId);
   } else if (body.mode === "idle") {
     // Reset between performances. Without it the next phone to open the link
     // is thrown straight into the last spectator's song.
@@ -1178,6 +1180,67 @@ app.get(["/y", "/y/:room"], (req, res) => {
 app.get(["/yt.html", "/yt-diag.html"], (req, res, next) => {
   res.setHeader("Cache-Control", "no-store, must-revalidate");
   next();
+});
+
+// A navigation that BEGINS inside Shine's tap and ENDS at the reveal.
+//
+// Everything else was tried and measured. iOS hands a youtube.com link to the
+// YouTube app only when a touch is in the call stack at the moment of
+// navigation -- not a touch earlier on the page, not the touch that created
+// the timer, IN it. Seven configurations, all agreeing. So an automatic jump
+// can only ever land in Safari.
+//
+// This is the one way round that does not require a touch after the song is
+// dialled, which is the thing Shine actually needs. He taps play BEFORE the
+// routine. The phone starts navigating here and this request simply does not
+// answer. Safari keeps the page on screen with a loading bar, which looks like
+// a video buffering, and the navigation stays open and un-finished. When the
+// song is dialled, the commit below answers every held request with a 302 to
+// the video -- and it is still the same navigation his finger started.
+const ytWaiters = new Map();
+
+function ytRelease(key, videoId) {
+  const held = ytWaiters.get(key) || [];
+  ytWaiters.set(key, []);
+  for (const r of held) {
+    try { if (!r.headersSent) r.redirect(302, "https://www.youtube.com/watch?v=" + videoId); }
+    catch (e) { /* the phone went away; nothing to do */ }
+  }
+  return held.length;
+}
+
+app.get("/yt-wait/:room", (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const state = ytRoom(key);
+  res.setHeader("Cache-Control", "no-store");
+
+  // Already holding a song: answer at once. Covers the phone that opens the
+  // page after the send, and a second tap.
+  if (state.mode === "play" && state.videoId) {
+    return res.redirect(302, "https://www.youtube.com/watch?v=" + state.videoId);
+  }
+
+  const held = ytWaiters.get(key) || [];
+  held.push(res);
+  ytWaiters.set(key, held);
+
+  // Safari gives up on a request that never answers, and a spinner that dies
+  // in a spectator's hand is worse than one that quietly starts again. Forty
+  // seconds is inside every mobile timeout and is a very long time to stand
+  // there holding a phone.
+  const giveUp = setTimeout(() => {
+    const arr = ytWaiters.get(key) || [];
+    const i = arr.indexOf(res);
+    if (i >= 0) arr.splice(i, 1);
+    try { if (!res.headersSent) res.redirect(302, "/y/" + key); } catch (e) {}
+  }, 40000);
+
+  res.on("close", () => {
+    clearTimeout(giveUp);
+    const arr = ytWaiters.get(key) || [];
+    const i = arr.indexOf(res);
+    if (i >= 0) arr.splice(i, 1);
+  });
 });
 
 app.get("/yt-go/:id", (req, res) => {
