@@ -70,48 +70,54 @@
   var pending = "";
   var gone = false;
 
+  // When this page loaded. The navigation is held back until the page is at
+  // least this old -- see go().
+  var loadedAt = Date.now();
+  var SETTLE_MS = 1500;
+  var scheduled = false;
+
   function go(videoId) {
-    if (gone || !videoId) return;
-    gone = true;
+    if (gone || scheduled || !videoId) return;
+    scheduled = true;
 
+    // The plain web URL. iOS hands youtube.com/watch to the YouTube app
+    // through a universal link, and it does this for an automatic navigation
+    // with no tap anywhere -- which the standalone test page demonstrated
+    // before any of this was built.
+    //
+    // NOT youtube://. A custom scheme does open the app, but iOS asks first
+    // with an "Open in YouTube?" dialog, and a spectator being asked to
+    // confirm something is the effect over.
     var web = "https://www.youtube.com/watch?v=" + videoId;
-    var app = "youtube://watch?v=" + videoId;
 
-    // The scheme FIRST, not the web URL, and this is the whole difference
-    // between the video playing in the YouTube app and playing in Safari.
+    // The one difference between this page and the test page that worked.
     //
-    // A https://youtube.com/watch URL reaches the app through a universal
-    // link, and iOS does not fire universal links for a JavaScript
-    // navigation -- only for a real tap or a server redirect. Nothing here is
-    // a tap: a message arriving over a socket is the opposite of a gesture.
-    // So the web URL, which looks like the safe general choice, is exactly
-    // the one that guarantees Safari. Tested: it played, in Safari.
-    //
-    // A custom scheme has no such rule and opens the app from anywhere.
-    //
-    // The cost is the phone with no YouTube app, where the scheme goes
-    // nowhere. Hence the timer: if this page is still on screen a moment
-    // later, the app did not take it, and the web URL runs instead. If the
-    // app DID take it, the page went hidden and the timer is cancelled before
-    // it can fire -- otherwise the phone would bounce back out of YouTube
-    // into Safari a second after it started playing.
-    var fallback = setTimeout(function () { location.href = web; }, 1400);
-    var cancel = function () { clearTimeout(fallback); };
-    document.addEventListener("visibilitychange", function () {
-      if (document.hidden) cancel();
-    });
-    // Belt and braces: Safari fires pagehide on the way out to another app,
-    // and on some versions it fires before visibilitychange.
-    window.addEventListener("pagehide", cancel);
-
-    location.href = app;
+    // The test page sat for five seconds and then navigated. This page can
+    // receive the video within a few hundred milliseconds of loading -- which
+    // is the ordinary case, since a phone opening the link after the send is
+    // handed the room's current state the instant its socket connects. Safari
+    // treats a navigation that fast as part of the same page load rather than
+    // as a destination, and a redirect during page load does not get the
+    // universal link. Waiting until the page is a second and a half old costs
+    // nothing anyone will notice and makes the two cases identical.
+    var wait = Math.max(0, SETTLE_MS - (Date.now() - loadedAt));
+    setTimeout(function () {
+      gone = true;
+      location.href = web;
+    }, wait);
   }
 
   // The safety net. Proven unnecessary in testing -- an automatic navigation
   // with no gesture anywhere in the call stack does work on iOS -- but the
   // cost of being wrong once is a dead screen in a stranger's hand during a
   // show, and the cost of the net is four lines.
-  stage.addEventListener("click", function () { if (pending) go(pending); });
+  stage.addEventListener("click", function () {
+    if (!pending || gone) return;
+    // A tap goes at once and ignores the settle wait: a tap is a gesture, and
+    // a gesture gets the universal link with no timing rule attached.
+    gone = true;
+    location.href = "https://www.youtube.com/watch?v=" + pending;
+  });
 
   if (room) {
     var socket = io({ transports: ["websocket", "polling"] });
