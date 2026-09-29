@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v207-yt-automatic";
+const REVISION = "v208-three-way-test";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1180,6 +1180,80 @@ app.get(["/y", "/y/:room"], (req, res) => {
 app.get(["/yt.html", "/yt-diag.html"], (req, res, next) => {
   res.setHeader("Cache-Control", "no-store, must-revalidate");
   next();
+});
+
+// ── Three untested ways to reach the YouTube app ──────────────────────────
+//
+// Everything measured so far says a touch must be in the call stack at the
+// moment of navigation. These three are not variations on that -- each uses a
+// different mechanism that has never been tried:
+//
+//   /t1        a <meta http-equiv="refresh">. Not JavaScript at all; the
+//              browser performs it as part of rendering the document.
+//   /t2        an HTTP Refresh: header. The same instruction one layer lower,
+//              arriving in the response rather than in the page.
+//   /t3/:room  a navigation STARTED BY TYPING THE URL, held open by this
+//              server until the song is dialled, then answered with a 302.
+//              The most promising of the three: v205 proved a held navigation
+//              does reach the app, and only asked "Open in YouTube?" because
+//              it came from a tap on a page rather than from the address bar.
+//              Typing a URL and pressing Go is the most user-initiated
+//              navigation there is.
+//
+// Default video is Yesterday, so /t1 and /t2 are typeable with nothing after
+// them. Delete this block once the answer is known.
+const T_DEFAULT = "NrgmdOz227I";
+
+function tVideo(req) {
+  const id = String(req.query.v || T_DEFAULT);
+  return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : T_DEFAULT;
+}
+
+app.get("/t1", (req, res) => {
+  const url = "https://www.youtube.com/watch?v=" + tVideo(req);
+  res.setHeader("Cache-Control", "no-store");
+  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8">
+<meta http-equiv="refresh" content="3;url=${url}">
+<title>t1 meta refresh</title>
+<style>body{background:#000;color:#0f0;font:14px ui-monospace,Menlo,monospace;padding:24px}</style>
+</head><body>t1 &mdash; meta refresh, 3 seconds. Touch nothing.</body></html>`);
+});
+
+app.get("/t2", (req, res) => {
+  const url = "https://www.youtube.com/watch?v=" + tVideo(req);
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Refresh", "3; url=" + url);
+  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8">
+<title>t2 refresh header</title>
+<style>body{background:#000;color:#0f0;font:14px ui-monospace,Menlo,monospace;padding:24px}</style>
+</head><body>t2 &mdash; HTTP Refresh header, 3 seconds. Touch nothing.</body></html>`);
+});
+
+// Held from the address bar. Answers nothing until the song is dialled, so
+// Safari sits on a blank page with its loading bar running -- then the commit
+// releases it straight into the video.
+app.get("/t3/:room", (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const state = ytRoom(key);
+  res.setHeader("Cache-Control", "no-store");
+  if (state.mode === "play" && state.videoId) {
+    return res.redirect(302, "https://www.youtube.com/watch?v=" + state.videoId);
+  }
+  const held = ytWaiters.get(key) || [];
+  held.push(res);
+  ytWaiters.set(key, held);
+  const giveUp = setTimeout(() => {
+    const arr = ytWaiters.get(key) || [];
+    const i = arr.indexOf(res);
+    if (i >= 0) arr.splice(i, 1);
+    try { if (!res.headersSent) res.status(504).type("text").send("t3: nothing was dialled in 60s"); } catch (e) {}
+  }, 60000);
+  res.on("close", () => {
+    clearTimeout(giveUp);
+    const arr = ytWaiters.get(key) || [];
+    const i = arr.indexOf(res);
+    if (i >= 0) arr.splice(i, 1);
+  });
 });
 
 // A navigation that BEGINS inside Shine's tap and ENDS at the reveal.
