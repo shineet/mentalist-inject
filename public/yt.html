@@ -115,27 +115,50 @@
 
   function go(videoId) {
     if (gone || scheduled || !videoId) return;
-    scheduled = true;
     pending = videoId;
-    // A short settle before leaving. The proven test counted down before it
-    // navigated, and a redirect fired in the same tick as the page finishing
-    // loading is the one case not covered by that measurement. It costs a beat
-    // nobody will see.
+
+    // THE PAGE DOES NOT NAVIGATE BY ITSELF, AND THAT IS DELIBERATE.
+    //
+    // Measured on one phone, every combination:
+    //
+    //   a plain <a href>, tapped                        -> the app
+    //   location.href, inside a click handler           -> the app
+    //   a countdown STARTED BY A TAP, then a 302        -> the app
+    //   a countdown started by a tap, direct URL        -> Safari
+    //   a countdown started on page load, 302           -> Safari
+    //   the same, with a stray tap during it            -> Safari
+    //
+    // Every path with a tap behind it opens the YouTube app. Every path
+    // without one lands in Safari. The 302 looked like an exception for a
+    // while; it was not, it was started by tapping a button.
+    //
+    // So a page cannot do this alone, and does not need to. Shine is HOLDING
+    // the phone at this moment -- he loaded the page on it, kept it, and
+    // dials the song before handing it back. His touch is free, invisible,
+    // and already in the routine. The spectator never touches anything, which
+    // was the requirement.
+    //
+    // ?auto=1 restores the automatic attempt for anyone wanting to retest it.
+    scheduled = true;
+    say("ready \u2022 " + videoId + " \u2022 waiting for a touch");
+    if (params.get("auto") !== "1") return;
+
     var wait = Math.max(0, SETTLE_MS - (Date.now() - loadedAt));
     var target = "/yt-go/" + encodeURIComponent(videoId);
-    say("v197 \u2022 got " + videoId + " at " + (Date.now() - loadedAt) + "ms"
-        + " \u2022 waiting " + wait + "ms \u2022 then " + target);
+    say("auto \u2022 waiting " + wait + "ms \u2022 then " + target);
     setTimeout(function () {
       gone = true;
-      say("navigating to " + target);
-      if (debug) { setTimeout(function () { location.href = target; }, 1500); }
-      else { location.href = target; }
+      location.href = target;
     }, wait);
   }
 
-  // Silent safety net, never mentioned and never needed in testing: if the
-  // navigation is refused for any reason, one touch anywhere finishes it. A
-  // tap is a gesture, and a gesture gets the app with no rules attached.
+  // The touch that does everything. It must stay synchronous -- a navigation
+  // counts as coming from the gesture only while the handler is still running,
+  // so a timeout, a promise or an await here would put it straight back into
+  // Safari.
+  //
+  // The whole screen, not a button: a glance down at a phone in one hand
+  // while talking is not an aimed tap.
   stage.addEventListener("click", function () {
     if (!pending || gone) return;
     gone = true;

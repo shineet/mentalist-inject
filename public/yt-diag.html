@@ -79,6 +79,26 @@
     }, 1000);
   }
 
+  // ?auto=redirect|web|short starts the countdown ON LOAD, with no tap
+  // anywhere on the page.
+  //
+  // This is the one thing the diagnostic never tested. Every button above
+  // needs a tap to start it, so every result so far was measured on a page
+  // that had been touched -- and a touched page has "sticky" user activation
+  // for the rest of its life, which may be exactly what the redirect was
+  // riding on. The real page is never touched by anybody, and the same
+  // redirect lands in Safari there.
+  //
+  // If ?auto=redirect goes to Safari, that is the whole answer: the redirect
+  // needs the page to have been touched once, at any point, by anyone.
+  var auto = params.get("auto");
+  if (auto) {
+    var url = auto === "web" ? web : auto === "short" ? short : ("/yt-go/" + id);
+    document.getElementById("count").textContent = "5";
+    document.querySelector("h1").textContent = "No tap at all \u2014 " + auto;
+    countdownTo(url);
+  }
+
   document.getElementById("autoRedirect").onclick = function () {
     countdownTo("/yt-go/" + id);
   };
