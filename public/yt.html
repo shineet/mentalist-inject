@@ -78,10 +78,32 @@
   }
 
   var loadedAt = Date.now();
-  var SETTLE_MS = 1200;
+  // Overridable for testing: ?settle=5000 reproduces the diagnostic's five
+  // second countdown exactly, ?settle=0 removes the wait entirely. The
+  // diagnostic proved the redirect with a five second countdown and the real
+  // page waits one; that gap is one of the few things left that differs.
+  var SETTLE_MS = parseInt(params.get("settle") || "1200", 10);
+  // ?debug=1 puts what this page is actually doing on the screen. Without it
+  // a page that navigated to the wrong URL and a page that navigated to the
+  // right one look identical from the far side.
+  var debug = params.get("debug") === "1";
   var pending = "";
   var gone = false;
   var scheduled = false;
+
+  function say(msg) {
+    if (!debug) return;
+    var d = document.getElementById("dbg");
+    if (!d) {
+      d = document.createElement("div");
+      d.id = "dbg";
+      d.style.cssText = "position:fixed;left:0;right:0;top:0;padding:10px 12px;"
+        + "background:#111;color:#0f0;font:11px/1.4 ui-monospace,Menlo,monospace;"
+        + "white-space:pre-wrap;z-index:99;";
+      document.body.appendChild(d);
+    }
+    d.textContent += msg + "\n";
+  }
 
   function go(videoId) {
     if (gone || scheduled || !videoId) return;
@@ -92,9 +114,14 @@
     // loading is the one case not covered by that measurement. It costs a beat
     // nobody will see.
     var wait = Math.max(0, SETTLE_MS - (Date.now() - loadedAt));
+    var target = "/yt-go/" + encodeURIComponent(videoId);
+    say("v197 \u2022 got " + videoId + " at " + (Date.now() - loadedAt) + "ms"
+        + " \u2022 waiting " + wait + "ms \u2022 then " + target);
     setTimeout(function () {
       gone = true;
-      location.href = "/yt-go/" + encodeURIComponent(videoId);
+      say("navigating to " + target);
+      if (debug) { setTimeout(function () { location.href = target; }, 1500); }
+      else { location.href = target; }
     }, wait);
   }
 
@@ -110,7 +137,10 @@
   if (room) {
     var socket = io({ transports: ["websocket", "polling"] });
 
-    socket.on("connect", function () { socket.emit("yt:join", { room: room }); });
+    socket.on("connect", function () {
+      say("socket up at " + (Date.now() - loadedAt) + "ms");
+      socket.emit("yt:join", { room: room });
+    });
     // A reconnect has to re-join: the server tracks membership per socket and
     // a new socket is in no rooms. Without this a phone that dropped for a
     // moment looks connected and receives nothing.

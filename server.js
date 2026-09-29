@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v197-yt-redirect";
+const REVISION = "v198-yt-instrumented";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1152,6 +1152,14 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), (req, res) => {
 // redirect is not an in-page navigation at all, and Apple treats redirect
 // chains by their own rules -- so this may or may not reach the app. It exists
 // to be tested rather than reasoned about.
+// The audience pages must never be stale. A phone that has held this link
+// before will happily reuse its copy, and debugging a page that is not the
+// page you deployed costs a round of testing every time.
+app.get(["/yt.html", "/yt-diag.html"], (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  next();
+});
+
 app.get("/yt-go/:id", (req, res) => {
   const id = String(req.params.id || "");
   if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return res.status(400).send("bad id");
