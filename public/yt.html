@@ -67,7 +67,15 @@
   //
   // The page still never names the song. It is a spinner, and then it is gone.
   var params = new URLSearchParams(location.search);
-  var room = (params.get("r") || params.get("room") || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+  // Two ways in, because Shine TYPES this on the spectator's phone while
+  // appearing to search YouTube: the short /y/<room> path, and the original
+  // ?r=<room> query that existing links still use.
+  var room = (params.get("r") || params.get("room") || "");
+  if (!room) {
+    var m = location.pathname.match(/^\/y(?:\/([A-Za-z0-9_-]+))?\/?$/);
+    if (m) room = m[1] || "x";
+  }
+  room = room.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
 
   var spin = document.getElementById("spin");
   var stage = document.getElementById("stage");

@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v198-yt-instrumented";
+const REVISION = "v200-yt-short-url-fix";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1152,6 +1152,26 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), (req, res) => {
 // redirect is not an in-page navigation at all, and Apple treats redirect
 // chains by their own rules -- so this may or may not reach the app. It exists
 // to be tested rather than reasoned about.
+// The short way in, because Shine TYPES this on the spectator's phone while
+// appearing to search YouTube for their song. "mindgames.fly.dev/yt.html?r=
+// kqm3xw9pdz" is eleven random characters entered on somebody else's keyboard
+// under a cover story, which is not a thing anyone can do. "/y/kqm3x" is.
+//
+// The query form still works; nothing that already holds a link breaks.
+app.get(["/y", "/y/:room"], (req, res) => {
+  const key = normalizeRoom(req.params.room || "x");
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  // Served, not redirected: a redirect would put the long URL in the address
+  // bar a second later, in front of the person holding the phone. The page
+  // reads its room from the path, so nothing needs to be passed here -- `key`
+  // is validated above only so a bad room is rejected at the door.
+  void key;
+  // path.resolve, not __dirname: this file is an ES module and __dirname does
+  // not exist in one. express.static above resolves "public" against the
+  // working directory, so the same relative base is correct here.
+  res.sendFile(path.resolve("public", "yt.html"));
+});
+
 // The audience pages must never be stale. A phone that has held this link
 // before will happily reuse its copy, and debugging a page that is not the
 // page you deployed costs a round of testing every time.
