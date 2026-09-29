@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v190-photo-replace";
+const REVISION = "v191-yt-room";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1056,6 +1056,115 @@ io.on("connection", (socket) => {
         renderTs: Number(payload.renderTs) || Date.now(),
       });
     }
+  });
+});
+
+// ── EXPERIMENT: the YouTube reveal, on the spectator's own phone ─────────────
+//
+// Shine takes a spectator's phone, says he is going to play them a video, and
+// opens yt.html on it. The page sits there loading. He then runs an ordinary
+// MystIO routine, and the song that routine produced starts playing in the
+// YouTube app on the phone in their hand.
+//
+// Fenced off exactly like the photo block above it: its own map, its own socket
+// room, its own routes, nothing in state.json. Deleting this block leaves the
+// show untouched.
+//
+// Built here rather than on the Supabase channel MystIO already holds, for the
+// two reasons the photo block gives: Supabase broadcast has no client count, so
+// the performer cannot tell whether the phone actually joined before committing
+// to the effect, and it keeps no history, so a phone that opens the link AFTER
+// the send receives nothing at all. Here a late joiner is handed the current
+// state on join and navigates immediately -- which is the ordinary case, since
+// the page is usually opened after the routine has already run.
+//
+// State is one video:
+//
+//   videoId   the eleven-character YouTube id, resolved on Shine's phone
+//   title     what it is, for his own screen -- the page never shows it
+//   mode      "idle" until commit, "play" after
+
+const ytRooms = new Map();
+
+function ytRoom(room) {
+  const key = normalizeRoom(room);
+  if (!ytRooms.has(key)) {
+    ytRooms.set(key, { room: key, mode: "idle", videoId: "", title: "", seq: 0, committedAt: 0 });
+  }
+  return ytRooms.get(key);
+}
+
+function ytChannel(room) { return `yt-${normalizeRoom(room)}`; }
+
+// Same token as the photo transport. One secret for "MystIO is allowed to drive
+// an audience room here", not one per experiment.
+function ytAuthorised(req) {
+  const expected = process.env.PHOTO_TOKEN || process.env.UPLOAD_TOKEN || "";
+  return Boolean(expected) && req.get("x-upload-token") === expected;
+}
+
+function ytCounts(room) {
+  const channel = ytChannel(room);
+  let clients = 0;
+  for (const s of io.sockets.sockets.values()) {
+    if (s.data?.ytRoom === channel) clients++;
+  }
+  return clients;
+}
+
+// The performer's control side. Token-protected; the page never calls this.
+app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), (req, res) => {
+  if (!ytAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  const state = ytRoom(key);
+  const body = req.body || {};
+
+  if (body.mode === "play") {
+    // A malformed id is a 404 in a spectator's hand, so it is refused here
+    // rather than delivered. YouTube ids are exactly eleven characters of
+    // [A-Za-z0-9_-] and have been since the beginning.
+    const id = String(body.videoId || "");
+    if (!/^[A-Za-z0-9_-]{11}$/.test(id)) {
+      return res.status(400).json({ ok: false, error: "videoId must be 11 characters" });
+    }
+    state.mode = "play";
+    state.videoId = id;
+    state.title = String(body.title || "").slice(0, 200);
+    state.committedAt = Date.now();
+  } else if (body.mode === "idle") {
+    // Reset between performances. Without it the next phone to open the link
+    // is thrown straight into the last spectator's song.
+    state.mode = "idle";
+    state.videoId = "";
+    state.title = "";
+    state.committedAt = 0;
+  }
+  state.seq += 1;
+  io.to(ytChannel(key)).emit("yt:state", { ...state, serverTs: Date.now() });
+  res.json({ ok: true, state: { ...state, clients: ytCounts(key) } });
+});
+
+// Read-only. What MystIO polls to know a phone is listening before he commits.
+app.get("/api/yt/:room/state", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const key = normalizeRoom(req.params.room);
+  const state = ytRoom(key);
+  res.json({
+    ok: true, revision: REVISION, serverTs: Date.now(),
+    state: { ...state, clients: ytCounts(key) },
+  });
+});
+
+io.on("connection", (socket) => {
+  socket.on("yt:join", (payload = {}) => {
+    const key = normalizeRoom(payload.room);
+    const channel = ytChannel(key);
+    if (socket.data.ytRoom && socket.data.ytRoom !== channel) {
+      socket.leave(socket.data.ytRoom);
+    }
+    socket.data.ytRoom = channel;
+    socket.join(channel);
+    socket.emit("yt:state", { ...ytRoom(key), serverTs: Date.now() });
   });
 });
 

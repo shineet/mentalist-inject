@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Loading video</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body {
+    margin: 0; height: 100%; background: #000; color: #fff;
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  /* The whole page is the tap target. If iOS ever refuses the automatic
+     navigation, one touch anywhere finishes it, and "tap it" is a sentence
+     that costs nothing to say out loud. */
+  #stage {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; padding: 32px; text-align: center;
+    user-select: none; -webkit-user-select: none;
+  }
+  .spinner {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.18);
+    border-top-color: rgba(255,255,255,0.85);
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #msg { color: #8e8e93; font-size: 14px; letter-spacing: 0.2px; }
+  /* Only ever seen if the room is missing from the URL, which means the link
+     was mistyped rather than that anything failed. */
+  #bad { display: none; color: #8e8e93; font-size: 13px; max-width: 28ch; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div class="spinner" id="spin"></div>
+  <div id="msg">Loading video</div>
+  <div id="bad">This link is missing its room. Ask for it again.</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  // The spectator's phone. It knows one thing and does one thing: hold a
+  // socket open, and when a video arrives, navigate to it.
+  //
+  // It never shows the title. The whole point is that the song appears to have
+  // been chosen by the phone, not delivered to it, so nothing on this screen
+  // may name it before YouTube does.
+  var params = new URLSearchParams(location.search);
+  var room = (params.get("r") || params.get("room") || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
+
+  var msg = document.getElementById("msg");
+  var spin = document.getElementById("spin");
+  var stage = document.getElementById("stage");
+
+  if (!room) {
+    spin.style.display = "none";
+    msg.style.display = "none";
+    document.getElementById("bad").style.display = "block";
+  }
+
+  // Held for the manual fallback below, and as the guard that stops a repeated
+  // state message navigating twice.
+  var pending = "";
+  var gone = false;
+
+  function go(videoId) {
+    if (gone || !videoId) return;
+    gone = true;
+    // The plain web URL, not youtube://. iOS universal links hand this to the
+    // YouTube app when it is installed, and when it is not, Safari plays it --
+    // so one URL covers both phones. A youtube:// scheme on a phone without
+    // the app is a dead end and an error banner.
+    location.href = "https://www.youtube.com/watch?v=" + videoId;
+  }
+
+  // The safety net. Proven unnecessary in testing -- an automatic navigation
+  // with no gesture anywhere in the call stack does work on iOS -- but the
+  // cost of being wrong once is a dead screen in a stranger's hand during a
+  // show, and the cost of the net is four lines.
+  stage.addEventListener("click", function () { if (pending) go(pending); });
+
+  if (room) {
+    var socket = io({ transports: ["websocket", "polling"] });
+
+    socket.on("connect", function () { socket.emit("yt:join", { room: room }); });
+    // A reconnect has to re-join: the server tracks membership per socket, and
+    // a new socket is in no rooms. Without this, a phone that dropped its
+    // connection for a moment looks connected and receives nothing.
+    socket.io.on("reconnect", function () { socket.emit("yt:join", { room: room }); });
+
+    socket.on("yt:state", function (state) {
+      if (!state) return;
+      if (state.mode === "play" && state.videoId) {
+        pending = state.videoId;
+        go(state.videoId);
+      }
+    });
+
+    // Fallback for a socket that never comes up at all -- a captive portal, a
+    // hostile corporate wifi. Slow on purpose: the socket is the real path and
+    // this only has to beat "nothing ever happens".
+    setInterval(function () {
+      if (gone) return;
+      fetch("/api/yt/" + encodeURIComponent(room) + "/state", { cache: "no-store" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (d && d.ok && d.state && d.state.mode === "play" && d.state.videoId) {
+            pending = d.state.videoId;
+            go(d.state.videoId);
+          }
+        })
+        .catch(function () {});
+    }, 4000);
+  }
+</script>
+</body>
+</html>
