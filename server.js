@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v193-yt-settle";
+const REVISION = "v197-yt-redirect";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1142,6 +1142,21 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), (req, res) => {
   state.seq += 1;
   io.to(ytChannel(key)).emit("yt:state", { ...state, serverTs: Date.now() });
   res.json({ ok: true, state: { ...state, clients: ytCounts(key) } });
+});
+
+// A 302 to YouTube, as a DIFFERENT mechanism from an in-page navigation.
+//
+// Measured: `location.href = "https://youtube.com/watch?v=..."` on a timer
+// lands in Safari, and the same line inside a click handler opens the app. iOS
+// wants a user gesture in the call stack for a universal link. A server
+// redirect is not an in-page navigation at all, and Apple treats redirect
+// chains by their own rules -- so this may or may not reach the app. It exists
+// to be tested rather than reasoned about.
+app.get("/yt-go/:id", (req, res) => {
+  const id = String(req.params.id || "");
+  if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return res.status(400).send("bad id");
+  res.setHeader("Cache-Control", "no-store");
+  res.redirect(302, "https://www.youtube.com/watch?v=" + id);
 });
 
 // Read-only. What MystIO polls to know a phone is listening before he commits.

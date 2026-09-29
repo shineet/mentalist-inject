@@ -14,107 +14,95 @@
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }
-  /* The whole page is the tap target. If iOS ever refuses the automatic
-     navigation, one touch anywhere finishes it, and "tap it" is a sentence
-     that costs nothing to say out loud. */
+  /* The whole screen is the button. "Press play" said out loud and a finger
+     landing anywhere near the middle has to work -- a spectator aiming at a
+     48pt circle on someone else's phone is a spectator who misses. */
   #stage {
     position: fixed; inset: 0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 20px; padding: 32px; text-align: center;
+    display: flex; align-items: center; justify-content: center;
     user-select: none; -webkit-user-select: none;
   }
   .spinner {
-    width: 34px; height: 34px; border-radius: 50%;
-    border: 3px solid rgba(255,255,255,0.18);
-    border-top-color: rgba(255,255,255,0.85);
+    width: 32px; height: 32px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.16);
+    border-top-color: rgba(255,255,255,0.8);
     animation: spin 0.9s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #msg { color: #8e8e93; font-size: 14px; letter-spacing: 0.2px; }
-  /* Only ever seen if the room is missing from the URL, which means the link
-     was mistyped rather than that anything failed. */
-  #bad { display: none; color: #8e8e93; font-size: 13px; max-width: 28ch; }
+
+  #bad { display: none; color: #8e8e93; font-size: 13px; max-width: 28ch; text-align: center; padding: 0 28px; }
 </style>
 </head>
 <body>
 
 <div id="stage">
   <div class="spinner" id="spin"></div>
-  <div id="msg">Loading video</div>
   <div id="bad">This link is missing its room. Ask for it again.</div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-  // The spectator's phone. It knows one thing and does one thing: hold a
-  // socket open, and when a video arrives, navigate to it.
+  // The spectator's phone. It holds a socket open, and when a video arrives it
+  // navigates. Nobody touches it.
   //
-  // It never shows the title. The whole point is that the song appears to have
-  // been chosen by the phone, not delivered to it, so nothing on this screen
-  // may name it before YouTube does.
+  // IT MUST NAVIGATE TO /yt-go/<id>, NOT TO youtube.com DIRECTLY.
+  //
+  // That single detail is the difference between the YouTube app and Safari,
+  // and it was found by measurement rather than reasoning, after three wrong
+  // fixes. A diagnostic page offered the same video six ways on the same
+  // phone:
+  //
+  //    location.href = youtube.com/watch   on a timer   -> Safari
+  //    location.href = youtu.be/           on a timer   -> Safari
+  //    the same two inside a click handler              -> the app
+  //    a plain <a href>, tapped                         -> the app
+  //    location.href = /yt-go/<id>, a 302, on a timer   -> THE APP
+  //
+  // So iOS does want a user gesture for a universal link reached by an
+  // in-page navigation -- but a server redirect is not an in-page navigation,
+  // and the redirect chain gets the app with nothing and nobody touching the
+  // screen. youtube:// was tried too and is worse than both: it opens the app
+  // and asks "Open in YouTube?" first, and a spectator confirming a dialog is
+  // the effect over.
+  //
+  // The page still never names the song. It is a spinner, and then it is gone.
   var params = new URLSearchParams(location.search);
   var room = (params.get("r") || params.get("room") || "").replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
 
-  var msg = document.getElementById("msg");
   var spin = document.getElementById("spin");
   var stage = document.getElementById("stage");
 
   if (!room) {
     spin.style.display = "none";
-    msg.style.display = "none";
     document.getElementById("bad").style.display = "block";
   }
 
-  // Held for the manual fallback below, and as the guard that stops a repeated
-  // state message navigating twice.
+  var loadedAt = Date.now();
+  var SETTLE_MS = 1200;
   var pending = "";
   var gone = false;
-
-  // When this page loaded. The navigation is held back until the page is at
-  // least this old -- see go().
-  var loadedAt = Date.now();
-  var SETTLE_MS = 1500;
   var scheduled = false;
 
   function go(videoId) {
     if (gone || scheduled || !videoId) return;
     scheduled = true;
-
-    // The plain web URL. iOS hands youtube.com/watch to the YouTube app
-    // through a universal link, and it does this for an automatic navigation
-    // with no tap anywhere -- which the standalone test page demonstrated
-    // before any of this was built.
-    //
-    // NOT youtube://. A custom scheme does open the app, but iOS asks first
-    // with an "Open in YouTube?" dialog, and a spectator being asked to
-    // confirm something is the effect over.
-    var web = "https://www.youtube.com/watch?v=" + videoId;
-
-    // The one difference between this page and the test page that worked.
-    //
-    // The test page sat for five seconds and then navigated. This page can
-    // receive the video within a few hundred milliseconds of loading -- which
-    // is the ordinary case, since a phone opening the link after the send is
-    // handed the room's current state the instant its socket connects. Safari
-    // treats a navigation that fast as part of the same page load rather than
-    // as a destination, and a redirect during page load does not get the
-    // universal link. Waiting until the page is a second and a half old costs
-    // nothing anyone will notice and makes the two cases identical.
+    pending = videoId;
+    // A short settle before leaving. The proven test counted down before it
+    // navigated, and a redirect fired in the same tick as the page finishing
+    // loading is the one case not covered by that measurement. It costs a beat
+    // nobody will see.
     var wait = Math.max(0, SETTLE_MS - (Date.now() - loadedAt));
     setTimeout(function () {
       gone = true;
-      location.href = web;
+      location.href = "/yt-go/" + encodeURIComponent(videoId);
     }, wait);
   }
 
-  // The safety net. Proven unnecessary in testing -- an automatic navigation
-  // with no gesture anywhere in the call stack does work on iOS -- but the
-  // cost of being wrong once is a dead screen in a stranger's hand during a
-  // show, and the cost of the net is four lines.
+  // Silent safety net, never mentioned and never needed in testing: if the
+  // navigation is refused for any reason, one touch anywhere finishes it. A
+  // tap is a gesture, and a gesture gets the app with no rules attached.
   stage.addEventListener("click", function () {
     if (!pending || gone) return;
-    // A tap goes at once and ignores the settle wait: a tap is a gesture, and
-    // a gesture gets the universal link with no timing rule attached.
     gone = true;
     location.href = "https://www.youtube.com/watch?v=" + pending;
   });
@@ -123,31 +111,24 @@
     var socket = io({ transports: ["websocket", "polling"] });
 
     socket.on("connect", function () { socket.emit("yt:join", { room: room }); });
-    // A reconnect has to re-join: the server tracks membership per socket, and
-    // a new socket is in no rooms. Without this, a phone that dropped its
-    // connection for a moment looks connected and receives nothing.
+    // A reconnect has to re-join: the server tracks membership per socket and
+    // a new socket is in no rooms. Without this a phone that dropped for a
+    // moment looks connected and receives nothing.
     socket.io.on("reconnect", function () { socket.emit("yt:join", { room: room }); });
 
     socket.on("yt:state", function (state) {
-      if (!state) return;
-      if (state.mode === "play" && state.videoId) {
-        pending = state.videoId;
-        go(state.videoId);
-      }
+      if (state && state.mode === "play" && state.videoId) go(state.videoId);
     });
 
-    // Fallback for a socket that never comes up at all -- a captive portal, a
-    // hostile corporate wifi. Slow on purpose: the socket is the real path and
-    // this only has to beat "nothing ever happens".
+    // For a socket that never comes up at all -- a captive portal, a hostile
+    // guest network. Slow on purpose: the socket is the real path and this
+    // only has to beat "nothing ever happens".
     setInterval(function () {
-      if (gone) return;
+      if (scheduled || gone) return;
       fetch("/api/yt/" + encodeURIComponent(room) + "/state", { cache: "no-store" })
         .then(function (r) { return r.json(); })
         .then(function (d) {
-          if (d && d.ok && d.state && d.state.mode === "play" && d.state.videoId) {
-            pending = d.state.videoId;
-            go(d.state.videoId);
-          }
+          if (d && d.ok && d.state && d.state.mode === "play" && d.state.videoId) go(d.state.videoId);
         })
         .catch(function () {});
     }, 4000);
