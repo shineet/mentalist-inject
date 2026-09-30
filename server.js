@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v221-say-why";
+const REVISION = "v222-accept-formatted-numbers";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1245,7 +1245,14 @@ function ringerAuthorised(req) {
 app.post("/api/ringer/:room/config", express.json({ limit: "4kb" }), (req, res) => {
   if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   const key = normalizeRoom(req.params.room);
-  const raw = String((req.body && req.body.assistant) || "").trim();
+  // Normalised here as well as by the caller. A number arriving as
+  // "(512) 555-1234" straight off a Contacts card is the ordinary case, not a
+  // malformed one, and refusing it produced a failure that said only "could
+  // not send". Strip the formatting, keep a leading +, then validate.
+  const given = String((req.body && req.body.assistant) || "").trim();
+  const plus = given.startsWith("+");
+  const digits = given.replace(/[^0-9]/g, "");
+  const raw = digits ? (plus ? "+" : "") + digits : "";
   // Same shape api/voice-twiml.js accepts, checked here too so a typo is
   // refused when it is entered rather than discovered mid-effect.
   if (raw && !/^\+?[0-9]{7,15}$/.test(raw)) {
