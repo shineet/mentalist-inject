@@ -468,9 +468,12 @@
 
     try {
       var dev = await getDevice();
-      // The dialled number rides along for the log only. The TwiML app routes
-      // on `mode`, which is why no stranger is ever called.
-      conn = await dev.connect({ params: { mode: mode, To: number } });
+      // `mode` decides voicemail vs divert. `room` is how the TwiML finds the
+      // assistant: it asks the show server for this room's number, server to
+      // server, so a real person's phone number never passes through this page.
+      // `To` is the dialled number and rides along for the log only -- the
+      // TwiML routes on `mode` alone, which is why no stranger is ever called.
+      conn = await dev.connect({ params: { mode: mode, room: room, To: number } });
       conn.on("accept", startTimer);
       conn.on("disconnect", function () { hangUp(); });
       conn.on("error", function () { callState.textContent = "call failed"; });

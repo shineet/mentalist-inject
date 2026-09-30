@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v214-dialler-layout";
+const REVISION = "v215-ringer-assistant";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1189,6 +1189,72 @@ app.get("/api/ringer/token", async (req, res) => {
   } catch (e) {
     res.status(502).json({ error: "could not reach the voice backend" });
   }
+});
+
+// ── Who the divert reaches, per room ─────────────────────────────────────────
+//
+// The assistant's number is NOT a Vercel environment variable, deliberately:
+// Shine works with different assistants on different shows, and a friend
+// testing the app has their own. It is also a real person's phone number, so it
+// never reaches the browser -- the dialler page sends only its ROOM as a Twilio
+// parameter, and api/voice-twiml.js asks this server for the number machine to
+// machine at the moment of the call. So it appears in no page source, no
+// devtools panel and no network log on a phone in a stranger's hand.
+//
+// Persisted on the same Fly volume as the show state, so it survives deploys.
+// No new secret: voice-capture already holds SMS_TOKEN and this app holds the
+// same value as RINGER_SMS_TOKEN, so the two can authenticate to each other
+// with what they already have.
+const RINGER_FILE = path.join(DATA_DIR, "ringer-rooms.json");
+let ringerRooms = {};
+try { ringerRooms = JSON.parse(fs.readFileSync(RINGER_FILE, "utf8")) || {}; } catch {}
+
+function saveRingerRooms() {
+  try { fs.writeFileSync(RINGER_FILE, JSON.stringify(ringerRooms)); }
+  catch (e) { console.error("ringer rooms save failed:", e.message); }
+}
+
+function ringerAuthorised(req) {
+  const expected = process.env.RINGER_SMS_TOKEN || "";
+  return Boolean(expected) && req.get("x-sms-token") === expected;
+}
+
+// Set by the performer's own app, which is the only thing that knows which
+// assistant is working tonight.
+app.post("/api/ringer/:room/config", express.json({ limit: "4kb" }), (req, res) => {
+  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  const raw = String((req.body && req.body.assistant) || "").trim();
+  // Same shape api/voice-twiml.js accepts, checked here too so a typo is
+  // refused when it is entered rather than discovered mid-effect.
+  if (raw && !/^\+?[0-9]{7,15}$/.test(raw)) {
+    return res.status(400).json({ ok: false, error: "not a phone number" });
+  }
+  if (raw) ringerRooms[key] = { assistant: raw, at: Date.now() };
+  else delete ringerRooms[key];
+  saveRingerRooms();
+  // Echoes only the last four digits. Enough to confirm the right number went
+  // in, useless to anyone who intercepts it.
+  res.json({ ok: true, room: key, endsWith: raw ? raw.slice(-4) : null });
+});
+
+// Read back, for the app to show what is currently set. Last four only.
+app.get("/api/ringer/:room/config", (req, res) => {
+  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  const rec = ringerRooms[key];
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ ok: true, room: key, endsWith: rec ? rec.assistant.slice(-4) : null });
+});
+
+// The full number, for api/voice-twiml.js alone, at the moment of the call.
+app.get("/api/ringer/:room/assistant", (req, res) => {
+  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  const rec = ringerRooms[key];
+  res.setHeader("Cache-Control", "no-store");
+  if (!rec) return res.status(404).json({ ok: false, error: "no assistant set for this room" });
+  res.json({ ok: true, assistant: rec.assistant });
 });
 
 // The audience pages must never be stale. A phone that has held this link
