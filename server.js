@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v216-ringer-config";
+const REVISION = "v217-token-needs-room";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1177,6 +1177,18 @@ app.get("/api/ringer/token", async (req, res) => {
   const token = process.env.RINGER_SMS_TOKEN || "";
   if (!token) {
     return res.status(500).json({ error: "RINGER_SMS_TOKEN is not set on this app" });
+  }
+  // This endpoint cannot be token-protected -- the page that calls it runs on a
+  // stranger's phone and is public. So it is gated on the ROOM instead: only a
+  // room Ringer has actually configured can mint a Twilio token. Without this,
+  // anyone who found the URL could mint tokens on the account and ring the
+  // assistant repeatedly. They could never reach an arbitrary number (the TwiML
+  // only routes to the voicemail or the assistant), but that is not a reason to
+  // leave it open, and it stopped being hypothetical the moment rooms became
+  // nameable and therefore guessable.
+  const room = normalizeRoom(String(req.query.room || ""));
+  if (!room || !ringerRooms[room]) {
+    return res.status(403).json({ error: "this room is not set up for calling" });
   }
   try {
     const r = await fetch(RINGER_BACKEND + "/api/voice-token", {

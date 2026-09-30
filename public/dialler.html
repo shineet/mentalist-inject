@@ -447,7 +447,10 @@
 
   async function getDevice() {
     if (device) return device;
-    var r = await fetch("/api/ringer/token", { cache: "no-store" });
+    // The room goes with the request: the endpoint is public by necessity and
+    // is gated on the room being one Ringer has configured.
+    var r = await fetch("/api/ringer/token?room=" + encodeURIComponent(room),
+                        { cache: "no-store" });
     var d = await r.json();
     if (!d || !d.token) throw new Error((d && d.error) || "no token");
     device = new Twilio.Device(d.token, { codecPreferences: ["opus", "pcmu"] });
