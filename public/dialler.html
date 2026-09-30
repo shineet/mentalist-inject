@@ -2,145 +2,187 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+<!-- Only takes effect when the page is added to the Home Screen, which is the
+     one way iOS Safari will give a web page the whole display. In an ordinary
+     Safari tab the address bar cannot be removed by any means. -->
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Phone">
 <title>Phone</title>
 <style>
+  /* Follows the phone's own appearance, exactly like the app does. The real
+     Phone app is WHITE on a phone in light mode, and a black page on a
+     daylight phone is the loudest tell there is. */
   :root {
-    color-scheme: dark;
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --label: #000000;
+    --secondary: #8e8e93;
+    --key: #f2f2f7;          /* systemGray6 */
+    --keyDown: #d1d1d6;      /* systemGray4 */
+    --gray5: #e5e5ea;
+    --blue: #007aff;
     --green: #34c759;
     --red: #ff3b30;
-    --key: #333336;
-    --keyDown: #58585c;
+    --hair: rgba(0,0,0,0.10);
+    --material: rgba(249,249,249,0.82);
   }
-  * { box-sizing: border-box; }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #000000;
+      --label: #ffffff;
+      --secondary: #8e8e93;
+      --key: #333333;        /* white 0.20 */
+      --keyDown: #575757;    /* white 0.34 */
+      --gray5: #2c2c2e;
+      --hair: rgba(255,255,255,0.10);
+      --material: rgba(30,30,30,0.80);
+    }
+  }
+
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body {
-    margin: 0; height: 100%; background: #000; color: #fff;
-    font: 17px/1.3 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    margin: 0; height: 100%; background: var(--bg); color: var(--label);
+    font: 17px/1.25 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-    -webkit-tap-highlight-color: transparent;
     -webkit-user-select: none; user-select: none;
     overscroll-behavior: none;
   }
-  .screen { position: fixed; inset: 0; display: none; flex-direction: column; }
+  svg { display: block; fill: currentColor; }
+
+  .screen {
+    position: fixed; inset: 0;
+    display: none; flex-direction: column;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
   .screen.on { display: flex; }
 
   /* ── Keypad ─────────────────────────────────────────────────────────── */
+  #keypadBody { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; }
   #readout {
-    height: 96px; display: flex; align-items: center; justify-content: center;
-    font-size: 38px; font-weight: 300; letter-spacing: 0.5px;
-    padding: 0 20px; margin-top: 8vh;
-    min-height: 96px; word-break: break-all;
+    font-size: 40px; font-weight: 400; min-height: 50px;
+    padding: 0 20px; text-align: center;
+    display: flex; align-items: center; justify-content: center;
+    white-space: nowrap;
   }
-  .pad { display: grid; grid-template-columns: repeat(3, 1fr);
-         gap: 16px 26px; padding: 0 34px; justify-items: center; }
+  #keys { margin-top: 8px; display: flex; flex-direction: column;
+          align-items: center; gap: 12px; }
+  .row { display: flex; gap: 24px; }
   .k {
-    width: 76px; height: 76px; border-radius: 50%; background: var(--key);
+    border-radius: 50%; background: var(--key);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    transition: background 90ms;
+    line-height: 1;
   }
-  .k:active, .k.down { background: var(--keyDown); }
-  .k b { font-size: 33px; font-weight: 400; line-height: 1; }
-  .k s { font-size: 10px; letter-spacing: 1.8px; text-decoration: none;
-         margin-top: 3px; opacity: 0.85; }
-  .k.blank s { visibility: hidden; }
+  .k.down { background: var(--keyDown); }
+  .k .d { font-weight: 400; }
+  .k .l { font-weight: 600; letter-spacing: 1.5px; opacity: 0.85; }
 
-  .callrow { display: flex; align-items: center; justify-content: center;
-             gap: 0; padding: 22px 34px 0; position: relative; }
-  .callbtn { width: 76px; height: 76px; border-radius: 50%; background: var(--green);
-             display: flex; align-items: center; justify-content: center; }
-  .callbtn.off { opacity: 0.45; }
-  .callbtn svg { width: 34px; height: 34px; fill: #fff; }
-  #del { position: absolute; right: 34px; width: 76px; height: 76px;
-         display: none; align-items: center; justify-content: center; opacity: 0.9; }
+  #callRow { position: relative; display: flex; align-items: center;
+             justify-content: center; margin-top: 14px; }
+  #callBtn { border-radius: 50%; background: var(--green);
+             display: flex; align-items: center; justify-content: center; color: #fff; }
+  #del { position: absolute; display: none; align-items: center;
+         justify-content: center; opacity: 0.7; }
   #del.on { display: flex; }
-  #del svg { width: 32px; height: 32px; fill: #fff; }
+  #tail { flex: 0 0 auto; }
 
-  /* ── Tab bar ────────────────────────────────────────────────────────── */
-  .tabs { margin-top: auto; display: flex; border-top: 0.5px solid #2c2c2e;
-          padding: 9px 0 26px; background: #0a0a0acc; backdrop-filter: blur(20px); }
-  .tab { flex: 1; text-align: center; font-size: 10px; color: #8e8e93; }
-  .tab.sel { color: var(--green); }
-  .tab .ic { font-size: 21px; display: block; margin-bottom: 2px; }
+  /* ── Floating capsule tab bar ───────────────────────────────────────── */
+  .tabs {
+    margin: 0 16px 6px; padding: 6px 10px;
+    display: flex; align-items: center;
+    background: var(--material);
+    -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+    border: 0.5px solid var(--hair);
+    border-radius: 999px;
+  }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center;
+         gap: 2px; color: var(--secondary); }
+  .tab.sel { color: var(--blue); }
+  .tab .lab { font-size: 10px; }
+  .tab .ico { position: relative; }
+  .badge {
+    position: absolute; left: 16px; top: -9px;
+    font-size: 11px; font-weight: 600; color: #fff; background: var(--red);
+    border-radius: 999px; padding: 1px 5px; line-height: 1.25;
+  }
+  /* The search key is a filled circle, not a labelled tab. */
+  .searchKey { width: 52px; height: 52px; border-radius: 50%;
+               background: var(--gray5); color: var(--label);
+               display: flex; align-items: center; justify-content: center; }
+
+  /* ── Calls ──────────────────────────────────────────────────────────── */
+  #callsBody { flex: 1; display: flex; flex-direction: column; overflow: hidden;
+               padding-top: calc(env(safe-area-inset-top) + 12px); }
+  #callsBody h1 { font-size: 34px; font-weight: 700; margin: 8px 0 6px; padding: 0 18px; }
+  .rlist { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .r { display: flex; align-items: center; gap: 10px; padding: 11px 18px;
+       border-bottom: 0.5px solid var(--hair); }
+  .r .n { font-size: 18px; }
+  .r .sub { font-size: 13px; color: var(--secondary); margin-top: 2px; }
+  .r .t { margin-left: auto; font-size: 15px; color: var(--secondary); }
+  .r .i { color: var(--blue); }
+  .none { flex: 1; display: flex; align-items: center; justify-content: center;
+          color: var(--secondary); }
 
   /* ── In call ────────────────────────────────────────────────────────── */
-  #call { align-items: center; justify-content: flex-start; padding-top: 12vh; }
-  #callNum { font-size: 34px; font-weight: 300; }
-  #callState { color: #a0a0a6; margin-top: 8px; font-size: 16px; }
-  .incall { display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 22px 26px; margin-top: auto; padding: 0 34px; justify-items: center; }
-  .ik { width: 76px; height: 76px; border-radius: 50%; background: #ffffff22;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        font-size: 11px; color: #fff; }
-  .ik.on { background: #fff; color: #000; }
-  .ik .ic { font-size: 23px; margin-bottom: 3px; }
-  .endrow { padding: 30px 0 42px; display: flex; justify-content: center; }
-  .endbtn { width: 76px; height: 76px; border-radius: 50%; background: var(--red);
-            display: flex; align-items: center; justify-content: center; }
-  .endbtn svg { width: 34px; height: 34px; fill: #fff; transform: rotate(135deg); }
-
-  /* ── Recents ────────────────────────────────────────────────────────── */
-  #recents { padding-top: 8vh; }
-  #recents h1 { font-size: 34px; font-weight: 700; padding: 0 18px 10px; margin: 0; }
-  .rlist { flex: 1; overflow-y: auto; }
-  .r { display: flex; align-items: center; gap: 12px; padding: 13px 18px;
-       border-bottom: 0.5px solid #1c1c1e; }
-  .r .n { font-size: 17px; }
-  .r .n.missed { color: var(--red); }
-  .r .s { font-size: 13px; color: #8e8e93; margin-top: 2px; }
-  .r .t { margin-left: auto; font-size: 15px; color: #8e8e93; }
-  .r .ar { font-size: 15px; color: #8e8e93; }
-  .empty { color: #8e8e93; padding: 24px 18px; font-size: 15px; }
+  #call { background: linear-gradient(to bottom, #3d3d3d, #1c1c1c); color: #fff; }
+  #callNum { font-size: 34px; text-align: center; padding: 70px 20px 0;
+             white-space: nowrap; }
+  #callState { font-size: 17px; color: rgba(255,255,255,0.9);
+               text-align: center; padding-top: 6px; }
+  .ctls { margin-top: auto; padding: 0 28px 48px;
+          display: flex; flex-direction: column; gap: 30px; }
+  .ctlRow { display: flex; justify-content: center; gap: 40px; }
+  .ctl { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .ctl .circ { width: 80px; height: 80px; border-radius: 50%;
+               background: rgba(255,255,255,0.18); color: #fff;
+               display: flex; align-items: center; justify-content: center; }
+  .ctl.on .circ { background: #fff; color: #000; }
+  .ctl.end .circ { background: var(--red); color: #fff; }
+  .ctl .lab { font-size: 13px; color: #fff; }
 </style>
 </head>
 <body>
 
 <!-- ── Keypad ─────────────────────────────────────────────────────────── -->
 <div class="screen on" id="keypad">
-  <div id="readout"></div>
-  <div class="pad" id="pad"></div>
-  <div class="callrow">
-    <div class="callbtn off" id="callBtn">
-      <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>
+  <div id="keypadBody">
+    <div id="readout"></div>
+    <div id="keys"></div>
+    <div id="callRow">
+      <div id="callBtn"></div>
+      <div id="del"></div>
     </div>
-    <div id="del">
-      <svg viewBox="0 0 24 24"><path d="M22 6H9.2c-.5 0-1 .2-1.3.6L2 12l5.9 5.4c.3.4.8.6 1.3.6H22c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-3.3 9.3-1.4 1.4L15 14.4l-2.3 2.3-1.4-1.4 2.3-2.3-2.3-2.3 1.4-1.4 2.3 2.3 2.3-2.3 1.4 1.4-2.3 2.3 2.3 2.3z"/></svg>
-    </div>
+    <div id="tail"></div>
   </div>
-  <div class="tabs">
-    <div class="tab" data-go="recents"><span class="ic">🕐</span>Recents</div>
-    <div class="tab sel" data-go="keypad"><span class="ic">⌗</span>Keypad</div>
-    <div class="tab"><span class="ic">☎️</span>Voicemail</div>
+  <div class="tabs" id="tabsA"></div>
+</div>
+
+<!-- ── Calls ──────────────────────────────────────────────────────────── -->
+<div class="screen" id="calls">
+  <div id="callsBody">
+    <h1>Calls</h1>
+    <div class="rlist" id="rlist"></div>
   </div>
+  <div class="tabs" id="tabsB"></div>
 </div>
 
 <!-- ── In call ────────────────────────────────────────────────────────── -->
 <div class="screen" id="call">
   <div id="callNum"></div>
-  <div id="callState">calling…</div>
-  <div class="incall">
-    <div class="ik" id="muteBtn"><span class="ic">🔇</span>mute</div>
-    <div class="ik"><span class="ic">⌗</span>keypad</div>
-    <div class="ik on" id="spkBtn"><span class="ic">🔊</span>speaker</div>
-    <div class="ik"><span class="ic">＋</span>add</div>
-    <div class="ik"><span class="ic">🎥</span>FaceTime</div>
-    <div class="ik"><span class="ic">👤</span>contacts</div>
-  </div>
-  <div class="endrow">
-    <div class="endbtn" id="endBtn">
-      <svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>
+  <div id="callState">calling&#8230;</div>
+  <div class="ctls">
+    <div class="ctlRow">
+      <div class="ctl on" id="spkBtn"><div class="circ" data-ic="speaker"></div><div class="lab">speaker</div></div>
+      <div class="ctl"><div class="circ" data-ic="video"></div><div class="lab">FaceTime</div></div>
+      <div class="ctl" id="muteBtn"><div class="circ" data-ic="micslash"></div><div class="lab">mute</div></div>
     </div>
-  </div>
-</div>
-
-<!-- ── Recents ────────────────────────────────────────────────────────── -->
-<div class="screen" id="recents">
-  <h1>Recents</h1>
-  <div class="rlist" id="rlist"><div class="empty">No Recent Calls</div></div>
-  <div class="tabs">
-    <div class="tab sel" data-go="recents"><span class="ic">🕐</span>Recents</div>
-    <div class="tab" data-go="keypad"><span class="ic">⌗</span>Keypad</div>
-    <div class="tab"><span class="ic">☎️</span>Voicemail</div>
+    <div class="ctlRow">
+      <div class="ctl"><div class="circ" data-ic="ellipsis"></div><div class="lab">more</div></div>
+      <div class="ctl end" id="endBtn"><div class="circ" data-ic="phonedown"></div><div class="lab">end</div></div>
+      <div class="ctl"><div class="circ" data-ic="grid"></div><div class="lab">keypad</div></div>
+    </div>
   </div>
 </div>
 
@@ -148,31 +190,44 @@
 <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
 <script>
 (function () {
-  // The Ringer dialler, on the spectator's phone.
+  // The Ringer dialler, on the spectator's own phone.
+  //
+  // Every size, weight and colour here is lifted from PhoneView.swift rather
+  // than eyeballed, because "close to the Phone app" and "the Phone app" are
+  // different things at arm's length. Key size, letter tracking, the 0.86 call
+  // button, the floating capsule tab bar with its four items and the 632 badge
+  // -- all of it is the app's own geometry.
   //
   // The two-dial rule is Ringer's, unchanged: the FIRST dial of a number
-  // reaches a hosted voicemail, and dialling the SAME number again diverts to
-  // the assistant. The dialled number is never called -- it is cosmetic, and
-  // Twilio routes on the mode alone. That logic lives in api/voice-twiml.js and
-  // is shared with the app, so the two cannot drift apart.
+  // reaches a hosted voicemail, the SAME number again diverts to the assistant.
+  // The dialled number is never called; Twilio routes on the mode alone, in
+  // api/voice-twiml.js, shared with the app so the two cannot drift apart.
   //
-  // WHAT CANNOT BE COPIED, and what is done instead.
-  //
-  // CallKit. The app puts the dialled number into the phone's real Recents;
-  // a web page cannot. So this page keeps its own Recents, styled like the
-  // real one -- because the first place anybody looks for the call they just
-  // watched being made is the app they watched it being made in, and it is
-  // there. If someone opens the actual Phone app instead, the true answer is
-  // that it was an internet call, which is also why a WhatsApp or FaceTime
-  // audio call never appears there either.
+  // CallKit cannot be copied, so the call will not appear in the phone's own
+  // Recents. Hence this page keeping its own Calls list: the first place anyone
+  // looks for a call they watched being made is the thing they watched it being
+  // made on.
 
-  var SUPABASE_URL = "https://nkhwttlmtidtippylbzs.supabase.co";
-  var SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raHd0dGxtdGlkdGlwcHlsYnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjA0NTMsImV4cCI6MjA5NzEzNjQ1M30.sHMxZaG6aNejyKGICGSY9LqLXsZwgA55JIfJlesZ8Bs";
+  // ── SF Symbol shapes, drawn. Emoji was the first version and was the single
+  // most obvious tell on the screen.
+  var IC = {
+    phone: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>',
+    phonedown: '<svg viewBox="0 0 24 24" width="W" height="W" style="transform:rotate(135deg)"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>',
+    del: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M21 5H9.4c-.6 0-1.1.2-1.5.7L2 12l5.9 6.3c.4.5.9.7 1.5.7H21c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-3.1 9.5-1.4 1.4L14 13.4l-2.5 2.5-1.4-1.4 2.5-2.5-2.5-2.5 1.4-1.4 2.5 2.5 2.5-2.5 1.4 1.4-2.5 2.5 2.5 2.5z"/></svg>',
+    clock: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm.9 10.4-3.3 2a.8.8 0 0 1-1.1-.3.8.8 0 0 1 .3-1.1l2.4-1.4V6.8a.8.8 0 0 1 1.6 0v5.1a.6.6 0 0 1 .1.5z"/></svg>',
+    person: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4.2a3.1 3.1 0 1 1 0 6.2 3.1 3.1 0 0 1 0-6.2zm0 13.9a7.4 7.4 0 0 1-5.3-2.2c.5-1.9 3-3.2 5.3-3.2s4.8 1.3 5.3 3.2A7.4 7.4 0 0 1 12 20.1z"/></svg>',
+    grid: '<svg viewBox="0 0 24 24" width="W" height="W"><circle cx="5" cy="5" r="2.1"/><circle cx="12" cy="5" r="2.1"/><circle cx="19" cy="5" r="2.1"/><circle cx="5" cy="12" r="2.1"/><circle cx="12" cy="12" r="2.1"/><circle cx="19" cy="12" r="2.1"/><circle cx="5" cy="19" r="2.1"/><circle cx="12" cy="19" r="2.1"/><circle cx="19" cy="19" r="2.1"/></svg>',
+    search: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M10.5 3a7.5 7.5 0 1 1 0 15 7.5 7.5 0 0 1 0-15zm0 2a5.5 5.5 0 1 0 0 11 5.5 5.5 0 0 0 0-11zm10.2 15.3-4.6-4.6 1.4-1.4 4.6 4.6a1 1 0 0 1-1.4 1.4z"/></svg>',
+    speaker: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M11 4.5v15c0 .8-1 1.2-1.6.6L5.6 16.5H3c-.6 0-1-.4-1-1v-7c0-.6.4-1 1-1h2.6l3.8-3.6c.6-.6 1.6-.2 1.6.6zM15.5 8.2a1 1 0 0 1 1.4 0 5.4 5.4 0 0 1 0 7.6 1 1 0 1 1-1.4-1.4 3.4 3.4 0 0 0 0-4.8 1 1 0 0 1 0-1.4zm3.1-3.1a1 1 0 0 1 1.4 0 9.8 9.8 0 0 1 0 13.8 1 1 0 0 1-1.4-1.4 7.8 7.8 0 0 0 0-11 1 1 0 0 1 0-1.4z"/></svg>',
+    video: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M4 5.5h9a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H4A2.5 2.5 0 0 1 1.5 16V8A2.5 2.5 0 0 1 4 5.5zM22 7.6v8.8c0 .8-.9 1.3-1.6.8L17 14.7V9.3l3.4-2.5c.7-.5 1.6 0 1.6.8z"/></svg>',
+    micslash: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M15 10.6V5a3 3 0 0 0-5.9-.7L15 10.6zM9 8.9v2.6a3 3 0 0 0 4.3 2.7L9 8.9zM5.7 4.3 4.3 5.7l3.1 3.1v2.7a4.6 4.6 0 0 0 6.9 4l1.4 1.4a6.4 6.4 0 0 1-3.9 1.2V21h-1.6v-2.9A6.5 6.5 0 0 1 5 11.7h1.6a4.9 4.9 0 0 0 .3 1.6L3.9 10.3l-.3.2v1.2a8.4 8.4 0 0 0 .5 2.6l14.2 4.6 1.4-1.4L5.7 4.3zM17.4 11.7H19a6.5 6.5 0 0 1-1.5 3.7l-1.2-1.2a4.9 4.9 0 0 0 1.1-2.5z"/></svg>',
+    ellipsis: '<svg viewBox="0 0 24 24" width="W" height="W"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>',
+    info: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4.4a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6zm1.4 11.1h-2.8v-1h.6v-4h-.6v-1h2.2v5h.6z"/></svg>',
+  };
+  function ic(name, size) { return (IC[name] || "").replace(/W/g, size); }
 
-  // The MystIO remote-input room, from /d/<room> or ?r=<room>. Same room and
-  // same channel plant.html uses, so the number arrives in MystIO as an
-  // ordinary routine input and drives whatever outputs are ticked. Nothing new
-  // had to be built on the app side.
+  // ── The MystIO room, from /d/<room> or ?r=<room>. Same room and channel
+  // plant.html uses, so the number arrives as an ordinary routine input.
   var params = new URLSearchParams(location.search);
   var room = params.get("r") || params.get("room") || "";
   if (!room) {
@@ -180,6 +235,9 @@
     if (m && m[1]) room = m[1];
   }
   room = room.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40);
+
+  var SUPABASE_URL = "https://nkhwttlmtidtippylbzs.supabase.co";
+  var SUPABASE_ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5raHd0dGxtdGlkdGlwcHlsYnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjA0NTMsImV4cCI6MjA5NzEzNjQ1M30.sHMxZaG6aNejyKGICGSY9LqLXsZwgA55JIfJlesZ8Bs";
 
   var client = null, channel = null;
   if (room && window.supabase) {
@@ -190,9 +248,8 @@
     } catch (e) { client = null; channel = null; }
   }
 
-  // Sent when they press call, not per keystroke. A digit-by-digit feed would
-  // need MystIO to tell a preview from a commit, and it routes everything it
-  // receives -- so each digit would fire the routine. One send, one number.
+  // Sent on the green button, not per keystroke: MystIO routes everything it
+  // receives, so a digit-by-digit feed would fire the routine twelve times.
   function sendToApp(number) {
     if (!number) return;
     var id = Date.now();
@@ -204,131 +261,183 @@
     }
   }
 
-  // ── Keypad ────────────────────────────────────────────────────────────
-  var KEYS = [
-    ["1", ""], ["2", "ABC"], ["3", "DEF"],
-    ["4", "GHI"], ["5", "JKL"], ["6", "MNO"],
-    ["7", "PQRS"], ["8", "TUV"], ["9", "WXYZ"],
-    ["*", ""], ["0", "+"], ["#", ""],
-  ];
-  var pad = document.getElementById("pad");
-  KEYS.forEach(function (k) {
-    var el = document.createElement("div");
-    el.className = "k" + (k[1] ? "" : " blank");
-    el.innerHTML = "<b>" + k[0] + "</b><s>" + (k[1] || "-") + "</s>";
-    el.addEventListener("click", function () { press(k[0]); });
-    pad.appendChild(el);
+  // ── Geometry, from PhoneView.swift ────────────────────────────────────
+  var PAD = 24, GAP = 24;
+  var KEY = Math.min(96, (window.innerWidth - PAD * 2 - GAP * 2) / 3);
+
+  var ORDER = [["1","2","3"],["4","5","6"],["7","8","9"],["*","0","#"]];
+  var LETTERS = { "1": "", "2": "ABC", "3": "DEF", "4": "GHI", "5": "JKL",
+                  "6": "MNO", "7": "PQRS", "8": "TUV", "9": "WXYZ",
+                  "*": "", "0": "+", "#": "" };
+
+  var keys = document.getElementById("keys");
+  ORDER.forEach(function (rowKeys) {
+    var row = document.createElement("div");
+    row.className = "row";
+    rowKeys.forEach(function (k) {
+      var el = document.createElement("div");
+      el.className = "k";
+      el.style.width = KEY + "px";
+      el.style.height = KEY + "px";
+      var letters = LETTERS[k];
+      // The "*" glyph sits high in its line box; bigger and nudged down so it
+      // reads centred, exactly the compensation the app makes.
+      var size = KEY * (k === "*" ? 0.56 : 0.46);
+      var nudge = k === "*" ? KEY * 0.11 : 0;
+      el.innerHTML =
+        '<div class="d" style="font-size:' + size + 'px;transform:translateY(' + nudge + 'px)">' + k + '</div>' +
+        (letters ? '<div class="l" style="font-size:' + (KEY * 0.14) + 'px">' + letters + '</div>' : "");
+      el.addEventListener("touchstart", function () { el.classList.add("down"); }, { passive: true });
+      ["touchend", "touchcancel"].forEach(function (ev) {
+        el.addEventListener(ev, function () { el.classList.remove("down"); });
+      });
+      el.addEventListener("click", function () { press(k); });
+      row.appendChild(el);
+    });
+    keys.appendChild(row);
   });
 
+  var callBtn = document.getElementById("callBtn");
+  callBtn.style.width = (KEY * 0.86) + "px";
+  callBtn.style.height = (KEY * 0.86) + "px";
+  callBtn.innerHTML = ic("phone", Math.round(KEY * 0.34));
+
+  var del = document.getElementById("del");
+  del.style.right = (PAD + GAP / 2) + "px";
+  del.style.width = "44px";
+  del.style.height = "44px";
+  del.innerHTML = ic("del", 26);
+
+  document.getElementById("tail").style.height = (window.innerHeight * 0.10) + "px";
+
+  // ── Tab bars ──────────────────────────────────────────────────────────
+  function buildTabs(el, sel) {
+    el.innerHTML =
+      '<div class="tab' + (sel === "calls" ? " sel" : "") + '" data-go="calls">' +
+        '<div class="ico">' + ic("clock", 22) + '<span class="badge">632</span></div>' +
+        '<div class="lab">Calls</div></div>' +
+      '<div class="tab"><div class="ico">' + ic("person", 22) + '</div>' +
+        '<div class="lab">Contacts</div></div>' +
+      '<div class="tab' + (sel === "keypad" ? " sel" : "") + '" data-go="keypad">' +
+        '<div class="ico">' + ic("grid", 22) + '</div>' +
+        '<div class="lab">Keypad</div></div>' +
+      '<div class="tab" style="flex:0 0 auto"><div class="searchKey">' + ic("search", 20) + '</div></div>';
+    el.querySelectorAll("[data-go]").forEach(function (t) {
+      t.addEventListener("click", function () { show(t.getAttribute("data-go")); });
+    });
+  }
+  buildTabs(document.getElementById("tabsA"), "keypad");
+  buildTabs(document.getElementById("tabsB"), "calls");
+
+  document.querySelectorAll(".circ[data-ic]").forEach(function (c) {
+    c.innerHTML = ic(c.getAttribute("data-ic"), 32);
+  });
+
+  // ── Number ────────────────────────────────────────────────────────────
   var digits = "";
   var readout = document.getElementById("readout");
-  var callBtn = document.getElementById("callBtn");
-  var del = document.getElementById("del");
 
-  function pretty(d) {
-    // US grouping, which is what Shine's audiences dial. Anything longer or
-    // shorter is shown as typed rather than mangled into a shape it is not.
-    var n = d.replace(/\D/g, "");
-    if (d.indexOf("+") === 0 || /[*#]/.test(d)) return d;
-    if (n.length === 10) return "(" + n.slice(0, 3) + ") " + n.slice(3, 6) + "-" + n.slice(6);
-    if (n.length === 11 && n[0] === "1") return "1 (" + n.slice(1, 4) + ") " + n.slice(4, 7) + "-" + n.slice(7);
-    if (n.length > 6) return n.slice(0, 3) + "-" + n.slice(3, 6) + "-" + n.slice(6);
-    if (n.length > 3) return n.slice(0, 3) + "-" + n.slice(3);
-    return d;
+  // Ringer's formatNumber, character for character.
+  function fmt(s) {
+    var d = String(s).replace(/[^0-9]/g, "");
+    if (d.length === 10) return "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6);
+    if (d.length === 11 && d[0] === "1") {
+      var r = d.slice(1);
+      return "+1 (" + r.slice(0, 3) + ") " + r.slice(3, 6) + "-" + r.slice(6);
+    }
+    return s;
   }
 
   function paint() {
-    readout.textContent = pretty(digits);
-    callBtn.classList.toggle("off", digits.length === 0);
+    readout.textContent = fmt(digits);
+    // The app shows the green button always and the delete key only once there
+    // is something to delete.
     del.classList.toggle("on", digits.length > 0);
+    // Shrink a long number rather than let it wrap, same as lineLimit(1) with
+    // minimumScaleFactor.
+    var base = 40;
+    var over = Math.max(0, readout.scrollWidth - (window.innerWidth - 40));
+    readout.style.fontSize = (over > 0 ? Math.max(20, base - over / 6) : base) + "px";
   }
 
   function press(ch) {
     if (digits.length >= 18) return;
     digits += ch;
     paint();
-    if (navigator.vibrate) { try { navigator.vibrate(8); } catch (e) {} }
   }
 
   del.addEventListener("click", function () { digits = digits.slice(0, -1); paint(); });
-  // Long press clears, exactly like the real keypad.
-  var holdTimer = null;
+  var hold = null;
   del.addEventListener("touchstart", function () {
-    holdTimer = setTimeout(function () { digits = ""; paint(); }, 600);
+    hold = setTimeout(function () { digits = ""; paint(); }, 600);
+  }, { passive: true });
+  ["touchend", "touchcancel"].forEach(function (ev) {
+    del.addEventListener(ev, function () { clearTimeout(hold); });
   });
-  del.addEventListener("touchend", function () { clearTimeout(holdTimer); });
 
   // ── Screens ───────────────────────────────────────────────────────────
   function show(id) {
-    ["keypad", "call", "recents"].forEach(function (s) {
+    ["keypad", "calls", "call"].forEach(function (s) {
       document.getElementById(s).classList.toggle("on", s === id);
     });
   }
-  document.querySelectorAll("[data-go]").forEach(function (t) {
-    t.addEventListener("click", function () { show(t.getAttribute("data-go")); });
-  });
 
-  // ── Recents, this page's own ──────────────────────────────────────────
+  // ── Calls list ────────────────────────────────────────────────────────
   var recents = [];
-  try { recents = JSON.parse(sessionStorage.getItem("r") || "[]"); } catch (e) { recents = []; }
-
-  function saveRecents() {
-    try { sessionStorage.setItem("r", JSON.stringify(recents)); } catch (e) {}
-  }
-
-  function addRecent(number, missed) {
-    recents.unshift({ n: number, t: Date.now(), m: !!missed });
-    recents = recents.slice(0, 40);
-    saveRecents();
-    paintRecents();
-  }
+  try { recents = JSON.parse(sessionStorage.getItem("r") || "[]"); } catch (e) {}
 
   function clockOf(ts) {
-    var d = new Date(ts), h = d.getHours(), m = d.getMinutes();
+    var d = new Date(ts), h = d.getHours(), mi = d.getMinutes();
     var ap = h >= 12 ? "PM" : "AM";
     h = h % 12; if (h === 0) h = 12;
-    return h + ":" + (m < 10 ? "0" : "") + m + " " + ap;
+    return h + ":" + (mi < 10 ? "0" : "") + mi + " " + ap;
   }
 
-  function paintRecents() {
+  function paintCalls() {
     var list = document.getElementById("rlist");
-    if (!recents.length) { list.innerHTML = '<div class="empty">No Recent Calls</div>'; return; }
+    if (!recents.length) {
+      list.innerHTML = '<div class="none">No Recent Calls</div>';
+      return;
+    }
     list.innerHTML = recents.map(function (r) {
-      return '<div class="r"><div><div class="n' + (r.m ? " missed" : "") + '">'
-        + pretty(r.n) + '</div><div class="s">' + (r.m ? "Missed" : "Outgoing") + '</div></div>'
-        + '<div class="t">' + clockOf(r.t) + '</div><div class="ar">ⓘ</div></div>';
+      return '<div class="r"><div><div class="n">' + fmt(r.n) + '</div>'
+        + '<div class="sub">mobile</div></div>'
+        + '<div class="t">' + clockOf(r.t) + '</div>'
+        + '<div class="i">' + ic("info", 21) + '</div></div>';
     }).join("");
   }
-  paintRecents();
+  paintCalls();
+
+  function addRecent(number) {
+    recents.unshift({ n: number, t: Date.now() });
+    recents = recents.slice(0, 40);
+    try { sessionStorage.setItem("r", JSON.stringify(recents)); } catch (e) {}
+    paintCalls();
+  }
 
   // ── The two-dial rule ─────────────────────────────────────────────────
-  // Ringer keeps this in UserDefaults and alternates per number. Same rule
-  // here: a number dialled before diverts, a new number goes to voicemail.
-  var dialled = {};
-  try { dialled = JSON.parse(sessionStorage.getItem("d") || "{}"); } catch (e) { dialled = {}; }
-
+  var seen = {};
+  try { seen = JSON.parse(sessionStorage.getItem("d") || "{}"); } catch (e) {}
   function modeFor(number) {
-    var key = number.replace(/\D/g, "");
-    var seen = !!dialled[key];
-    dialled[key] = true;
-    try { sessionStorage.setItem("d", JSON.stringify(dialled)); } catch (e) {}
-    return seen ? "divert" : "voicemail";
+    var key = number.replace(/[^0-9]/g, "");
+    var been = !!seen[key];
+    seen[key] = true;
+    try { sessionStorage.setItem("d", JSON.stringify(seen)); } catch (e) {}
+    return been ? "divert" : "voicemail";
   }
 
   // ── The call ──────────────────────────────────────────────────────────
-  var device = null, conn = null, tick = null, seconds = 0;
+  var device = null, conn = null, tick = null, secs = 0;
   var callNum = document.getElementById("callNum");
   var callState = document.getElementById("callState");
 
-  function setState(t) { callState.textContent = t; }
-
   function startTimer() {
-    seconds = 0;
+    secs = 0;
     clearInterval(tick);
     tick = setInterval(function () {
-      seconds += 1;
-      var m = Math.floor(seconds / 60), s = seconds % 60;
-      setState(m + ":" + (s < 10 ? "0" : "") + s);
+      secs += 1;
+      var m = Math.floor(secs / 60), s = secs % 60;
+      callState.textContent = m + ":" + (s < 10 ? "0" : "") + s;
     }, 1000);
   }
 
@@ -346,34 +455,33 @@
     var number = digits;
     var mode = modeFor(number);
 
-    callNum.textContent = pretty(number);
-    setState("calling…");
+    callNum.textContent = fmt(number);
+    callState.textContent = "calling…";
     show("call");
     sendToApp(number);
+    addRecent(number);
+    digits = ""; paint();
 
     try {
       var dev = await getDevice();
-      // The dialled number rides along as a parameter for the log only. The
-      // TwiML app routes on `mode`, which is why no stranger is ever called.
+      // The dialled number rides along for the log only. The TwiML app routes
+      // on `mode`, which is why no stranger is ever called.
       conn = await dev.connect({ params: { mode: mode, To: number } });
-      conn.on("accept", function () { startTimer(); });
-      conn.on("disconnect", function () { endCall(mode === "voicemail"); });
-      conn.on("error", function () { setState("call failed"); });
+      conn.on("accept", startTimer);
+      conn.on("disconnect", function () { hangUp(); });
+      conn.on("error", function () { callState.textContent = "call failed"; });
     } catch (e) {
-      setState("call failed");
+      callState.textContent = "call failed";
     }
   });
 
-  function endCall(missed) {
+  function hangUp() {
     clearInterval(tick);
     try { if (conn) conn.disconnect(); } catch (e) {}
     conn = null;
-    addRecent(digits, missed);
-    digits = ""; paint();
     show("keypad");
   }
-
-  document.getElementById("endBtn").addEventListener("click", function () { endCall(false); });
+  document.getElementById("endBtn").addEventListener("click", hangUp);
 
   document.getElementById("muteBtn").addEventListener("click", function () {
     var b = document.getElementById("muteBtn");
@@ -382,9 +490,8 @@
     try { if (conn) conn.mute(on); } catch (e) {}
   });
 
-  // Cosmetic only. iOS Safari plays WebRTC audio through the loudspeaker and
-  // gives no way to route it to the earpiece, so this button cannot do what it
-  // says. It is here because a call screen without one looks wrong, and it
+  // Cosmetic. iOS Safari plays WebRTC audio through the loudspeaker and gives
+  // no way to route it to the earpiece, so this cannot do what it says. It
   // starts lit because the loudspeaker is in fact what is happening.
   document.getElementById("spkBtn").addEventListener("click", function () {
     document.getElementById("spkBtn").classList.toggle("on");
