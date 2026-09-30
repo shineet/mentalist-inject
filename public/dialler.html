@@ -19,8 +19,13 @@
     --bg: #ffffff;
     --label: #000000;
     --secondary: #8e8e93;
-    --key: #f2f2f7;          /* systemGray6 */
-    --keyDown: #d1d1d6;      /* systemGray4 */
+    /* iOS 26's keypad is WHITE with a soft shadow, not a flat grey circle.
+       Side by side against the real Phone app that was the most obvious
+       difference on the screen. */
+    --key: #ffffff;
+    --keyDown: #e4e4e9;
+    --keyShadow: 0 1px 3px rgba(0,0,0,0.13), 0 0 0 0.5px rgba(0,0,0,0.03);
+    --tabSel: rgba(120,120,128,0.14);
     --gray5: #e5e5ea;
     --blue: #007aff;
     --green: #34c759;
@@ -33,8 +38,10 @@
       --bg: #000000;
       --label: #ffffff;
       --secondary: #8e8e93;
-      --key: #333333;        /* white 0.20 */
-      --keyDown: #575757;    /* white 0.34 */
+      --key: #2a2a2c;
+      --keyDown: #4a4a4e;
+      --keyShadow: 0 1px 3px rgba(0,0,0,0.5);
+      --tabSel: rgba(120,120,128,0.30);
       --gray5: #2c2c2e;
       --hair: rgba(255,255,255,0.10);
       --material: rgba(30,30,30,0.80);
@@ -70,10 +77,11 @@
     white-space: nowrap;
   }
   #keys { margin-top: 8px; display: flex; flex-direction: column;
-          align-items: center; gap: 12px; }
-  .row { display: flex; gap: 24px; }
+          align-items: center; gap: 16px; }
+  .row { display: flex; gap: 28px; }
   .k {
     border-radius: 50%; background: var(--key);
+    box-shadow: var(--keyShadow);
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     line-height: 1;
   }
@@ -102,9 +110,15 @@
     border: 0.5px solid var(--hair);
     border-radius: 999px;
   }
+  /* The selected tab sits in a rounded pill, and the unselected icons are
+     filled and dark rather than grey outlines. Both are how the real one
+     looks; neither was how this looked. */
   .tab { flex: 1; display: flex; flex-direction: column; align-items: center;
-         gap: 2px; color: var(--secondary); }
-  .tab.sel { color: var(--blue); }
+         gap: 2px; color: var(--label);
+         padding: 5px 2px 4px; border-radius: 18px; }
+  .tab.sel { color: var(--blue); background: var(--tabSel); }
+  .tab .lab { color: var(--secondary); }
+  .tab.sel .lab { color: var(--blue); }
   .tab .lab { font-size: 10px; }
   .tab .ico { position: relative; }
   .badge {
@@ -113,8 +127,9 @@
     border-radius: 999px; padding: 1px 5px; line-height: 1.25;
   }
   /* The search key is a filled circle, not a labelled tab. */
-  .searchKey { width: 52px; height: 52px; border-radius: 50%;
-               background: var(--gray5); color: var(--label);
+  .searchKey { width: 50px; height: 50px; border-radius: 50%;
+               background: var(--key); box-shadow: var(--keyShadow);
+               color: var(--label);
                display: flex; align-items: center; justify-content: center; }
 
   /* ── Calls ──────────────────────────────────────────────────────────── */
@@ -317,8 +332,10 @@
   }
 
   // ── Geometry, from PhoneView.swift ────────────────────────────────────
-  var PAD = 24, GAP = 24;
-  var KEY = Math.min(96, (window.innerWidth - PAD * 2 - GAP * 2) / 3);
+  // Measured against the real Phone app side by side: its keys are slightly
+  // smaller than the app's 96 and the rows are further apart.
+  var PAD = 28, GAP = 28;
+  var KEY = Math.min(88, (window.innerWidth - PAD * 2 - GAP * 2) / 3);
 
   var ORDER = [["1","2","3"],["4","5","6"],["7","8","9"],["*","0","#"]];
   var LETTERS = { "1": "", "2": "ABC", "3": "DEF", "4": "GHI", "5": "JKL",
