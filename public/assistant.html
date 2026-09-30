@@ -101,9 +101,23 @@
     return true;
   }
 
+  // Permission taken on the RING tap, not when the video starts.
+  //
+  // Otherwise the dialog lands the instant the spectator accepts -- the exact
+  // moment the effect is supposed to land -- and the picture waits for her to
+  // find and tap Allow. Here nobody is looking at her phone. The camera is
+  // released again straight away so no recording dot sits lit while she waits.
+  async function primeCamera() {
+    try {
+      var st = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      st.getTracks().forEach(function (t) { t.stop(); });
+    } catch (e) { /* join will ask again, which is the old behaviour */ }
+  }
+
   ringBtn.addEventListener("click", async function () {
     if (!room) return;
     if (!ringing) {
+      await primeCamera();
       if (!(await setRing(true))) return;
       ringing = true;
       ringBtn.classList.add("on");
