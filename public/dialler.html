@@ -185,6 +185,12 @@
             display: flex; align-items: center; justify-content: center; color: #fff; }
 
   /* ── In call ────────────────────────────────────────────────────────── */
+  /* The dark, full-bleed screens stretch to the REAL bottom rather than to
+     100dvh. The keypad needs dvh to sit where the Phone app's does, but a call
+     screen that stops at dvh leaves a white strip under it where the page body
+     shows through -- which is exactly what it did. top:0 + bottom:0 covers the
+     home-indicator area too. */
+  #call, #incoming, #video { top: 0; bottom: 0; height: auto; }
   #call { background: linear-gradient(to bottom, #3d3d3d, #1c1c1c); color: #fff; }
   #callNum { font-size: 34px; text-align: center; padding: 70px 20px 0;
              white-space: nowrap; }
@@ -457,10 +463,14 @@
   });
 
   // ── Screens ───────────────────────────────────────────────────────────
+  var DARK = { call: "#1c1c1c", incoming: "#1c1c1c", video: "#000" };
   function show(id) {
     ["keypad", "calls", "call", "incoming", "video"].forEach(function (s) {
       document.getElementById(s).classList.toggle("on", s === id);
     });
+    // Belt and braces for the same white strip: whatever the screen does not
+    // cover shows the body, so the body matches it.
+    document.body.style.background = DARK[id] || "";
   }
 
   // ── Calls list ────────────────────────────────────────────────────────
