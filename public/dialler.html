@@ -99,11 +99,18 @@
   /* The gap under the call button, matching the app's 10%-of-height tail.
      A fixed vh rather than a JS measurement: window.innerHeight is read once at
      load and is wrong the moment Safari's toolbars collapse. */
-  #keypadBody { padding-bottom: 7vh; }
+  /* The gap between the call button and the tab bar. Measured against the real
+     Phone app rather than the app's 10%-of-height, which is a different number
+     on a web viewport. */
+  #keypadBody { padding-bottom: 4.5vh; }
 
   /* ── Floating capsule tab bar ───────────────────────────────────────── */
   .tabs {
-    margin: 0 16px calc(env(safe-area-inset-bottom) + 6px); padding: 6px 10px;
+    /* The real capsule sits close to the bottom edge, partly INSIDE the home
+       indicator's inset rather than clearing it. Adding the full inset on top
+       of a margin pushed it about 75pt too high. */
+    margin: 0 16px max(10px, calc(env(safe-area-inset-bottom) - 14px));
+    padding: 6px 10px;
     display: flex; align-items: center;
     background: var(--material);
     -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
