@@ -131,6 +131,37 @@
   .none { flex: 1; display: flex; align-items: center; justify-content: center;
           color: var(--secondary); }
 
+  /* ── Incoming, and the video that follows ───────────────────────────── */
+  #incoming { background: linear-gradient(to bottom, #3d3d3d, #1c1c1c); color: #fff;
+              align-items: center; }
+  #inNum { font-size: 36px; text-align: center; padding: 16vh 20px 0; white-space: nowrap; }
+  #inKind { font-size: 17px; color: rgba(255,255,255,0.8); text-align: center; padding-top: 8px; }
+  .answerRow { margin-top: auto; padding: 0 44px calc(env(safe-area-inset-bottom) + 54px);
+               display: flex; justify-content: space-between; width: 100%; }
+  .answer { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .answer .circ { width: 76px; height: 76px; border-radius: 50%;
+                  display: flex; align-items: center; justify-content: center; color: #fff; }
+  .answer.no .circ { background: var(--red); }
+  .answer.yes .circ { background: var(--green); animation: nudge 1.4s ease-in-out infinite; }
+  @keyframes nudge { 0%,100% { transform: none; } 50% { transform: translateY(-7px); } }
+  .answer .lab { font-size: 13px; color: #fff; }
+
+  #video { background: #000; }
+  #remoteWrap { position: absolute; inset: 0; }
+  #remoteWrap video { width: 100%; height: 100%; object-fit: cover; }
+  #selfWrap { position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 14px;
+              width: 104px; height: 150px; border-radius: 12px; overflow: hidden;
+              background: #111; box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+  #selfWrap video { width: 100%; height: 100%; object-fit: cover; }
+  #vidLabel { position: absolute; left: 0; right: 0;
+              top: calc(env(safe-area-inset-top) + 22px);
+              text-align: center; color: #fff; font-size: 20px;
+              text-shadow: 0 1px 6px rgba(0,0,0,0.6); }
+  #vidEnd { position: absolute; left: 50%; transform: translateX(-50%);
+            bottom: calc(env(safe-area-inset-bottom) + 42px);
+            width: 68px; height: 68px; border-radius: 50%; background: var(--red);
+            display: flex; align-items: center; justify-content: center; color: #fff; }
+
   /* ── In call ────────────────────────────────────────────────────────── */
   #call { background: linear-gradient(to bottom, #3d3d3d, #1c1c1c); color: #fff; }
   #callNum { font-size: 34px; text-align: center; padding: 70px 20px 0;
@@ -191,7 +222,26 @@
   </div>
 </div>
 
+<!-- ── Incoming ───────────────────────────────────────────────────────── -->
+<div class="screen" id="incoming">
+  <div id="inNum"></div>
+  <div id="inKind">FaceTime Video</div>
+  <div class="answerRow">
+    <div class="answer no" id="declineBtn"><div class="circ" data-ic="phonedown"></div><div class="lab">Decline</div></div>
+    <div class="answer yes" id="acceptBtn"><div class="circ" data-ic="video"></div><div class="lab">Accept</div></div>
+  </div>
+</div>
+
+<!-- ── Video ──────────────────────────────────────────────────────────── -->
+<div class="screen" id="video">
+  <div id="remoteWrap"></div>
+  <div id="selfWrap"></div>
+  <div id="vidLabel"></div>
+  <div id="vidEnd" data-ic="phonedown"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/twilio-video@2/dist/twilio-video.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
 <script>
 (function () {
@@ -336,6 +386,9 @@
   document.querySelectorAll(".circ[data-ic]").forEach(function (c) {
     c.innerHTML = ic(c.getAttribute("data-ic"), 32);
   });
+  document.querySelectorAll("#vidEnd[data-ic]").forEach(function (c) {
+    c.innerHTML = ic(c.getAttribute("data-ic"), 28);
+  });
 
   // ── Number ────────────────────────────────────────────────────────────
   var digits = "";
@@ -381,7 +434,7 @@
 
   // ── Screens ───────────────────────────────────────────────────────────
   function show(id) {
-    ["keypad", "calls", "call"].forEach(function (s) {
+    ["keypad", "calls", "call", "incoming", "video"].forEach(function (s) {
       document.getElementById(s).classList.toggle("on", s === id);
     });
   }

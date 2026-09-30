@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Call back</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; background: #000; color: #fff;
+    font: 17px/1.4 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; -webkit-user-select: none; user-select: none;
+  }
+  #wrap { position: fixed; inset: 0; display: flex; flex-direction: column;
+          align-items: center; justify-content: center; gap: 22px; padding: 28px; }
+  h1 { font-size: 20px; margin: 0; font-weight: 600; }
+  .room { font: 15px ui-monospace, Menlo, monospace; color: #8e8e93; }
+  button {
+    appearance: none; border: 0; border-radius: 16px; padding: 20px 26px;
+    font: inherit; font-weight: 600; color: #fff; width: 100%; max-width: 330px;
+  }
+  #ring { background: #34c759; font-size: 20px; }
+  #ring.on { background: #ff9500; }
+  #hang { background: #ff3b30; display: none; }
+  #hang.on { display: block; }
+  .note { color: #8e8e93; font-size: 14px; text-align: center; max-width: 34ch; }
+  #state { font-size: 15px; color: #8e8e93; min-height: 20px; }
+  /* Their own camera, small, so they can see they are actually on. */
+  #me { width: 120px; border-radius: 12px; overflow: hidden; display: none; }
+  #me.on { display: block; }
+  #me video { width: 100%; display: block; }
+  #bad { color: #ff9500; font-size: 14px; text-align: center; display: none; }
+</style>
+</head>
+<body>
+
+<div id="wrap">
+  <h1>Call back</h1>
+  <div class="room" id="roomLabel"></div>
+  <div id="me"><video id="meVid" autoplay playsinline muted></video></div>
+  <div id="state"></div>
+  <button id="ring">Ring their phone</button>
+  <button id="hang">Hang up</button>
+  <p class="note">
+    Tap to ring. Their screen shows an incoming call; when they accept, you are
+    connected. Keep this page open during the routine.
+  </p>
+  <p id="bad"></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/twilio-video@2/dist/twilio-video.min.js"></script>
+<script>
+(function () {
+  // The assistant's phone.
+  //
+  // The routine ends with the assistant calling the performer back on
+  // FaceTime. On a borrowed phone none of that is possible -- the assistant
+  // has no handle for it, the disguise relies on renaming a contact in the
+  // performer's own address book, and Safari cannot receive FaceTime. So the
+  // video happens inside the page, and this is the other end of it.
+  //
+  // Ringing and joining are deliberately SEPARATE. The spectator's page must
+  // not ask for the camera until the call is accepted, so this rings first,
+  // and both sides turn their cameras on at the moment of the accept.
+  var params = new URLSearchParams(location.search);
+  var room = params.get("r") || params.get("room") || "";
+  if (!room) {
+    var m = location.pathname.match(/^\/a(?:\/([A-Za-z0-9_-]+))?\/?$/);
+    if (m && m[1]) room = m[1];
+  }
+  room = room.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40);
+  document.getElementById("roomLabel").textContent = room || "no room in this link";
+
+  var ringBtn = document.getElementById("ring");
+  var hangBtn = document.getElementById("hang");
+  var state = document.getElementById("state");
+  var bad = document.getElementById("bad");
+  var me = document.getElementById("me");
+
+  var ringing = false;
+  var vroom = null;
+  var watcher = null;
+
+  function say(t) { state.textContent = t; }
+  function fail(t) { bad.style.display = "block"; bad.textContent = t; }
+
+  async function setRing(on) {
+    var r = await fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ on: on }),
+    });
+    if (!r.ok) { fail("This room is not set up yet. Send the settings from Ringer first."); return false; }
+    return true;
+  }
+
+  ringBtn.addEventListener("click", async function () {
+    if (!room) return;
+    if (!ringing) {
+      if (!(await setRing(true))) return;
+      ringing = true;
+      ringBtn.classList.add("on");
+      ringBtn.textContent = "Ringing… tap to stop";
+      say("Waiting for them to accept");
+      // Join only once they have. Connecting now would light this camera up
+      // for however long the ring lasts, and drain a phone held in a pocket.
+      watcher = setInterval(joinIfAnswered, 1500);
+    } else {
+      await setRing(false);
+      stopRinging();
+    }
+  });
+
+  function stopRinging() {
+    ringing = false;
+    ringBtn.classList.remove("on");
+    ringBtn.textContent = "Ring their phone";
+    clearInterval(watcher); watcher = null;
+    if (!vroom) say("");
+  }
+
+  // The spectator's page clears the ring when it accepts, so the ring going
+  // away IS the answer. One flag, read by both sides, rather than a second
+  // channel to keep in sync.
+  async function joinIfAnswered() {
+    try {
+      var r = await fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", { cache: "no-store" });
+      var d = await r.json();
+      if (d && d.ok && d.ringing === false) {
+        clearInterval(watcher); watcher = null;
+        await join();
+      }
+    } catch (e) {}
+  }
+
+  async function join() {
+    say("Connecting…");
+    try {
+      var t = await fetch("/api/ringer/token?kind=video&who=assistant&room="
+                          + encodeURIComponent(room), { cache: "no-store" });
+      var d = await t.json();
+      if (!d || !d.token) throw new Error((d && d.error) || "no token");
+      vroom = await Twilio.Video.connect(d.token, {
+        name: "ringer-" + room,
+        audio: true,
+        video: { width: 640 },
+      });
+      ringBtn.style.display = "none";
+      hangBtn.classList.add("on");
+      me.classList.add("on");
+      say("Connected");
+      vroom.localParticipant.videoTracks.forEach(function (pub) {
+        var el = pub.track.attach();
+        el.setAttribute("playsinline", "");
+        document.getElementById("meVid").replaceWith(el);
+        el.id = "meVid";
+      });
+      vroom.on("disconnected", function () {
+        vroom = null;
+        hangBtn.classList.remove("on");
+        ringBtn.style.display = "block";
+        me.classList.remove("on");
+        stopRinging();
+        say("Call ended");
+      });
+    } catch (e) {
+      fail("Could not connect: " + (e && e.message ? e.message : e));
+      stopRinging();
+    }
+  }
+
+  hangBtn.addEventListener("click", function () { if (vroom) vroom.disconnect(); });
+
+  // Leaving the page should not leave their phone ringing forever.
+  window.addEventListener("pagehide", function () {
+    if (ringing) navigator.sendBeacon(
+      "/api/ringer/" + encodeURIComponent(room) + "/ring",
+      new Blob([JSON.stringify({ on: false })], { type: "application/json" }));
+    if (vroom) vroom.disconnect();
+  });
+})();
+</script>
+</body>
+</html>

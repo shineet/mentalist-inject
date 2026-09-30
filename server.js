@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v217-token-needs-room";
+const REVISION = "v219-facetime-leg";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1190,8 +1190,17 @@ app.get("/api/ringer/token", async (req, res) => {
   if (!room || !ringerRooms[room]) {
     return res.status(403).json({ error: "this room is not set up for calling" });
   }
+  // kind=video mints a room-scoped Twilio Video grant instead, for the
+  // FaceTime leg. Same gate: the room must be one Ringer configured, and the
+  // grant is good for that room alone.
+  const kind = String(req.query.kind || "") === "video" ? "video" : "voice";
+  const who = String(req.query.who || "") === "assistant" ? "assistant" : "spectator";
+  const upstream = kind === "video"
+    ? RINGER_BACKEND + "/api/voice-token?kind=video&room=" + encodeURIComponent(room)
+        + "&who=" + who
+    : RINGER_BACKEND + "/api/voice-token";
   try {
-    const r = await fetch(RINGER_BACKEND + "/api/voice-token", {
+    const r = await fetch(upstream, {
       headers: { "x-sms-token": token },
     });
     const body = await r.text();
@@ -1280,6 +1289,49 @@ app.get("/api/ringer/:room/assistant", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   if (!rec) return res.status(404).json({ ok: false, error: "nothing set for this room" });
   res.json({ ok: true, assistant: rec.assistant, vm: rec.vm || "", vmvoice: rec.vmvoice || "" });
+});
+
+// ── "The assistant is calling back" ──────────────────────────────────────────
+//
+// The routine ends on a FaceTime from the assistant. On a borrowed phone that
+// is impossible, so the video happens in the page -- and the page must not ask
+// for the camera until it is ACCEPTED. A dialler that requests the camera while
+// it is pretending to be a dialler is finished before it starts.
+//
+// So the assistant's page says "ringing" here, the dialler polls it and draws
+// an incoming call, and only on accept does it take a video token and turn the
+// camera on. The same order a real call has.
+//
+// Gated on the room being configured, like the token endpoint: someone who
+// guessed a room could otherwise make a phone ring mid-show.
+app.post("/api/ringer/:room/ring", express.json({ limit: "2kb" }), (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const rec = ringerRooms[key];
+  if (!rec) return res.status(403).json({ ok: false, error: "room is not set up" });
+  const on = Boolean(req.body && req.body.on);
+  rec.ringing = on ? Date.now() : 0;
+  saveRingerRooms();
+  res.json({ ok: true, ringing: on });
+});
+
+// Read by the dialler. Deliberately open: it reveals only that a room is
+// ringing, which is worth nothing without the room, and the dialler is a public
+// page that cannot hold a token.
+app.get("/api/ringer/:room/ring", (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const rec = ringerRooms[key];
+  res.setHeader("Cache-Control", "no-store");
+  // Rings expire. A ring left on by a page closed mid-rehearsal would have the
+  // next spectator's phone light up before anything had happened.
+  const live = Boolean(rec && rec.ringing && Date.now() - rec.ringing < 120000);
+  res.json({ ok: true, ringing: live });
+});
+
+// The assistant's own page, for their phone. Kept off the /d path so the two
+// links cannot be confused at a glance.
+app.get(["/a", "/a/:room"], (req, res) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  res.sendFile(path.resolve("public", "assistant.html"));
 });
 
 // The audience pages must never be stale. A phone that has held this link
