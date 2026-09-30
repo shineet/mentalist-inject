@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v215-ringer-assistant";
+const REVISION = "v216-ringer-config";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1230,8 +1230,16 @@ app.post("/api/ringer/:room/config", express.json({ limit: "4kb" }), (req, res) 
   if (raw && !/^\+?[0-9]{7,15}$/.test(raw)) {
     return res.status(400).json({ ok: false, error: "not a phone number" });
   }
-  if (raw) ringerRooms[key] = { assistant: raw, at: Date.now() };
-  else delete ringerRooms[key];
+  if (raw) {
+    // The voicemail wording travels with it, so the web dialler says exactly
+    // what the app says rather than falling back to a generic greeting.
+    const vm = String((req.body && req.body.vm) || "").slice(0, 600);
+    const rawVoice = String((req.body && req.body.vmvoice) || "").trim();
+    const vmvoice = /^[A-Za-z0-9.\-]+$/.test(rawVoice) ? rawVoice : "";
+    ringerRooms[key] = { assistant: raw, vm, vmvoice, at: Date.now() };
+  } else {
+    delete ringerRooms[key];
+  }
   saveRingerRooms();
   // Echoes only the last four digits. Enough to confirm the right number went
   // in, useless to anyone who intercepts it.
@@ -1244,17 +1252,22 @@ app.get("/api/ringer/:room/config", (req, res) => {
   const key = normalizeRoom(req.params.room);
   const rec = ringerRooms[key];
   res.setHeader("Cache-Control", "no-store");
-  res.json({ ok: true, room: key, endsWith: rec ? rec.assistant.slice(-4) : null });
+  res.json({
+    ok: true, room: key,
+    endsWith: rec ? rec.assistant.slice(-4) : null,
+    hasVoicemail: Boolean(rec && rec.vm),
+    at: rec ? rec.at : null,
+  });
 });
 
-// The full number, for api/voice-twiml.js alone, at the moment of the call.
+// The full record, for api/voice-twiml.js alone, at the moment of the call.
 app.get("/api/ringer/:room/assistant", (req, res) => {
   if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   const key = normalizeRoom(req.params.room);
   const rec = ringerRooms[key];
   res.setHeader("Cache-Control", "no-store");
-  if (!rec) return res.status(404).json({ ok: false, error: "no assistant set for this room" });
-  res.json({ ok: true, assistant: rec.assistant });
+  if (!rec) return res.status(404).json({ ok: false, error: "nothing set for this room" });
+  res.json({ ok: true, assistant: rec.assistant, vm: rec.vm || "", vmvoice: rec.vmvoice || "" });
 });
 
 // The audience pages must never be stale. A phone that has held this link
