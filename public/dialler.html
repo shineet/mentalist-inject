@@ -473,14 +473,24 @@
   }
 
   // ── The two-dial rule ─────────────────────────────────────────────────
-  var seen = {};
-  try { seen = JSON.parse(sessionStorage.getItem("d") || "{}"); } catch (e) {}
-  function modeFor(number) {
-    var key = number.replace(/[^0-9]/g, "");
-    var been = !!seen[key];
-    seen[key] = true;
-    try { sessionStorage.setItem("d", JSON.stringify(seen)); } catch (e) {}
-    return been ? "divert" : "voicemail";
+  //
+  // ALTERNATES GLOBALLY, and the number does not come into it. Dial any
+  // number: voicemail. Dial any other number: divert. That is what
+  // CallManager.dial does -- one `awaitingDivert` flag flipped on every dial.
+  //
+  // This page first shipped keyed by the number, requiring the SAME one twice,
+  // because a stale comment at the top of CallManager says that is the rule.
+  // The code has always done otherwise. When a comment and the code disagree,
+  // the code is the routine.
+  //
+  // Starts on voicemail every time the page loads, which matches the app's
+  // "on launch, next dial is" reset: a stray test dial cannot silently swap the
+  // two halves of the routine before you walk on.
+  var awaitingDivert = false;
+  function nextMode() {
+    var mode = awaitingDivert ? "divert" : "voicemail";
+    awaitingDivert = !awaitingDivert;
+    return mode;
   }
 
   // ── The call ──────────────────────────────────────────────────────────
@@ -513,7 +523,7 @@
   callBtn.addEventListener("click", async function () {
     if (!digits) return;
     var number = digits;
-    var mode = modeFor(number);
+    var mode = nextMode();
 
     callNum.textContent = fmt(number);
     callState.textContent = "calling…";
