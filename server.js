@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v230-swap-flip-and-see-them";
+const REVISION = "v231-yt-accepts-app-token";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1098,9 +1098,24 @@ function ytChannel(room) { return `yt-${normalizeRoom(room)}`; }
 
 // Same token as the photo transport. One secret for "MystIO is allowed to drive
 // an audience room here", not one per experiment.
+// Either the audience-transport token OR the one MystIO already carries in its
+// source, so a second performer has NOTHING to type.
+//
+// The photo transport's token is entered by hand in Settings, which is fine for
+// Shine and wrong for anyone he hands the app to: a tester pasting a secret is
+// a setup step that will go wrong in front of an audience. MystIO already ships
+// SMS_TOKEN in its binary (as Ringer does), it is already good for minting
+// Twilio voice tokens, and this grants strictly less than that -- so accepting
+// it here adds no exposure that is not already there.
+//
+// Both header names are read, since the app sends x-upload-token and the
+// dialler side sends x-sms-token.
 function ytAuthorised(req) {
-  const expected = process.env.PHOTO_TOKEN || process.env.UPLOAD_TOKEN || "";
-  return Boolean(expected) && req.get("x-upload-token") === expected;
+  const photo = process.env.PHOTO_TOKEN || process.env.UPLOAD_TOKEN || "";
+  const sms = process.env.RINGER_SMS_TOKEN || "";
+  const given = req.get("x-upload-token") || req.get("x-sms-token") || "";
+  if (!given) return false;
+  return (Boolean(photo) && given === photo) || (Boolean(sms) && given === sms);
 }
 
 function ytCounts(room) {
