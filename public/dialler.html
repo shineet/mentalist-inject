@@ -154,14 +154,26 @@
           color: var(--secondary); }
 
   /* ── Incoming, and the video that follows ───────────────────────────── */
-  #incoming { background: linear-gradient(to bottom, #3d3d3d, #1c1c1c); color: #fff;
-              align-items: center; }
-  #inNum { font-size: 36px; text-align: center; padding: 16vh 20px 0; white-space: nowrap; }
-  #inKind { font-size: 17px; color: rgba(255,255,255,0.8); text-align: center; padding-top: 8px; }
-  .answerRow { margin-top: auto; padding: 0 44px calc(env(safe-area-inset-bottom) + 54px);
+  /* An incoming FaceTime, as closely as a page can draw it: the big avatar
+     circle first -- a grey person glyph, which is what iOS shows for a number
+     that is in nobody's contacts, and that is exactly the case for a number
+     the spectator just invented. Without it the screen jumped from the status
+     bar straight to a bare number, which is the thing that read as wrong. */
+  #incoming { background: radial-gradient(120% 90% at 50% 0%, #4a4a4e 0%, #262628 55%, #131315 100%);
+              color: #fff; align-items: center; }
+  #inAvatar { width: 116px; height: 116px; border-radius: 50%;
+              background: rgba(255,255,255,0.20);
+              display: flex; align-items: center; justify-content: center;
+              margin: 15vh auto 0; color: rgba(255,255,255,0.92); }
+  #inAvatar svg { width: 76px; height: 76px; }
+  #inNum { font-size: 32px; font-weight: 400; text-align: center;
+           padding: 20px 20px 0; white-space: nowrap; letter-spacing: 0.2px; }
+  #inKind { font-size: 17px; color: rgba(255,255,255,0.72); text-align: center; padding-top: 6px; }
+  /* iOS puts these well apart, low on the screen, with the labels underneath. */
+  .answerRow { margin-top: auto; padding: 0 52px calc(env(safe-area-inset-bottom) + 46px);
                display: flex; justify-content: space-between; width: 100%; }
-  .answer { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-  .answer .circ { width: 76px; height: 76px; border-radius: 50%;
+  .answer { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+  .answer .circ { width: 80px; height: 80px; border-radius: 50%;
                   display: flex; align-items: center; justify-content: center; color: #fff; }
   .answer.no .circ { background: var(--red); }
   .answer.yes .circ { background: var(--green); animation: nudge 1.4s ease-in-out infinite; }
@@ -252,6 +264,7 @@
 
 <!-- ── Incoming ───────────────────────────────────────────────────────── -->
 <div class="screen" id="incoming">
+  <div id="inAvatar" data-ic="person"></div>
   <div id="inNum"></div>
   <div id="inKind">FaceTime Video</div>
   <div class="answerRow">
@@ -418,6 +431,9 @@
   });
   document.querySelectorAll("#vidEnd[data-ic]").forEach(function (c) {
     c.innerHTML = ic(c.getAttribute("data-ic"), 28);
+  });
+  document.querySelectorAll("#inAvatar[data-ic]").forEach(function (c) {
+    c.innerHTML = ic(c.getAttribute("data-ic"), 76);
   });
 
   // ── Number ────────────────────────────────────────────────────────────
