@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v211-dialler-exact";
+const REVISION = "v213-restore-y";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1131,8 +1131,6 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), (req, res) => {
     state.videoId = id;
     state.title = String(body.title || "").slice(0, 200);
     state.committedAt = Date.now();
-    // Answer every navigation his tap left open. This is the whole effect.
-    state.released = ytRelease(key, state.videoId);
   } else if (body.mode === "idle") {
     // Reset between performances. Without it the next phone to open the link
     // is thrown straight into the last spectator's song.
@@ -1193,6 +1191,26 @@ app.get("/api/ringer/token", async (req, res) => {
   }
 });
 
+// The audience pages must never be stale. A phone that has held this link
+// before will happily reuse its copy, and debugging a page that is not the page
+// you deployed costs a round of testing every time.
+app.get(["/yt.html", "/yt-diag.html"], (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  next();
+});
+
+// The short path for the YouTube reveal, typed onto the spectator's phone while
+// Shine appears to search for their song. Served rather than redirected so the
+// long URL never appears in the address bar in front of them; the page reads
+// its room from the path as well as from ?r=.
+app.get(["/y", "/y/:room"], (req, res) => {
+  const key = normalizeRoom(req.params.room || "x");
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  // `key` is validated only so a malformed room is rejected at the door.
+  void key;
+  res.sendFile(path.resolve("public", "yt.html"));
+});
+
 // The short path, for typing onto a stranger's phone and for writing to an NFC
 // tag. Served rather than redirected so the long URL never appears in the
 // address bar in front of them.
@@ -1201,177 +1219,30 @@ app.get(["/d", "/d/:room"], (req, res) => {
   res.sendFile(path.resolve("public", "dialler.html"));
 });
 
-// A 302 to YouTube, as a DIFFERENT mechanism from an in-page navigation.
+// A 302 to YouTube. Kept only for yt-diag.html.
 //
-// Measured: `location.href = "https://youtube.com/watch?v=..."` on a timer
-// lands in Safari, and the same line inside a click handler opens the app. iOS
-// wants a user gesture in the call stack for a universal link. A server
-// redirect is not an in-page navigation at all, and Apple treats redirect
-// chains by their own rules -- so this may or may not reach the app. It exists
-// to be tested rather than reasoned about.
-// The short way in, because Shine TYPES this on the spectator's phone while
-// appearing to search YouTube for their song. "mindgames.fly.dev/yt.html?r=
-// kqm3xw9pdz" is eleven random characters entered on somebody else's keyboard
-// under a cover story, which is not a thing anyone can do. "/y/kqm3x" is.
+// THE ANSWER, so nobody spends another evening on it. Eleven ways of opening a
+// youtube.com link were measured on one phone, and the conclusion was then
+// re-run on a SECOND phone that had never seen any of this, in case the first
+// had been taught by iOS to prefer Safari. Same result.
 //
-// The query form still works; nothing that already holds a link breaks.
-app.get(["/y", "/y/:room"], (req, res) => {
-  const key = normalizeRoom(req.params.room || "x");
-  res.setHeader("Cache-Control", "no-store, must-revalidate");
-  // Served, not redirected: a redirect would put the long URL in the address
-  // bar a second later, in front of the person holding the phone. The page
-  // reads its room from the path, so nothing needs to be passed here -- `key`
-  // is validated above only so a bad room is rejected at the door.
-  void key;
-  // path.resolve, not __dirname: this file is an ES module and __dirname does
-  // not exist in one. express.static above resolves "public" against the
-  // working directory, so the same relative base is correct here.
-  res.sendFile(path.resolve("public", "yt.html"));
-});
-
-// The audience pages must never be stale. A phone that has held this link
-// before will happily reuse its copy, and debugging a page that is not the
-// page you deployed costs a round of testing every time.
-app.get(["/yt.html", "/yt-diag.html"], (req, res, next) => {
-  res.setHeader("Cache-Control", "no-store, must-revalidate");
-  next();
-});
-
-// ── Three untested ways to reach the YouTube app ──────────────────────────
+//   a plain <a href>, tapped                     -> the YouTube app
+//   location.href inside a click handler         -> the app
+//   a countdown started by a tap, then this 302  -> the app
+//   a navigation begun in a tap, held open, 302  -> the app, after an
+//                                                   "Open in YouTube?" dialog
+//   a countdown started by a tap, direct URL     -> Safari
+//   a countdown started on page load, 302        -> Safari
+//   the same, with a stray tap during it         -> Safari
+//   a watcher created inside a tap, firing later -> Safari
+//   <meta http-equiv="refresh">                  -> Safari
+//   an HTTP Refresh: header                      -> Safari
+//   a TYPED navigation held open, then 302'd     -> Safari
 //
-// Everything measured so far says a touch must be in the call stack at the
-// moment of navigation. These three are not variations on that -- each uses a
-// different mechanism that has never been tried:
-//
-//   /t1        a <meta http-equiv="refresh">. Not JavaScript at all; the
-//              browser performs it as part of rendering the document.
-//   /t2        an HTTP Refresh: header. The same instruction one layer lower,
-//              arriving in the response rather than in the page.
-//   /t3/:room  a navigation STARTED BY TYPING THE URL, held open by this
-//              server until the song is dialled, then answered with a 302.
-//              The most promising of the three: v205 proved a held navigation
-//              does reach the app, and only asked "Open in YouTube?" because
-//              it came from a tap on a page rather than from the address bar.
-//              Typing a URL and pressing Go is the most user-initiated
-//              navigation there is.
-//
-// Default video is Yesterday, so /t1 and /t2 are typeable with nothing after
-// them. Delete this block once the answer is known.
-const T_DEFAULT = "NrgmdOz227I";
-
-function tVideo(req) {
-  const id = String(req.query.v || T_DEFAULT);
-  return /^[A-Za-z0-9_-]{11}$/.test(id) ? id : T_DEFAULT;
-}
-
-app.get("/t1", (req, res) => {
-  const url = "https://www.youtube.com/watch?v=" + tVideo(req);
-  res.setHeader("Cache-Control", "no-store");
-  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8">
-<meta http-equiv="refresh" content="3;url=${url}">
-<title>t1 meta refresh</title>
-<style>body{background:#000;color:#0f0;font:14px ui-monospace,Menlo,monospace;padding:24px}</style>
-</head><body>t1 &mdash; meta refresh, 3 seconds. Touch nothing.</body></html>`);
-});
-
-app.get("/t2", (req, res) => {
-  const url = "https://www.youtube.com/watch?v=" + tVideo(req);
-  res.setHeader("Cache-Control", "no-store");
-  res.setHeader("Refresh", "3; url=" + url);
-  res.type("html").send(`<!doctype html><html><head><meta charset="utf-8">
-<title>t2 refresh header</title>
-<style>body{background:#000;color:#0f0;font:14px ui-monospace,Menlo,monospace;padding:24px}</style>
-</head><body>t2 &mdash; HTTP Refresh header, 3 seconds. Touch nothing.</body></html>`);
-});
-
-// Held from the address bar. Answers nothing until the song is dialled, so
-// Safari sits on a blank page with its loading bar running -- then the commit
-// releases it straight into the video.
-app.get("/t3/:room", (req, res) => {
-  const key = normalizeRoom(req.params.room);
-  const state = ytRoom(key);
-  res.setHeader("Cache-Control", "no-store");
-  if (state.mode === "play" && state.videoId) {
-    return res.redirect(302, "https://www.youtube.com/watch?v=" + state.videoId);
-  }
-  const held = ytWaiters.get(key) || [];
-  held.push(res);
-  ytWaiters.set(key, held);
-  const giveUp = setTimeout(() => {
-    const arr = ytWaiters.get(key) || [];
-    const i = arr.indexOf(res);
-    if (i >= 0) arr.splice(i, 1);
-    try { if (!res.headersSent) res.status(504).type("text").send("t3: nothing was dialled in 60s"); } catch (e) {}
-  }, 60000);
-  res.on("close", () => {
-    clearTimeout(giveUp);
-    const arr = ytWaiters.get(key) || [];
-    const i = arr.indexOf(res);
-    if (i >= 0) arr.splice(i, 1);
-  });
-});
-
-// A navigation that BEGINS inside Shine's tap and ENDS at the reveal.
-//
-// Everything else was tried and measured. iOS hands a youtube.com link to the
-// YouTube app only when a touch is in the call stack at the moment of
-// navigation -- not a touch earlier on the page, not the touch that created
-// the timer, IN it. Seven configurations, all agreeing. So an automatic jump
-// can only ever land in Safari.
-//
-// This is the one way round that does not require a touch after the song is
-// dialled, which is the thing Shine actually needs. He taps play BEFORE the
-// routine. The phone starts navigating here and this request simply does not
-// answer. Safari keeps the page on screen with a loading bar, which looks like
-// a video buffering, and the navigation stays open and un-finished. When the
-// song is dialled, the commit below answers every held request with a 302 to
-// the video -- and it is still the same navigation his finger started.
-const ytWaiters = new Map();
-
-function ytRelease(key, videoId) {
-  const held = ytWaiters.get(key) || [];
-  ytWaiters.set(key, []);
-  for (const r of held) {
-    try { if (!r.headersSent) r.redirect(302, "https://www.youtube.com/watch?v=" + videoId); }
-    catch (e) { /* the phone went away; nothing to do */ }
-  }
-  return held.length;
-}
-
-app.get("/yt-wait/:room", (req, res) => {
-  const key = normalizeRoom(req.params.room);
-  const state = ytRoom(key);
-  res.setHeader("Cache-Control", "no-store");
-
-  // Already holding a song: answer at once. Covers the phone that opens the
-  // page after the send, and a second tap.
-  if (state.mode === "play" && state.videoId) {
-    return res.redirect(302, "https://www.youtube.com/watch?v=" + state.videoId);
-  }
-
-  const held = ytWaiters.get(key) || [];
-  held.push(res);
-  ytWaiters.set(key, held);
-
-  // Safari gives up on a request that never answers, and a spinner that dies
-  // in a spectator's hand is worse than one that quietly starts again. Forty
-  // seconds is inside every mobile timeout and is a very long time to stand
-  // there holding a phone.
-  const giveUp = setTimeout(() => {
-    const arr = ytWaiters.get(key) || [];
-    const i = arr.indexOf(res);
-    if (i >= 0) arr.splice(i, 1);
-    try { if (!res.headersSent) res.redirect(302, "/y/" + key); } catch (e) {}
-  }, 40000);
-
-  res.on("close", () => {
-    clearTimeout(giveUp);
-    const arr = ytWaiters.get(key) || [];
-    const i = arr.indexOf(res);
-    if (i >= 0) arr.splice(i, 1);
-  });
-});
-
+// A touch must be in the call stack AT THE MOMENT of navigation. Nothing else
+// counts, and no page can manufacture one. So the reveal plays in the browser,
+// which suits the patter anyway -- Shine says he is searching for their song,
+// and a browser playing it is what should happen.
 app.get("/yt-go/:id", (req, res) => {
   const id = String(req.params.id || "");
   if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return res.status(400).send("bad id");
