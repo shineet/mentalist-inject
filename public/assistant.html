@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Call back</title>
 <style>
   :root { color-scheme: dark; }
@@ -12,37 +13,62 @@
     margin: 0; height: 100%; background: #000; color: #fff;
     font: 17px/1.4 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased; -webkit-user-select: none; user-select: none;
+    overscroll-behavior: none;
   }
-  #wrap { position: fixed; inset: 0; display: flex; flex-direction: column;
-          align-items: center; justify-content: center; gap: 22px; padding: 28px; }
+  video { display: block; }
+
+  /* ── Idle: ring them ─────────────────────────────────────────────────── */
+  #setup { position: fixed; inset: 0; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; gap: 20px; padding: 28px; }
+  #setup.off { display: none; }
   h1 { font-size: 20px; margin: 0; font-weight: 600; }
   .room { font: 15px ui-monospace, Menlo, monospace; color: #8e8e93; }
-  button {
-    appearance: none; border: 0; border-radius: 16px; padding: 20px 26px;
-    font: inherit; font-weight: 600; color: #fff; width: 100%; max-width: 330px;
-  }
+  button { appearance: none; border: 0; border-radius: 16px; padding: 20px 26px;
+           font: inherit; font-weight: 600; color: #fff; width: 100%; max-width: 330px; }
   #ring { background: #34c759; font-size: 20px; }
   #ring.on { background: #ff9500; }
-  #hang { background: #ff3b30; display: none; }
-  #hang.on { display: block; }
   .note { color: #8e8e93; font-size: 14px; text-align: center; max-width: 34ch; }
   #state { font-size: 15px; color: #8e8e93; min-height: 20px; }
-  /* Their own camera, small, so they can see they are actually on. */
-  #me { width: 120px; border-radius: 12px; overflow: hidden; display: none; }
-  #me.on { display: block; }
-  #me video { width: 100%; display: block; }
   #bad { color: #ff9500; font-size: 14px; text-align: center; display: none; }
+  #perm { font-size: 13px; }
+  #perm.ok { color: #34c759; }
+  #perm.no { color: #ff9500; }
+
+  /* ── In the video call ───────────────────────────────────────────────── */
+  /* The SPECTATOR fills the screen. She has to watch the audience and talk to
+     them, so her own face is the small one -- which is also how FaceTime does
+     it, and how this did NOT: the first version attached only her own camera
+     and never the other participant at all, so she saw a small window of
+     herself and nothing else. That was a missing feature, not a setting. */
+  #call { position: fixed; inset: 0; display: none; background: #000; }
+  #call.on { display: block; }
+  #big { position: absolute; inset: 0; }
+  #big video { width: 100%; height: 100%; object-fit: cover; }
+  #small { position: absolute; top: calc(env(safe-area-inset-top) + 16px); right: 16px;
+           width: 108px; height: 156px; border-radius: 14px; overflow: hidden;
+           background: #141416; box-shadow: 0 3px 14px rgba(0,0,0,0.5); }
+  #small video { width: 100%; height: 100%; object-fit: cover; }
+  /* Mirrored only when it is her own FRONT camera, like every self-view. */
+  .mirror video { transform: scaleX(-1); }
+  #ctlRow { position: absolute; left: 0; right: 0;
+            bottom: calc(env(safe-area-inset-bottom) + 34px);
+            display: flex; justify-content: center; gap: 26px; }
+  .cbtn { width: 64px; height: 64px; border-radius: 50%;
+          background: rgba(255,255,255,0.22); color: #fff;
+          display: flex; align-items: center; justify-content: center;
+          -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+  .cbtn.end { background: #ff3b30; }
+  .cbtn svg { width: 28px; height: 28px; fill: currentColor; }
 </style>
 </head>
 <body>
 
-<div id="wrap">
+<div id="setup">
   <h1>Call back</h1>
   <div class="room" id="roomLabel"></div>
-  <div id="me"><video id="meVid" autoplay playsinline muted></video></div>
+  <div id="perm"></div>
   <div id="state"></div>
   <button id="ring">Ring their phone</button>
-  <button id="hang">Hang up</button>
   <p class="note">
     You will be on an ordinary phone call first. Put it on speaker, come here,
     tap Ring, and <b>stay on this page</b>.
@@ -55,20 +81,32 @@
   <p id="bad"></p>
 </div>
 
+<div id="call">
+  <div id="big"></div>
+  <div id="small"></div>
+  <div id="ctlRow">
+    <div class="cbtn" id="flipBtn"></div>
+    <div class="cbtn end" id="hangBtn"></div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/twilio-video@2/dist/twilio-video.min.js"></script>
 <script>
 (function () {
-  // The assistant's phone.
+  // The assistant's phone: the other end of the callback.
   //
-  // The routine ends with the assistant calling the performer back on
-  // FaceTime. On a borrowed phone none of that is possible -- the assistant
-  // has no handle for it, the disguise relies on renaming a contact in the
-  // performer's own address book, and Safari cannot receive FaceTime. So the
-  // video happens inside the page, and this is the other end of it.
-  //
-  // Ringing and joining are deliberately SEPARATE. The spectator's page must
-  // not ask for the camera until the call is accepted, so this rings first,
-  // and both sides turn their cameras on at the moment of the accept.
+  // The routine ends with her calling the performer back on FaceTime, which on
+  // a borrowed phone is impossible -- she has no handle for it, the disguise
+  // relies on renaming a contact in HIS address book, and Safari cannot
+  // receive FaceTime. So the video happens in the page, and this is her side.
+
+  var ICONS = {
+    flip: '<svg viewBox="0 0 24 24"><path d="M9.4 3h5.2l1.3 1.8H20a2 2 0 0 1 2 2v11.4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6.8a2 2 0 0 1 2-2h4.1L9.4 3zm2.6 4.6a5.4 5.4 0 0 0-5.3 4.4l-1.4-1-.9 1.2 3 2.2 2.4-2.8-1.2-1-.9 1a3.9 3.9 0 0 1 6.6-1.9l1.1-1.1A5.4 5.4 0 0 0 12 7.6zm5.7 3.6-2.4 2.8 1.2 1 .9-1a3.9 3.9 0 0 1-6.6 1.9l-1.1 1.1a5.4 5.4 0 0 0 9.1-2.6l1.4 1 .9-1.2-3.4-2z"/></svg>',
+    end: '<svg viewBox="0 0 24 24" style="transform:rotate(135deg)"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>',
+  };
+  document.getElementById("flipBtn").innerHTML = ICONS.flip;
+  document.getElementById("hangBtn").innerHTML = ICONS.end;
+
   var params = new URLSearchParams(location.search);
   var room = params.get("r") || params.get("room") || "";
   if (!room) {
@@ -79,53 +117,65 @@
   document.getElementById("roomLabel").textContent = room || "no room in this link";
 
   var ringBtn = document.getElementById("ring");
-  var hangBtn = document.getElementById("hang");
   var state = document.getElementById("state");
   var bad = document.getElementById("bad");
-  var me = document.getElementById("me");
+  var perm = document.getElementById("perm");
 
-  var ringing = false;
-  var vroom = null;
-  var watcher = null;
+  var ringing = false, vroom = null, watcher = null;
+  var facing = "user";   // which camera her own picture is coming from
+  var selfBig = false;   // which window her own picture is in
 
   function say(t) { state.textContent = t; }
   function fail(t) { bad.style.display = "block"; bad.textContent = t; }
 
+  // ── Permission, at LOAD ───────────────────────────────────────────────
+  //
+  // Not on the Ring tap and certainly not when the video starts. Asked at load
+  // she deals with it once, before anything is happening, which is the only
+  // moment nobody is waiting on her. Released immediately, so no recording dot
+  // sits lit while she waits for her cue.
+  async function askForMedia() {
+    try {
+      var st = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      st.getTracks().forEach(function (t) { t.stop(); });
+      perm.className = "ok";
+      perm.textContent = "Camera and microphone ready";
+      return true;
+    } catch (e) {
+      perm.className = "no";
+      perm.textContent = "Not allowed yet — tap the screen to grant it";
+      return false;
+    }
+  }
+
+  askForMedia().then(function (ok) {
+    if (ok) return;
+    // Some Safari versions refuse getUserMedia outside a gesture.
+    var once = function () { document.removeEventListener("touchend", once); askForMedia(); };
+    document.addEventListener("touchend", once);
+  });
+
+  // ── Ringing ───────────────────────────────────────────────────────────
   async function setRing(on) {
     var r = await fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ on: on }),
     });
     if (!r.ok) { fail("This room is not set up yet. Send the settings from Ringer first."); return false; }
     return true;
   }
 
-  // Permission taken on the RING tap, not when the video starts.
-  //
-  // Otherwise the dialog lands the instant the spectator accepts -- the exact
-  // moment the effect is supposed to land -- and the picture waits for her to
-  // find and tap Allow. Here nobody is looking at her phone. The camera is
-  // released again straight away so no recording dot sits lit while she waits.
-  async function primeCamera() {
-    try {
-      var st = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      st.getTracks().forEach(function (t) { t.stop(); });
-    } catch (e) { /* join will ask again, which is the old behaviour */ }
-  }
-
   ringBtn.addEventListener("click", async function () {
     if (!room) return;
     if (!ringing) {
-      await primeCamera();
       if (!(await setRing(true))) return;
       ringing = true;
       ringBtn.classList.add("on");
       ringBtn.textContent = "Ringing… tap to stop";
       say("Waiting for them to accept");
-      // Join only once they have. Connecting now would light this camera up
-      // for however long the ring lasts, and drain a phone held in a pocket.
-      watcher = setInterval(joinIfAnswered, 1500);
+      // Join only once they have. Connecting now would light her camera for
+      // the whole ring, in her pocket.
+      watcher = setInterval(joinIfAnswered, 1200);
     } else {
       await setRing(false);
       stopRinging();
@@ -140,9 +190,7 @@
     if (!vroom) say("");
   }
 
-  // The spectator's page clears the ring when it accepts, so the ring going
-  // away IS the answer. One flag, read by both sides, rather than a second
-  // channel to keep in sync.
+  // The ring going away IS the answer: one flag both sides read.
   async function joinIfAnswered() {
     try {
       var r = await fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", { cache: "no-store" });
@@ -154,6 +202,7 @@
     } catch (e) {}
   }
 
+  // ── The call ──────────────────────────────────────────────────────────
   async function join() {
     say("Connecting…");
     try {
@@ -162,37 +211,126 @@
       var d = await t.json();
       if (!d || !d.token) throw new Error((d && d.error) || "no token");
       vroom = await Twilio.Video.connect(d.token, {
-        name: "ringer-" + room,
-        audio: true,
-        video: { width: 640 },
+        name: "ringer-" + room, audio: true, video: { facingMode: facing, width: 640 },
       });
-      ringBtn.style.display = "none";
-      hangBtn.classList.add("on");
-      me.classList.add("on");
-      say("Connected");
-      vroom.localParticipant.videoTracks.forEach(function (pub) {
-        var el = pub.track.attach();
-        el.setAttribute("playsinline", "");
-        document.getElementById("meVid").replaceWith(el);
-        el.id = "meVid";
-      });
-      vroom.on("disconnected", function () {
-        vroom = null;
-        hangBtn.classList.remove("on");
-        ringBtn.style.display = "block";
-        me.classList.remove("on");
-        stopRinging();
-        say("Call ended");
-      });
+      document.getElementById("setup").classList.add("off");
+      document.getElementById("call").classList.add("on");
+      vroom.participants.forEach(attachRemote);
+      vroom.on("participantConnected", attachRemote);
+      vroom.on("participantDisconnected", leave);
+      vroom.on("disconnected", leave);
+      redraw();
     } catch (e) {
-      fail("Could not connect: " + (e && e.message ? e.message : e));
+      fail("Could not connect: " + ((e && e.message) || e));
       stopRinging();
     }
   }
 
-  hangBtn.addEventListener("click", function () { if (vroom) vroom.disconnect(); });
+  function selfBox() { return document.getElementById(selfBig ? "big" : "small"); }
+  function themBox() { return document.getElementById(selfBig ? "small" : "big"); }
 
-  // Leaving the page should not leave their phone ringing forever.
+  // THIS is what was missing entirely. Without it she saw her own small
+  // preview and nothing else, which is exactly what she reported.
+  function attachRemote(p) {
+    p.on("trackSubscribed", function () { redraw(); });
+    p.on("trackUnsubscribed", function () { redraw(); });
+    redraw();
+  }
+
+  function theirVideoTrack() {
+    var found = null;
+    if (!vroom) return null;
+    vroom.participants.forEach(function (p) {
+      p.videoTracks.forEach(function (pub) { if (pub.track) found = pub.track; });
+    });
+    return found;
+  }
+
+  function myVideoTrack() {
+    var found = null;
+    if (!vroom) return null;
+    vroom.localParticipant.videoTracks.forEach(function (pub) { if (pub.track) found = pub.track; });
+    return found;
+  }
+
+  // One place decides what goes where, so a swap, a flip and someone joining
+  // all end up consistent instead of each patching the DOM their own way.
+  function redraw() {
+    if (!vroom) return;
+    var big = document.getElementById("big");
+    var small = document.getElementById("small");
+    big.replaceChildren(); small.replaceChildren();
+    big.classList.remove("mirror"); small.classList.remove("mirror");
+
+    var mine = myVideoTrack();
+    var theirs = theirVideoTrack();
+
+    if (mine) {
+      var me = mine.attach();
+      me.setAttribute("playsinline", ""); me.muted = true;
+      selfBox().appendChild(me);
+      // A back camera is not mirrored; only a self-view is.
+      if (facing === "user") selfBox().classList.add("mirror");
+    }
+    if (theirs) {
+      var them = theirs.attach();
+      them.setAttribute("playsinline", "");
+      themBox().appendChild(them);
+    }
+    // Their audio, always, and hidden.
+    vroom.participants.forEach(function (p) {
+      p.audioTracks.forEach(function (pub) {
+        if (!pub.track) return;
+        var a = pub.track.attach();
+        a.style.display = "none";
+        big.appendChild(a);
+      });
+    });
+  }
+
+  // Tap the small window to swap, the way FaceTime does.
+  document.getElementById("small").addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (!vroom) return;
+    selfBig = !selfBig;
+    redraw();
+  });
+
+  // Front or back camera. Her back camera is what she wants when the spectator
+  // should be looking at something rather than at her.
+  document.getElementById("flipBtn").addEventListener("click", async function () {
+    if (!vroom) return;
+    var wanted = (facing === "user") ? "environment" : "user";
+    try {
+      var fresh = await Twilio.Video.createLocalVideoTrack({ facingMode: wanted, width: 640 });
+      var old = myVideoTrack();
+      if (old) {
+        vroom.localParticipant.unpublishTrack(old);
+        old.detach().forEach(function (el) { el.remove(); });
+        old.stop();
+      }
+      await vroom.localParticipant.publishTrack(fresh);
+      facing = wanted;
+      redraw();
+    } catch (e) { /* stay on the camera we had */ }
+  });
+
+  document.getElementById("hangBtn").addEventListener("click", function () {
+    if (vroom) vroom.disconnect();
+  });
+
+  function leave() {
+    try { if (vroom) vroom.disconnect(); } catch (e) {}
+    vroom = null;
+    document.getElementById("big").replaceChildren();
+    document.getElementById("small").replaceChildren();
+    document.getElementById("call").classList.remove("on");
+    document.getElementById("setup").classList.remove("off");
+    stopRinging();
+    say("Call ended");
+  }
+
+  // Leaving should not leave their phone ringing for ever.
   window.addEventListener("pagehide", function () {
     if (ringing) navigator.sendBeacon(
       "/api/ringer/" + encodeURIComponent(room) + "/ring",

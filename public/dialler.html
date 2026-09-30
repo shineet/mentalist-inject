@@ -200,6 +200,15 @@
               width: 104px; height: 150px; border-radius: 12px; overflow: hidden;
               background: #111; box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
   #selfWrap video { width: 100%; height: 100%; object-fit: cover; }
+  /* Mirrored only for a FRONT camera, like every self-view. */
+  .mirror video { transform: scaleX(-1); }
+  /* Flip front/back, beside the end button, where FaceTime keeps it. */
+  #vidFlip { position: absolute; right: 28px;
+             bottom: calc(env(safe-area-inset-bottom) + 44px);
+             width: 60px; height: 60px; border-radius: 50%;
+             background: rgba(255,255,255,0.22); color: #fff;
+             display: flex; align-items: center; justify-content: center;
+             -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
   #vidLabel { position: absolute; left: 0; right: 0;
               top: calc(env(safe-area-inset-top) + 22px);
               text-align: center; color: #fff; font-size: 20px;
@@ -292,6 +301,7 @@
   <div id="remoteWrap"></div>
   <div id="selfWrap"></div>
   <div id="vidLabel"></div>
+  <div id="vidFlip" data-ic="flip"></div>
   <div id="vidEnd" data-ic="phonedown"></div>
 </div>
 
@@ -332,6 +342,7 @@
     video: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M4 5.5h9a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H4A2.5 2.5 0 0 1 1.5 16V8A2.5 2.5 0 0 1 4 5.5zM22 7.6v8.8c0 .8-.9 1.3-1.6.8L17 14.7V9.3l3.4-2.5c.7-.5 1.6 0 1.6.8z"/></svg>',
     micslash: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M15 10.6V5a3 3 0 0 0-5.9-.7L15 10.6zM9 8.9v2.6a3 3 0 0 0 4.3 2.7L9 8.9zM5.7 4.3 4.3 5.7l3.1 3.1v2.7a4.6 4.6 0 0 0 6.9 4l1.4 1.4a6.4 6.4 0 0 1-3.9 1.2V21h-1.6v-2.9A6.5 6.5 0 0 1 5 11.7h1.6a4.9 4.9 0 0 0 .3 1.6L3.9 10.3l-.3.2v1.2a8.4 8.4 0 0 0 .5 2.6l14.2 4.6 1.4-1.4L5.7 4.3zM17.4 11.7H19a6.5 6.5 0 0 1-1.5 3.7l-1.2-1.2a4.9 4.9 0 0 0 1.1-2.5z"/></svg>',
     ellipsis: '<svg viewBox="0 0 24 24" width="W" height="W"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>',
+    flip: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M9.4 3h5.2l1.3 1.8H20a2 2 0 0 1 2 2v11.4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6.8a2 2 0 0 1 2-2h4.1L9.4 3zm2.6 4.6a5.4 5.4 0 0 0-5.3 4.4l-1.4-1-.9 1.2 3 2.2 2.4-2.8-1.2-1-.9 1a3.9 3.9 0 0 1 6.6-1.9l1.1-1.1A5.4 5.4 0 0 0 12 7.6zm5.7 3.6-2.4 2.8 1.2 1 .9-1a3.9 3.9 0 0 1-6.6 1.9l-1.1 1.1a5.4 5.4 0 0 0 9.1-2.6l1.4 1 .9-1.2-3.4-2z"/></svg>',
     info: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4.4a1.3 1.3 0 1 1 0 2.6 1.3 1.3 0 0 1 0-2.6zm1.4 11.1h-2.8v-1h.6v-4h-.6v-1h2.2v5h.6z"/></svg>',
   };
   function ic(name, size) { return (IC[name] || "").replace(/W/g, size); }
@@ -443,8 +454,8 @@
   document.querySelectorAll(".circ[data-ic]").forEach(function (c) {
     c.innerHTML = ic(c.getAttribute("data-ic"), 32);
   });
-  document.querySelectorAll("#vidEnd[data-ic]").forEach(function (c) {
-    c.innerHTML = ic(c.getAttribute("data-ic"), 28);
+  document.querySelectorAll("#vidEnd[data-ic], #vidFlip[data-ic]").forEach(function (c) {
+    c.innerHTML = ic(c.getAttribute("data-ic"), 26);
   });
   document.querySelectorAll("#inAvatar[data-ic]").forEach(function (c) {
     c.innerHTML = ic(c.getAttribute("data-ic"), 76);
@@ -781,40 +792,109 @@
       var d = await t.json();
       if (!d || !d.token) throw new Error((d && d.error) || "no token");
       vroom = await Twilio.Video.connect(d.token, {
-        name: "ringer-" + room, audio: true, video: { width: 640 },
+        name: "ringer-" + room, audio: true,
+        video: { facingMode: vidFacing, width: 640 },
       });
-      attachSelf(vroom.localParticipant);
       vroom.participants.forEach(attachRemote);
       vroom.on("participantConnected", attachRemote);
       vroom.on("participantDisconnected", endVideo);
       vroom.on("disconnected", endVideo);
+      redrawVideo();
     } catch (e) {
       document.getElementById("vidLabel").textContent =
         "Could not connect: " + ((e && e.message) || e);
     }
   });
 
-  function attachSelf(p) {
-    p.videoTracks.forEach(function (pub) {
-      if (!pub.track) return;
-      var el = pub.track.attach();
-      el.setAttribute("playsinline", "");
-      el.muted = true;
-      document.getElementById("selfWrap").replaceChildren(el);
+  // One place decides what goes where, so swapping, flipping and someone
+  // joining all end up consistent instead of each patching the DOM its own way.
+  var vidFacing = "user";   // which camera this phone is sending
+  var selfBig = false;      // which window this phone's own picture is in
+
+  function selfBox() { return document.getElementById(selfBig ? "remoteWrap" : "selfWrap"); }
+  function themBox() { return document.getElementById(selfBig ? "selfWrap" : "remoteWrap"); }
+
+  function myVideoTrack() {
+    var found = null;
+    if (!vroom) return null;
+    vroom.localParticipant.videoTracks.forEach(function (pub) { if (pub.track) found = pub.track; });
+    return found;
+  }
+
+  function theirVideoTrack() {
+    var found = null;
+    if (!vroom) return null;
+    vroom.participants.forEach(function (p) {
+      p.videoTracks.forEach(function (pub) { if (pub.track) found = pub.track; });
     });
+    return found;
   }
 
   function attachRemote(p) {
-    p.tracks.forEach(function (pub) { if (pub.track) place(pub.track); });
-    p.on("trackSubscribed", place);
+    p.on("trackSubscribed", function () { redrawVideo(); });
+    p.on("trackUnsubscribed", function () { redrawVideo(); });
+    redrawVideo();
   }
 
-  function place(track) {
-    var el = track.attach();
-    el.setAttribute("playsinline", "");
-    if (track.kind === "video") document.getElementById("remoteWrap").replaceChildren(el);
-    else document.getElementById("remoteWrap").appendChild(el);
+  function redrawVideo() {
+    if (!vroom) return;
+    var big = document.getElementById("remoteWrap");
+    var small = document.getElementById("selfWrap");
+    big.replaceChildren(); small.replaceChildren();
+    big.classList.remove("mirror"); small.classList.remove("mirror");
+
+    var mine = myVideoTrack();
+    var theirs = theirVideoTrack();
+
+    if (mine) {
+      var me = mine.attach();
+      me.setAttribute("playsinline", ""); me.muted = true;
+      selfBox().appendChild(me);
+      // A back camera is not mirrored; only a self-view is.
+      if (vidFacing === "user") selfBox().classList.add("mirror");
+    }
+    if (theirs) {
+      var them = theirs.attach();
+      them.setAttribute("playsinline", "");
+      themBox().appendChild(them);
+    }
+    vroom.participants.forEach(function (p) {
+      p.audioTracks.forEach(function (pub) {
+        if (!pub.track) return;
+        var a = pub.track.attach();
+        a.style.display = "none";
+        big.appendChild(a);
+      });
+    });
   }
+
+  // Tap the small window to swap, the way FaceTime does.
+  document.getElementById("selfWrap").addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (!vroom) return;
+    selfBig = !selfBig;
+    redrawVideo();
+  });
+
+  // Front or back camera, for when the spectator should be showing something
+  // rather than themselves.
+  document.getElementById("vidFlip").addEventListener("click", async function (e) {
+    e.stopPropagation();
+    if (!vroom) return;
+    var wanted = (vidFacing === "user") ? "environment" : "user";
+    try {
+      var fresh = await Twilio.Video.createLocalVideoTrack({ facingMode: wanted, width: 640 });
+      var old = myVideoTrack();
+      if (old) {
+        vroom.localParticipant.unpublishTrack(old);
+        old.detach().forEach(function (el) { el.remove(); });
+        old.stop();
+      }
+      await vroom.localParticipant.publishTrack(fresh);
+      vidFacing = wanted;
+      redrawVideo();
+    } catch (err) { /* stay on the camera we had */ }
+  });
 
   function endVideo() {
     try { if (vroom) vroom.disconnect(); } catch (e) {}
