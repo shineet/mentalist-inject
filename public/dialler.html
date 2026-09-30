@@ -514,7 +514,14 @@
     // is gated on the room being one Ringer has configured.
     var r = await fetch("/api/ringer/token?room=" + encodeURIComponent(room),
                         { cache: "no-store" });
-    var d = await r.json();
+    var d = null;
+    try { d = await r.json(); } catch (e) {}
+    if (r.status === 403) {
+      // Overwhelmingly the most common cause, and it used to read "call
+      // failed" like everything else.
+      throw new Error("room not set up \u2014 send from Ringer first");
+    }
+    if (!r.ok) throw new Error("token " + r.status);
     if (!d || !d.token) throw new Error((d && d.error) || "no token");
     device = new Twilio.Device(d.token, { codecPreferences: ["opus", "pcmu"] });
     return device;
@@ -542,9 +549,16 @@
       conn = await dev.connect({ params: { mode: mode, room: room, To: number } });
       conn.on("accept", startTimer);
       conn.on("disconnect", function () { hangUp(); });
-      conn.on("error", function () { callState.textContent = "call failed"; });
+      conn.on("error", function (err) {
+        callState.textContent = "call failed: " + ((err && err.message) || "twilio");
+      });
     } catch (e) {
-      callState.textContent = "call failed";
+      // The reason, not just the fact. "call failed" for every cause meant a
+      // room that was never configured, a denied microphone and a broken
+      // token all looked identical from the far side of the room.
+      var why = (e && e.message) ? String(e.message) : String(e);
+      if (/NotAllowed|Permission|denied/i.test(why)) why = "microphone was blocked";
+      callState.textContent = why;
     }
   });
 
