@@ -100,13 +100,13 @@
 <body>
 
 <!-- iOS will not lock the screen while a video plays. NoSleep.js's trick, which
-     Earworm has had all along: a 2x2 silent clip loops out of sight. Starting it
+     the other product has had all along: a 2x2 silent clip loops out of sight. Starting it
      is media playback and so needs the tap, which is the other reason the tap on
      the cover exists. -->
 <video id="awake" src="/awake.mp4" loop muted playsinline
        style="position:fixed;width:2px;height:2px;opacity:.01;pointer-events:none;left:0;top:0"></video>
 
-<!-- The landing page, which is Earworm's shape: a service picker rather than
+<!-- The landing page, which copies the shape of the other product: a service picker rather than
      anything that looks like a magic app. Theirs is titled "Google" and offers
      YouTube and Wikipedia; a spectator glancing at it sees a search page.
      The priming entry is deliberately quiet for the same reason -- it is the
@@ -128,7 +128,7 @@
   // which is the one arrangement that reaches the YouTube app every time.
   //
   // Performing used to happen on this same page, with the navigation fired by a
-  // timer once the song arrived. That lands in Safari. Earworm splits the two
+  // timer once the song arrived. That lands in Safari. the other product splits the two
   // across separate documents and reaches the app, so this does the same: the
   // tile navigates to /y/<room>/go from inside the tap, and that page is
   // therefore created by a user-initiated navigation.

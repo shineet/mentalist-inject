@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v252-the-second-document";
+const REVISION = "v253-two-modes";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1230,13 +1230,16 @@ function ytRoom(room) {
   if (!ytRooms.has(key)) {
     ytRooms.set(key, {
       room: key, mode: "idle", videoId: "", title: "", seq: 0, committedAt: 0,
-      // Three, and the difference between them is WHEN the performer taps.
-      // See the note at the top of public/yt.html -- getting it round the wrong
-      // way is a phone that plays nothing.
+      // Two. The performer taps BEFORE sending the song in both, and nobody
+      // touches the phone afterwards.
       //
-      //   youtube_app   tap AFTER the song is sent -> the real YouTube app
-      //   youtube_auto  tap BEFORE -> Safari navigates itself. What Earworm does.
-      //   audio         tap BEFORE -> our own player, streamed from here
+      //   youtube_auto  the real YouTube app opens and plays the full track
+      //   audio         our own player, streamed from here, 30 seconds
+      //
+      // There was a third, youtube_app, where the tap came AFTER the song was
+      // sent. It existed only because the app was believed unreachable any
+      // other way. It is not -- see the note above /yt-go -- so it was deleted
+      // rather than left as a worse way of doing what youtube_auto does.
       playback: "youtube_auto",
       // Seconds into the song to start. Earworm uses 44, which lands past the
       // intro and in the body of the track, so it is recognised the instant the
@@ -1308,12 +1311,14 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), async (req, res)
 
   // Settable with or without a song, so the mode can be chosen while setting up
   // rather than only at the moment of committing.
-  if (["youtube_app", "youtube_auto", "audio"].includes(body.playback)) {
+  if (["youtube_auto", "audio"].includes(body.playback)) {
     state.playback = body.playback;
   }
-  // Older builds of MystIO said "youtube" before there were two of them. That
-  // meant the auto behaviour, so it maps there rather than to the tap variant.
-  if (body.playback === "youtube") state.playback = "youtube_auto";
+  // Names older builds of MystIO may still send. Both meant "open YouTube",
+  // which is what youtube_auto does.
+  if (body.playback === "youtube" || body.playback === "youtube_app") {
+    state.playback = "youtube_auto";
+  }
   if (typeof body.primeVideoId === "string" && /^[A-Za-z0-9_-]{11}$/.test(body.primeVideoId)) {
     state.primeVideoId = body.primeVideoId;
   }
