@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v247-prime-their-phone";
+const REVISION = "v248-one-url-one-tap";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1722,15 +1722,12 @@ app.get("/api/yt/:room/stream", async (req, res) => {
   }, 250);
 });
 
-// Priming a borrowed phone. See primeVideoId in ytRoom for why this exists.
-//
-// Its own URL on purpose rather than a mode of /y: Shine opens this, taps,
-// deals with whatever iOS says, and then types the real link fresh. Folding it
-// into /y would mean the page had to know whether it was priming or performing,
-// and getting that wrong is a dummy video on screen in the middle of a show.
+// Kept only so a /p link written on an NFC tag still works. Priming is no
+// longer a separate page: it is the quiet second option on the landing page,
+// one URL for everything, which is Earworm's shape and the one Shine asked for.
 app.get(["/p", "/p/:room"], (req, res) => {
   res.setHeader("Cache-Control", "no-store, must-revalidate");
-  res.sendFile(path.resolve("public", "prime.html"));
+  res.sendFile(path.resolve("public", "yt.html"));
 });
 
 app.get(["/y", "/y/:room"], (req, res) => {

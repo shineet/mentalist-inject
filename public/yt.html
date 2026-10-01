@@ -62,11 +62,28 @@
   .rt { font-size: 14px; line-height: 1.3; }
   .rc { color: #606060; font-size: 12px; margin-top: 3px; }
 
-  #cover2 { position: fixed; inset: 0; z-index: 9; background: rgba(0,0,0,.72);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            gap: 30px; padding: 0 26px; text-align: center; }
-  #cover2 p { color: #fff; font-size: 30px; font-weight: 700; line-height: 1.25; margin: 0; }
-  #cover2 .circle { width: 150px; height: 150px; border-radius: 50%; background: #fff; }
+  #choice { position: fixed; inset: 0; z-index: 12; background: #fff;
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; gap: 26px; padding: 0 26px; }
+  #glogo { font: 400 40px/1 "Product Sans", Roboto, -apple-system, system-ui, sans-serif;
+           letter-spacing: -1px; margin-bottom: 6px; }
+  #glogo span:nth-child(1) { color: #4285f4; }
+  #glogo span:nth-child(2) { color: #ea4335; }
+  #glogo span:nth-child(3) { color: #fbbc05; }
+  #glogo span:nth-child(4) { color: #4285f4; }
+  #glogo span:nth-child(5) { color: #34a853; }
+  #glogo span:nth-child(6) { color: #ea4335; }
+  .tile { width: 100%; max-width: 330px; padding: 22px; border-radius: 14px;
+          background: #f1f3f4; display: flex; align-items: center; justify-content: center; }
+  .ytmark { display: flex; align-items: center; gap: 6px; }
+  .ytmark .box { width: 34px; height: 24px; background: #f00; border-radius: 5px;
+                 display: flex; align-items: center; justify-content: center; }
+  .ytmark .box::after { content: ""; border-left: 9px solid #fff; border-top: 6px solid transparent;
+                        border-bottom: 6px solid transparent; margin-left: 2px; }
+  .ytmark span { font-size: 21px; font-weight: 600; letter-spacing: -.5px; color: #030303; }
+  #primelink { color: #9aa0a6; font-size: 12px; padding: 10px 16px; }
+  #primed { display: none; color: #188038; font-size: 12px; }
+
   #bad { display: none; position: fixed; inset: 0; z-index: 20; background: #fff;
          align-items: center; justify-content: center; color: #606060;
          font-size: 13px; text-align: center; padding: 0 32px; }
@@ -80,6 +97,20 @@
      the cover exists. -->
 <video id="awake" src="/awake.mp4" loop muted playsinline
        style="position:fixed;width:2px;height:2px;opacity:.01;pointer-events:none;left:0;top:0"></video>
+
+<!-- The landing page, which is Earworm's shape: a service picker rather than
+     anything that looks like a magic app. Theirs is titled "Google" and offers
+     YouTube and Wikipedia; a spectator glancing at it sees a search page.
+     The priming entry is deliberately quiet for the same reason -- it is the
+     one line here that would give the game away if it were read. -->
+<div id="choice">
+  <div id="glogo"><span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span></div>
+  <div id="tile" class="tile">
+    <div class="ytmark"><div class="box"></div><span>YouTube</span></div>
+  </div>
+  <div id="primelink">Check this device</div>
+  <div id="primed">This device is ready.</div>
+</div>
 
 <div id="bar">
   <div id="mark"><div class="box"></div><span>YouTube</span></div>
@@ -118,11 +149,6 @@
 <hr>
 
 <div id="list"></div>
-
-<div id="cover2">
-  <p>Tap here once to stop the display from sleeping.</p>
-  <div class="circle"></div>
-</div>
 
 <div id="bad">This link is missing its room. Ask for it again.</div>
 
@@ -175,6 +201,7 @@
   if (!room) $("bad").style.display = "flex";
 
   var playback = "youtube_auto", startAt = 44;
+  var primeVideoId = "jNQXAC9IVRw";   // "Me at the zoo"; replaced by the room
   var videoId = "", track = null;
   var gone = false, armed = false, revealed = false;
   var audio = new Audio();
@@ -193,14 +220,22 @@
            '<div><div class="rt">' + r[0] + '</div><div class="rc">' + r[1] + '</div></div></div>';
   }).join("");
 
-  // One handler, and it MUST stay synchronous: in youtube_app mode the
-  // navigation only counts while this is still on the stack.
-  function onTap() {
-    if (armed) { if (playback === "youtube_app") goNow(); return; }
+  // ── the landing page ──────────────────────────────────────────────────────
+  // One tap, not two. Earworm takes a tap to pick the service and a second on a
+  // "stop the display from sleeping" overlay; ours does both jobs at once,
+  // because this page never navigates between the two and the gesture is
+  // therefore still the same document's.
+  //
+  // MUST STAY SYNCHRONOUS. Everything the effect needs is bought by this one
+  // touch: the wake video, the audio element in audio mode, and the countdown
+  // whose descendants are allowed to open the YouTube app.
+  $("tile").addEventListener("click", function () {
+    if (armed) return;
     armed = true;
-    $("cover2").style.display = "none";
+    $("choice").style.display = "none";
     try { var a = $("awake"); if (a.paused) a.play(); } catch (e) {}
     if (playback === "audio") {
+      // Set ONCE, ever, inside this handler. See the third finding above.
       audio.src = "/api/yt/" + encodeURIComponent(room) + "/stream";
       audio.play();
     } else if (playback === "youtube_app") {
@@ -208,8 +243,33 @@
     } else {
       startHunt();
     }
-  }
-  document.addEventListener("click", onTap);
+  });
+
+  // Priming, in one tap: this navigation IS the gesture, which reaches the app
+  // every time regardless of what the phone preferred beforehand. Either it
+  // opens there, proving the phone was ready, or Safari offers its banner and
+  // one tap on OPEN fixes the phone permanently.
+  $("primelink").addEventListener("click", function (e) {
+    e.stopPropagation();
+    try { sessionStorage.setItem("primed", "1"); } catch (err) {}
+    location.href = "/yt-go/" + encodeURIComponent(primeVideoId);
+  });
+
+  // On the way back from priming, say so. Without it he is working from memory
+  // with somebody else's phone in his hand.
+  try {
+    if (sessionStorage.getItem("primed") === "1") {
+      $("primed").style.display = "block";
+      sessionStorage.removeItem("primed");
+    }
+  } catch (err) {}
+
+  // In youtube_app mode the song arrives after the landing tap, so the screen
+  // itself is the second tap. Harmless in the other two modes, which have
+  // already gone by the time anything is tapped here.
+  document.addEventListener("click", function () {
+    if (armed && playback === "youtube_app" && videoId) goNow();
+  });
 
   // Through /yt-go/:id, never a direct youtube.com URL -- see rows three and
   // four of the matrix above.
@@ -268,6 +328,7 @@
     if (!s) return;
     if (["audio", "youtube_app", "youtube_auto"].indexOf(s.playback) >= 0) playback = s.playback;
     if (s.startAt !== undefined && Number(s.startAt) >= 0) startAt = Number(s.startAt);
+    if (typeof s.primeVideoId === "string" && s.primeVideoId.length === 11) primeVideoId = s.primeVideoId;
     if (s.mode !== "play") return;
     if (s.videoId) videoId = s.videoId;
     if (s.track) track = s.track;
