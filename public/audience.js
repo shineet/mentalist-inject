@@ -301,7 +301,7 @@ function warmClientImage() {
   if (_clientWarm) return;
   _clientWarm = true;
   const img = new Image();
-  img.src = "/client.png";
+  img.src = "/client.jpg";
 }
 warmClientImage();
 
@@ -869,7 +869,7 @@ async function showClientPhotoStep(state, durationMs) {
   }
 
   const MAX_WAIT_MS = 4500;
-  const configuredUrl = (state?.clientImageUrl || cfg.clientImageUrl || cfg.imageUrl || cfg.photoUrl || "/client.png").trim();
+  const configuredUrl = (state?.clientImageUrl || cfg.clientImageUrl || cfg.imageUrl || cfg.photoUrl || "/client.jpg").trim();
   const url = configuredUrl.includes("?") ? `${configuredUrl}&v=${Date.now()}` : `${configuredUrl}?v=${Date.now()}`;
 
   const loadPromise = new Promise((resolve) => {

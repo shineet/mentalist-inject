@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v231-yt-accepts-app-token";
+const REVISION = "v232-client-jpg-not-png";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -29,7 +29,11 @@ const DEFAULT_REVIEW_URL = "https://g.page/r/CfEvBpaR9455EAI/review";
 const DEFAULT_REVEAL_URL = "https://11z.co/12902/cat-houdini01.jpg";
 const DEFAULT_REVEAL_MUSIC_URL = "/music.mp3";
 const DEFAULT_REVIEW_MUSIC_URL = "/review.mp3";
-const DEFAULT_CLIENT_IMAGE_URL = "/client.png";
+// client.jpg, not client.png. The file in public/ is a .jpg and always was;
+// the default pointed at a .png that 404s, so a room with no photo set asked
+// for nothing and the audience page hid the image -- which reads as "the URL I
+// gave is not working" rather than "no URL reached the server".
+const DEFAULT_CLIENT_IMAGE_URL = "/client.jpg";
 const DEFAULT_ROOM = "SHOW";
 
 const io = new Server(server, {
