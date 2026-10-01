@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v242-the-right-artist";
+const REVISION = "v243-real-youtube-or-our-player";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1230,6 +1230,11 @@ function ytRoom(room) {
   if (!ytRooms.has(key)) {
     ytRooms.set(key, {
       room: key, mode: "idle", videoId: "", title: "", seq: 0, committedAt: 0,
+      // "youtube": the performer's tap opens the real YouTube app, full track,
+      // real controls. "audio": this server streams the song to a player of
+      // ours. They need OPPOSITE tap timing and that is the whole difficulty --
+      // see the note at the top of public/yt.html.
+      playback: "youtube",
       // Resolved at commit so the host is told AT ONCE if the song has no
       // match, rather than discovering it on a silent phone. The playable URL
       // is deliberately NOT stored: Deezer signs it with about twelve minutes
@@ -1280,6 +1285,12 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), async (req, res)
   const state = ytRoom(key);
   const body = req.body || {};
 
+  // Settable with or without a song, so the mode can be chosen while setting up
+  // rather than only at the moment of committing.
+  if (body.playback === "youtube" || body.playback === "audio") {
+    state.playback = body.playback;
+  }
+
   if (body.mode === "play") {
     // A malformed id is a 404 in a spectator's hand, so it is refused here
     // rather than delivered. YouTube ids are exactly eleven characters of
@@ -1295,7 +1306,13 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), async (req, res)
     // Resolved here and returned in the response so the host panel can say
     // "matched X by Y" -- or say nothing was found, which is the one thing
     // worth knowing BEFORE the phone is handed back silent.
-    state.track = await deezerMatch(state.title, body.channel || "");
+    // Only in audio mode. In youtube mode there is nothing for this server to
+    // play, and a "no audio match" warning on a routine that is about to open
+    // the real YouTube app would send the host hunting a problem that is not
+    // there.
+    state.track = state.playback === "audio"
+      ? await deezerMatch(state.title, body.channel || "")
+      : null;
   } else if (body.mode === "idle") {
     // Reset between performances. Without it the next phone to open the link
     // is thrown straight into the last spectator's song.
