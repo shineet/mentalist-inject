@@ -886,31 +886,45 @@ async function showClientPhotoStep(state, durationMs) {
     clientMsg.classList.toggle("hidden", !msg);
   }
 
-  // Was 4500. The step itself runs for durationMs (12s in Shine's show), so
-  // waiting longer costs nothing and a cold CDN can easily take more than four
-  // and a half seconds.
+  // The step runs for durationMs (12s in Shine's show), so a generous wait
+  // costs nothing and a cold CDN can take more than a few seconds.
   const MAX_WAIT_MS = 9000;
-  let configuredUrl = (state?.clientImageUrl || cfg.clientImageUrl || cfg.imageUrl || cfg.photoUrl || "/client.jpg").trim();
-  // Rooms saved before this was fixed still hold "/client.png", which 404s --
-  // the file is and always was client.jpg. Map it rather than make every
-  // existing room re-save to stop showing nothing.
-  if (configuredUrl === "/client.png") configuredUrl = "/client.jpg";
-  const url = configuredUrl.includes("?") ? `${configuredUrl}&v=${Date.now()}` : `${configuredUrl}?v=${Date.now()}`;
 
-  const loadPromise = new Promise((resolve) => {
-    const img = new Image();
-    img.onload = async () => {
-      try { if (img.decode) await img.decode(); } catch {}
-      resolve(true);
-    };
-    img.onerror = () => resolve(false);
-    img.src = url;
+  // Try each candidate in turn. One stale URL must not cost the whole reveal.
+  const candidates = [];
+  const explicit = (state?.clientImageUrl || cfg.clientImageUrl || cfg.imageUrl || cfg.photoUrl || "").trim();
+  if (explicit && explicit !== "/client.png") candidates.push(explicit);
+  getClientPhotoCandidates(state || {}).forEach((u) => {
+    if (!candidates.includes(u)) candidates.push(u);
   });
+  if (!candidates.length) candidates.push("/client.jpg");
 
-  const ok = await Promise.race([
-    loadPromise,
-    new Promise((resolve) => setTimeout(() => resolve(false), MAX_WAIT_MS)),
-  ]);
+  function tryLoad(u) {
+    const bust = u.includes("?") ? `${u}&v=${Date.now()}` : `${u}?v=${Date.now()}`;
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = async () => {
+        try { if (img.decode) await img.decode(); } catch {}
+        resolve(bust);
+      };
+      img.onerror = () => resolve("");
+      img.src = bust;
+    });
+  }
+
+  const deadline = Date.now() + MAX_WAIT_MS;
+  let url = "";
+  for (const candidate of candidates) {
+    const left = deadline - Date.now();
+    if (left <= 0) break;
+    const got = await Promise.race([
+      tryLoad(candidate),
+      new Promise((resolve) => setTimeout(() => resolve(""), left)),
+    ]);
+    if (got) { url = got; break; }
+  }
+  const ok = Boolean(url);
+  const loadPromise = Promise.resolve(ok);
 
   if (clientImg) {
     if (ok) {
@@ -1581,6 +1595,37 @@ function goToGoogleReviewAfterKaraoke() {
 }
 
 
+
+// Every candidate, in order, rather than only the winner.
+//
+// The chain used to return the FIRST non-empty URL and that was that. A stale
+// karaoke end-photo left over from a previous show therefore beat the client
+// photo that had just been set, and when that stale file no longer existed the
+// step showed nothing at all -- the message appeared over an empty screen and
+// the actual photo was never even attempted. Returning the list lets the
+// loader fall through to the next one.
+function getClientPhotoCandidates(state = {}) {
+  const k = state.karaoke || {};
+  return [
+    state.karaokeEndPhotoUrl,
+    k.endPhotoUrl,
+    state.clientImageUrl,
+    state.clientImage,
+    state.clientPhotoUrl,
+    state.revealImageUrl,
+    state.revealUrl,
+    state.imageUrl,
+    state.finalImageUrl,
+    state.finalImage,
+    state.photoUrl,
+    k.bgUrl,
+    k.backgroundUrl,
+    k.imageUrl,
+    k.photoUrl,
+  ].map((u) => (typeof u === "string" ? u.trim() : ""))
+   .filter(Boolean)
+   .filter((u) => u !== "/client.png");
+}
 
 function getClientPhotoUrlFromState(state = {}) {
   const k = state.karaoke || {};
