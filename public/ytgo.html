@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>YouTube</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #fff; color: #030303;
+    font: 14px/1.4 Roboto, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
+  #bar { background: #212121; height: 48px; display: flex; align-items: center; padding: 0 12px; gap: 14px; }
+  #mark { display: flex; align-items: center; gap: 5px; }
+  #mark .box { width: 30px; height: 21px; background: #fff; border-radius: 4px;
+               display: flex; align-items: center; justify-content: center; }
+  #mark .box::after { content: ""; border-left: 8px solid #212121; border-top: 5px solid transparent;
+                      border-bottom: 5px solid transparent; margin-left: 2px; }
+  #mark span { color: #fff; font-size: 17px; font-weight: 500; letter-spacing: -.4px; }
+  .sp { flex: 1; }
+  #bar svg { width: 21px; height: 21px; fill: #fff; opacity: .95; }
+  #screen { position: relative; width: 100%; aspect-ratio: 16/9; background: #000;
+            display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  #cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+  #chrome { position: absolute; inset: 0; padding: 8px 10px; display: flex; align-items: flex-start; gap: 16px; }
+  #chrome svg { width: 20px; height: 20px; fill: #fff; opacity: .82; }
+  .ring { width: 46px; height: 46px; border-radius: 50%; border: 3px solid transparent;
+          border-top-color: #fff; border-right-color: #fff; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #pp { display: none; width: 60px; height: 60px; border-radius: 50%; background: rgba(0,0,0,.5);
+        align-items: center; justify-content: center; z-index: 3; }
+  #pp.paused::after { content: ""; border-left: 19px solid #fff; border-top: 12px solid transparent;
+                      border-bottom: 12px solid transparent; margin-left: 5px; }
+  #pp.playing::after { content: ""; width: 16px; height: 19px;
+                       border-left: 5px solid #fff; border-right: 5px solid #fff; }
+  #seek { position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+          background: rgba(255,255,255,.3); display: none; }
+  #seek > i { display: block; height: 100%; width: 0; background: #f00; }
+  #info { padding: 14px 14px 10px; }
+  #ttl { font-size: 16px; line-height: 1.3; padding-right: 26px; position: relative; }
+  #ttl::after { content: ""; position: absolute; right: 2px; top: 8px; border-top: 6px solid #606060;
+                border-left: 6px solid transparent; border-right: 6px solid transparent; }
+  #by { color: #606060; font-size: 13px; margin-top: 5px; }
+  #acts { display: flex; align-items: center; gap: 7px; padding: 12px 14px 14px; }
+  #acts svg { width: 19px; height: 19px; fill: #606060; }
+  #acts b { font-weight: 400; color: #606060; font-size: 12px; margin-right: 14px; }
+  hr { border: 0; border-top: 1px solid #e5e5e5; margin: 0; }
+  .rel { display: flex; gap: 10px; padding: 10px 14px; align-items: flex-start; }
+  .th { width: 142px; height: 80px; border-radius: 2px; position: relative; flex: 0 0 auto;
+        background: linear-gradient(135deg, #2f2f2f, #101010 55%, #3a3a3a); }
+  .th i { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.8); color: #fff;
+          font-size: 11px; padding: 1px 4px; border-radius: 2px; font-style: normal; }
+  .rt { font-size: 14px; line-height: 1.3; }
+  .rc { color: #606060; font-size: 12px; margin-top: 3px; }
+  #tap { position: fixed; inset: 0; z-index: 9; background: rgba(0,0,0,.72);
+         display: flex; flex-direction: column; align-items: center; justify-content: center;
+         gap: 30px; padding: 0 26px; text-align: center; }
+  #tap p { color: #fff; font-size: 30px; font-weight: 700; line-height: 1.25; margin: 0; }
+  #tap .circle { width: 150px; height: 150px; border-radius: 50%; background: #fff; }
+</style>
+</head>
+<body>
+
+<video id="awake" src="/awake.mp4" loop muted playsinline
+       style="position:fixed;width:2px;height:2px;opacity:.01;pointer-events:none;left:0;top:0"></video>
+
+<div id="bar">
+  <div id="mark"><div class="box"></div><span>YouTube</span></div>
+  <div class="sp"></div>
+  <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7 14 5 12 5 9.5S7 5 9.5 5 14 7 14 9.5 12 14 9.5 14z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+</div>
+
+<div id="screen">
+  <img id="cover" alt="">
+  <div class="ring" id="ring"></div>
+  <div id="pp" class="paused"></div>
+  <div id="chrome">
+    <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    <div class="sp"></div>
+    <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2a5 5 0 0 1 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c5 0 9 4 9 9h2c0-6.08-4.93-11-11-11zM21 3H3v2h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M18 16.08a3 3 0 0 0-1.9.68l-7.05-4.1a3.3 3.3 0 0 0 0-1.32l6.97-4.06A3 3 0 1 0 15 5c0 .24.03.47.09.7L8.04 9.81a3 3 0 1 0 0 4.38l7.12 4.16a2.92 2.92 0 1 0 2.84-2.27z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+  </div>
+  <div id="seek"><i></i></div>
+</div>
+
+<div id="info"><div id="ttl">Loading song&hellip;</div><div id="by">Vevo &middot; 23,565,897 views</div></div>
+<div id="acts">
+  <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11a2 2 0 0 0-2-2h-6.31l.95-4.57.03-.32a1.5 1.5 0 0 0-.44-1.06L14.17 1 7.59 7.59A2 2 0 0 0 7 9v10a2 2 0 0 0 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><b>40K</b>
+  <svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2a2 2 0 0 0 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5a2 2 0 0 0-2-2zm4 0v12h4V3h-4z"/></svg><b>2K</b>
+  <div class="sp"></div>
+  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
+</div>
+<hr>
+<div id="list"></div>
+
+<div id="tap"><p>Tap here once to stop the display from sleeping.</p><div class="circle"></div></div>
+
+<script>
+  // THE PERFORMING PAGE, and it is a SEPARATE DOCUMENT on purpose.
+  //
+  // Priming opens the YouTube app every time; performing did not, and the
+  // difference is that priming navigates INSIDE the tap while performing
+  // navigates later. Earworm navigates later too and still reaches the app, so
+  // the shape of their page is the thing to copy rather than argue with. This
+  // reproduces it:
+  //
+  //   1. the landing page navigates HERE from inside its click handler, so this
+  //      document is created by a user-initiated navigation
+  //   2. a tap here starts the screen-wake video, exactly as NoSleep does
+  //   3. an XHR polls every 800ms -- not a setTimeout chain, not a WebSocket
+  //   4. the navigation happens INSIDE that XHR callback, body hidden first,
+  //      via top.location.replace, to a plain http watch URL with &t=
+  //   5. 3.4 seconds later the phone is sent to Google, so there is nothing
+  //      left to scroll back to
+  //
+  // Every one of those five is theirs. If this still lands in Safari then the
+  // difference is not in the page and the hunt moves elsewhere.
+  var m = location.pathname.match(/^\/y\/([A-Za-z0-9_-]+)\/go\/?$/);
+  var room = (m && m[1]) || "x";
+  function $(id) { return document.getElementById(id); }
+
+  var playback = "youtube_auto", startAt = 44, videoId = "", track = null;
+  var gone = false, armed = false, revealed = false, song = "";
+  var audio = new Audio();
+  audio.preload = "auto";
+
+  var RELATED = [["Guitar session","GuitarMan","0:58"],["Band practice","BandPeople","2:49"],
+                 ["Live tour","LivePerformances","3:12"],["Studio takes","SessionRoom","4:05"]];
+  $("list").innerHTML = RELATED.map(function (r) {
+    return '<div class="rel"><div class="th"><i>' + r[2] + '</i></div>' +
+           '<div><div class="rt">' + r[0] + '</div><div class="rc">' + r[1] + '</div></div></div>';
+  }).join("");
+
+  // Theirs listens on window for any click and only enables the wake once.
+  window.addEventListener("click", function () {
+    if (armed) return;
+    armed = true;
+    $("tap").style.display = "none";
+    try { var a = $("awake"); if (a.paused) a.play(); } catch (e) {}
+    if (playback === "audio") {
+      // Set ONCE, ever, inside this handler: the permission belongs to the
+      // element and is discarded the moment its src changes.
+      audio.src = "/api/yt/" + encodeURIComponent(room) + "/stream";
+      audio.play();
+    }
+  }, false);
+
+  function watchURL() {
+    var t = Number(startAt) > 0 ? "&t=" + Math.round(startAt) : "";
+    // http, not https, and no redirect of ours in the way. Both are theirs.
+    return "http://www.youtube.com/watch?v=" + videoId + t;
+  }
+
+  function cleanUp() { top.location.replace("https://www.google.com"); }
+
+  // XMLHttpRequest rather than fetch, because jQuery's $.get is an XHR and the
+  // call site is the one thing being tested here.
+  function doPoll() {
+    var x = new XMLHttpRequest();
+    x.open("GET", "/api/yt/" + encodeURIComponent(room) + "/state?r=" + Date.now(), true);
+    x.onload = function () {
+      var s = null;
+      try { s = JSON.parse(x.responseText).state; } catch (e) {}
+      if (s) {
+        if (s.playback) playback = s.playback;
+        if (s.startAt !== undefined) startAt = Number(s.startAt);
+        if (s.track) track = s.track;
+        if (s.mode === "play" && s.videoId && !gone) {
+          videoId = s.videoId;
+          if (playback === "audio") { reveal(); setTimeout(doPoll, 800); return; }
+          // INSIDE the callback. This is the line the whole page exists for.
+          gone = true;
+          song = watchURL();
+          document.body.style.display = "none";
+          top.location.replace(song);
+          setTimeout(cleanUp, 3400);
+          return;
+        }
+      }
+      setTimeout(doPoll, 800);
+    };
+    x.onerror = function () { setTimeout(doPoll, 800); };
+    x.send();
+  }
+  doPoll();
+
+  function reveal() {
+    if (revealed || !track) return;
+    revealed = true;
+    $("ttl").textContent = track.title + (track.artist ? " - " + track.artist : "");
+    $("by").textContent = (track.artist || "Vevo") + " · 23,565,897 views";
+    if (track.cover) { $("cover").src = track.cover; $("cover").style.display = "block"; }
+    $("ring").style.display = "none";
+    $("pp").style.display = "flex";
+    $("seek").style.display = "block";
+  }
+  $("pp").addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (!revealed) return;
+    if (audio.paused) audio.play(); else audio.pause();
+  });
+  setInterval(function () {
+    if (!revealed) return;
+    var d = audio.duration && isFinite(audio.duration) ? audio.duration : 30;
+    $("seek").firstElementChild.style.width = Math.min(100, (audio.currentTime / d) * 100) + "%";
+    $("pp").className = audio.paused ? "paused" : "playing";
+  }, 200);
+</script>
+</body>
+</html>

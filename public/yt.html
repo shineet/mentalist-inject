@@ -120,261 +120,53 @@
   <div id="primed">Ready.</div>
 </div>
 
-<div id="bar">
-  <div id="mark"><div class="box"></div><span>YouTube</span></div>
-  <div class="sp"></div>
-  <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7 14 5 12 5 9.5S7 5 9.5 5 14 7 14 9.5 12 14 9.5 14z"/></svg>
-  <svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
-</div>
-
-<div id="screen">
-  <img id="cover" alt="">
-  <div class="ring" id="ring"></div>
-  <div id="pp" class="paused"></div>
-  <div id="chrome">
-    <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-    <div class="sp"></div>
-    <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2a5 5 0 0 1 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c5 0 9 4 9 9h2c0-6.08-4.93-11-11-11zM21 3H3v2h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
-    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-    <svg viewBox="0 0 24 24"><path d="M18 16.08a3 3 0 0 0-1.9.68l-7.05-4.1a3.3 3.3 0 0 0 0-1.32l6.97-4.06A3 3 0 1 0 15 5c0 .24.03.47.09.7L8.04 9.81a3 3 0 1 0 0 4.38l7.12 4.16a2.92 2.92 0 1 0 2.84-2.27z"/></svg>
-    <svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
-  </div>
-  <div id="seek"><i></i></div>
-</div>
-
-<div id="info">
-  <div id="ttl">Loading song&hellip;</div>
-  <div id="by">Vevo &middot; 23,565,897 views</div>
-</div>
-<div id="acts">
-  <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11a2 2 0 0 0-2-2h-6.31l.95-4.57.03-.32a1.5 1.5 0 0 0-.44-1.06L14.17 1 7.59 7.59A2 2 0 0 0 7 9v10a2 2 0 0 0 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><b>40K</b>
-  <svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2a2 2 0 0 0 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5a2 2 0 0 0-2-2zm4 0v12h4V3h-4z"/></svg><b>2K</b>
-  <div class="sp"></div>
-  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-  <svg viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
-  <svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
-</div>
-<hr>
-
-<div id="list"></div>
-
 <div id="bad">This link is missing its room. Ask for it again.</div>
 
-<script src="/socket.io/socket.io.js"></script>
 <script>
-  // The spectator's phone.
+  // The landing page, and nothing else. It picks between performing and
+  // priming, and BOTH of its options navigate from inside the click handler --
+  // which is the one arrangement that reaches the YouTube app every time.
   //
-  // THE TAP IS THE WHOLE EFFECT. Everything else on this page is dressing.
-  //
-  // iOS opens the YouTube APP only for a navigation it can trace back to a
-  // touch on the page. Eleven arrangements measured on three phones:
-  //
-  //   a plain <a href>, tapped                     -> the app
-  //   location.href inside a click handler         -> the app
-  //   a countdown started by a tap, then our 302   -> the app
-  //   a countdown started by a tap, direct URL     -> Safari
-  //   a countdown started on page load, 302        -> Safari
-  //   the same, with a stray tap during it         -> Safari
-  //   <meta refresh>, or an HTTP Refresh: header   -> Safari
-  //
-  // Rows three and four are the ones that matter. A DELAYED navigation does
-  // reach the app, but only through our own 302 -- the same timer sent straight
-  // to youtube.com lands in Safari. Both halves are required, which is why
-  // goAuto() never assigns a watch URL directly.
-  //
-  // Earworm reaches the app the same way, and the proof is the "< Safari" badge
-  // in the status bar of its own reveal. Its tap is dressed as a screen-sleep
-  // notice, and that is the cleverest thing in the product: the gesture the
-  // effect cannot work without is explained to the spectator as housekeeping,
-  // so the one suspicious moment is spent before there is anything to suspect.
-  //
-  // Second finding, which cost two days. Safari grants autoplay-with-sound per
-  // ORIGIN, from that viewer's own history with it. Shine has played karaoke on
-  // this origin hundreds of times, so every version of this passed on his phone
-  // and failed on two others. HIS PHONE CANNOT TEST THIS FEATURE.
-  //
-  // Third, for audio mode: the permission belongs to the media ELEMENT and is
-  // discarded the moment its src changes. So the src is set once, inside the
-  // tap, and never again; the server answers with silence, holds the response
-  // open, and splices the song onto the same body.
-  var params = new URLSearchParams(location.search);
-  var room = (params.get("r") || params.get("room") || "");
-  if (!room) {
-    var m = location.pathname.match(/^\/y(?:\/([A-Za-z0-9_-]+))?\/?$/);
-    if (m) room = m[1] || "x";
-  }
-  room = room.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
-
+  // Performing used to happen on this same page, with the navigation fired by a
+  // timer once the song arrived. That lands in Safari. Earworm splits the two
+  // across separate documents and reaches the app, so this does the same: the
+  // tile navigates to /y/<room>/go from inside the tap, and that page is
+  // therefore created by a user-initiated navigation.
+  var m = location.pathname.match(/^\/[yp](?:\/([A-Za-z0-9_-]+))?\/?$/);
+  var room = (m && m[1]) || "x";
   function $(id) { return document.getElementById(id); }
   if (!room) $("bad").style.display = "flex";
 
-  var playback = "youtube_auto", startAt = 44;
-  var primeVideoId = "jNQXAC9IVRw";   // "Me at the zoo"; replaced by the room
-  var videoId = "", track = null;
-  var gone = false, armed = false, revealed = false;
-  var audio = new Audio();
-  audio.preload = "auto";
+  var primeVideoId = "3LiztfE1X7E";   // replaced by the room if it names another
+  var x = new XMLHttpRequest();
+  x.open("GET", "/api/yt/" + encodeURIComponent(room) + "/state?r=" + Date.now(), true);
+  x.onload = function () {
+    try {
+      var s = JSON.parse(x.responseText).state;
+      if (s && s.primeVideoId && s.primeVideoId.length === 11) primeVideoId = s.primeVideoId;
+    } catch (e) {}
+  };
+  x.send();
 
-  // Anonymous on purpose. A real-looking related video could contradict
-  // whatever song gets named; these fit anything.
-  var RELATED = [
-    ["Guitar session", "GuitarMan", "0:58"],
-    ["Band practice", "BandPeople", "2:49"],
-    ["Live tour", "LivePerformances", "3:12"],
-    ["Studio takes", "SessionRoom", "4:05"]
-  ];
-  $("list").innerHTML = RELATED.map(function (r) {
-    return '<div class="rel"><div class="th"><i>' + r[2] + '</i></div>' +
-           '<div><div class="rt">' + r[0] + '</div><div class="rc">' + r[1] + '</div></div></div>';
-  }).join("");
-
-  // ── the landing page ──────────────────────────────────────────────────────
-  // One tap, not two. Earworm takes a tap to pick the service and a second on a
-  // "stop the display from sleeping" overlay; ours does both jobs at once,
-  // because this page never navigates between the two and the gesture is
-  // therefore still the same document's.
-  //
-  // MUST STAY SYNCHRONOUS. Everything the effect needs is bought by this one
-  // touch: the wake video, the audio element in audio mode, and the countdown
-  // whose descendants are allowed to open the YouTube app.
   $("tile").addEventListener("click", function () {
-    if (armed) return;
-    armed = true;
-    $("choice").style.display = "none";
-    try { var a = $("awake"); if (a.paused) a.play(); } catch (e) {}
-    if (playback === "audio") {
-      // Set ONCE, ever, inside this handler. See the third finding above.
-      audio.src = "/api/yt/" + encodeURIComponent(room) + "/stream";
-      audio.play();
-    } else if (playback === "youtube_app") {
-      if (videoId) goNow();
-    } else {
-      startHunt();
-    }
+    top.location.replace("/y/" + encodeURIComponent(room) + "/go");
   });
 
-  // Priming, in one tap: this navigation IS the gesture, which reaches the app
-  // every time regardless of what the phone preferred beforehand. Either it
-  // opens there, proving the phone was ready, or Safari offers its banner and
-  // one tap on OPEN fixes the phone permanently.
+  // Priming. This navigation IS the gesture, which is why it reaches the app
+  // every time and why it can fix a phone that prefers Safari: one tap on
+  // iOS's own banner afterwards and the preference is set for good.
   $("primelink").addEventListener("click", function (e) {
     e.stopPropagation();
     try { sessionStorage.setItem("primed", "1"); } catch (err) {}
     location.href = "/yt-go/" + encodeURIComponent(primeVideoId);
   });
 
-  // On the way back from priming, say so. Without it he is working from memory
-  // with somebody else's phone in his hand.
   try {
     if (sessionStorage.getItem("primed") === "1") {
       $("primed").style.display = "block";
       sessionStorage.removeItem("primed");
     }
   } catch (err) {}
-
-  // In youtube_app mode the song arrives after the landing tap, so the screen
-  // itself is the second tap. Harmless in the other two modes, which have
-  // already gone by the time anything is tapped here.
-  document.addEventListener("click", function () {
-    if (armed && playback === "youtube_app" && videoId) goNow();
-  });
-
-  // Two ways to reach YouTube, and which is right is still being measured.
-  //
-  //   our 302    /yt-go/:id, which the old matrix said reached the app on a
-  //              delayed navigation. LIVE TEST SAYS OTHERWISE: it landed in
-  //              Safari on a phone that had just been primed and that opened
-  //              the app happily from the priming tap seconds earlier.
-  //   direct     exactly what the other product does:
-  //              http://www.youtube.com/watch?v=ID&t=44
-  //
-  // ?via=302 on the page URL forces the old path, so the two can be compared on
-  // one phone without a deploy in between.
-  var VIA = params.get("via") || "direct";
-  function ytGo() {
-    var t = Number(startAt) > 0 ? Math.round(startAt) : 0;
-    if (VIA === "302") {
-      return "/yt-go/" + encodeURIComponent(videoId) + (t ? "?t=" + t : "");
-    }
-    return "http://www.youtube.com/watch?v=" + encodeURIComponent(videoId) + (t ? "&t=" + t : "");
-  }
-  function goNow() {
-    if (gone || !videoId) return;
-    gone = true;
-    location.href = ytGo();
-  }
-  // Started BY THE TAP, and never by the socket. The matrix separates these two
-  // and I had them the wrong way round:
-  //
-  //   a countdown started by a tap, then our 302    -> the app
-  //   a watcher created inside a tap, firing later  -> Safari
-  //
-  // goAuto() used to be called straight from the socket handler, which is the
-  // second row, and the test duly landed in Safari. So the tap now starts a
-  // self-rescheduling countdown that watches for the song itself. Every link in
-  // that chain descends from the touch.
-  var hunt = null;
-  function startHunt() {
-    if (hunt) return;
-    (function tick() {
-      if (gone) return;
-      if (videoId) { gone = true; top.location.replace(ytGo()); return; }
-      hunt = setTimeout(tick, 400);
-    })();
-  }
-
-  function reveal() {
-    if (revealed || !track) return;
-    revealed = true;
-    $("ttl").textContent = track.title + (track.artist ? " - " + track.artist : "");
-    $("by").textContent = (track.artist || "Vevo") + " · 23,565,897 views";
-    if (track.cover) { $("cover").src = track.cover; $("cover").style.display = "block"; }
-    $("ring").style.display = "none";
-    $("pp").style.display = "flex";
-    $("seek").style.display = "block";
-  }
-  $("pp").addEventListener("click", function (e) {
-    e.stopPropagation();
-    if (!revealed) return;
-    if (audio.paused) audio.play(); else audio.pause();
-  });
-  setInterval(function () {
-    if (!revealed) return;
-    var d = audio.duration && isFinite(audio.duration) ? audio.duration : 30;
-    $("seek").firstElementChild.style.width = Math.min(100, (audio.currentTime / d) * 100) + "%";
-    $("pp").className = audio.paused ? "paused" : "playing";
-  }, 200);
-
-  function onState(s) {
-    if (!s) return;
-    if (["audio", "youtube_app", "youtube_auto"].indexOf(s.playback) >= 0) playback = s.playback;
-    if (s.startAt !== undefined && Number(s.startAt) >= 0) startAt = Number(s.startAt);
-    if (typeof s.primeVideoId === "string" && s.primeVideoId.length === 11) primeVideoId = s.primeVideoId;
-    if (s.mode !== "play") return;
-    if (s.videoId) videoId = s.videoId;
-    if (s.track) track = s.track;
-    // Deliberately does NOT navigate. The countdown started by the tap does
-    // that, for the reason above.
-    if (playback === "youtube_auto" && armed) startHunt();
-  }
-  // The server says when the bytes went out. The element's own clock cannot:
-  // the trickled silence advances currentTime exactly as real audio does.
-  function onPlaying() { if (armed) reveal(); }
-
-  if (room) {
-    var socket = io({ transports: ["websocket", "polling"] });
-    socket.on("connect", function () { socket.emit("yt:join", { room: room }); });
-    socket.io.on("reconnect", function () { socket.emit("yt:join", { room: room }); });
-    socket.on("yt:state", onState);
-    socket.on("yt:playing", onPlaying);
-    setInterval(function () {
-      if (gone || revealed) return;
-      fetch("/api/yt/" + encodeURIComponent(room) + "/state", { cache: "no-store" })
-        .then(function (r) { return r.json(); })
-        .then(function (d) { if (d && d.ok) onState(d.state); })
-        .catch(function () {});
-    }, 1500);
-  }
 </script>
 </body>
 </html>

@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v250-direct-like-theirs";
+const REVISION = "v251-their-shape-exactly";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1728,6 +1728,16 @@ app.get("/api/yt/:room/stream", async (req, res) => {
 app.get(["/p", "/p/:room"], (req, res) => {
   res.setHeader("Cache-Control", "no-store, must-revalidate");
   res.sendFile(path.resolve("public", "yt.html"));
+});
+
+// The performing page, a SEPARATE document reached from inside the landing
+// page's tap. See the note at the top of public/ytgo.html: priming opens the
+// app because it navigates inside the tap, performing did not because it
+// navigated from a timer, and this split is how the other product gets a
+// delayed navigation to the app anyway.
+app.get("/y/:room/go", (req, res) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  res.sendFile(path.resolve("public", "ytgo.html"));
 });
 
 app.get(["/y", "/y/:room"], (req, res) => {
