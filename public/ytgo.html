@@ -6,52 +6,91 @@
 <title>YouTube</title>
 <style>
   * { box-sizing: border-box; }
-  html, body { margin: 0; min-height: 100%; background: #fff; color: #030303;
+  html, body { margin: 0; min-height: 100%; background: #fff; color: #0f0f0f;
     font: 14px/1.4 Roboto, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
-  #bar { background: #212121; height: 48px; display: flex; align-items: center; padding: 0 12px; gap: 14px; }
-  #mark { display: flex; align-items: center; gap: 5px; }
-  #mark .box { width: 30px; height: 21px; background: #fff; border-radius: 4px;
+
+  /* top bar */
+  #bar { background: #fff; height: 50px; display: flex; align-items: center;
+         padding: 0 12px; gap: 20px; }
+  #mark { display: flex; align-items: center; gap: 3px; }
+  #mark .box { width: 29px; height: 20px; background: #f00; border-radius: 5px;
                display: flex; align-items: center; justify-content: center; }
-  #mark .box::after { content: ""; border-left: 8px solid #212121; border-top: 5px solid transparent;
+  #mark .box::after { content: ""; border-left: 8px solid #fff; border-top: 5px solid transparent;
                       border-bottom: 5px solid transparent; margin-left: 2px; }
-  #mark span { color: #fff; font-size: 17px; font-weight: 500; letter-spacing: -.4px; }
+  #mark span { font-size: 19px; font-weight: 700; letter-spacing: -1.1px; color: #0f0f0f; }
   .sp { flex: 1; }
-  #bar svg { width: 21px; height: 21px; fill: #fff; opacity: .95; }
+  #bar svg { width: 23px; height: 23px; fill: #0f0f0f; }
+
+  /* the stage */
   #screen { position: relative; width: 100%; aspect-ratio: 16/9; background: #000;
             display: flex; align-items: center; justify-content: center; overflow: hidden; }
-  #cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
-  #chrome { position: absolute; inset: 0; padding: 8px 10px; display: flex; align-items: flex-start; gap: 16px; }
-  #chrome svg { width: 20px; height: 20px; fill: #fff; opacity: .82; }
-  .ring { width: 46px; height: 46px; border-radius: 50%; border: 3px solid transparent;
+  /* A still photograph reads as a stopped video. A very slow drift does not,
+     and at arm's length it is the difference between "playing" and "frozen". */
+  #cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+           display: none; animation: drift 24s ease-in-out infinite alternate; }
+  @keyframes drift { from { transform: scale(1.06) translate(1%, -1%); }
+                     to   { transform: scale(1.14) translate(-1%, 1%); } }
+  .ring { width: 44px; height: 44px; border-radius: 50%; border: 3px solid transparent;
           border-top-color: #fff; border-right-color: #fff; animation: spin 1s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #pp { display: none; width: 60px; height: 60px; border-radius: 50%; background: rgba(0,0,0,.5);
-        align-items: center; justify-content: center; z-index: 3; }
-  #pp.paused::after { content: ""; border-left: 19px solid #fff; border-top: 12px solid transparent;
-                      border-bottom: 12px solid transparent; margin-left: 5px; }
-  #pp.playing::after { content: ""; width: 16px; height: 19px;
+  #pp { display: none; position: absolute; width: 56px; height: 56px; border-radius: 50%;
+        background: rgba(0,0,0,.45); align-items: center; justify-content: center; z-index: 4; }
+  #pp.paused::after { content: ""; border-left: 18px solid #fff; border-top: 11px solid transparent;
+                      border-bottom: 11px solid transparent; margin-left: 5px; }
+  #pp.playing::after { content: ""; width: 15px; height: 18px;
                        border-left: 5px solid #fff; border-right: 5px solid #fff; }
-  #seek { position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
-          background: rgba(255,255,255,.3); display: none; }
-  #seek > i { display: block; height: 100%; width: 0; background: #f00; }
-  #info { padding: 14px 14px 10px; }
-  #ttl { font-size: 16px; line-height: 1.3; padding-right: 26px; position: relative; }
-  #ttl::after { content: ""; position: absolute; right: 2px; top: 8px; border-top: 6px solid #606060;
-                border-left: 6px solid transparent; border-right: 6px solid transparent; }
-  #by { color: #606060; font-size: 13px; margin-top: 5px; }
-  #acts { display: flex; align-items: center; gap: 7px; padding: 12px 14px 14px; }
-  #acts svg { width: 19px; height: 19px; fill: #606060; }
-  #acts b { font-weight: 400; color: #606060; font-size: 12px; margin-right: 14px; }
-  hr { border: 0; border-top: 1px solid #e5e5e5; margin: 0; }
-  .rel { display: flex; gap: 10px; padding: 10px 14px; align-items: flex-start; }
-  .th { width: 142px; height: 80px; border-radius: 2px; position: relative; flex: 0 0 auto;
-        background: linear-gradient(135deg, #2f2f2f, #101010 55%, #3a3a3a); }
+  #vctl { position: absolute; left: 0; right: 0; bottom: 0; display: none; z-index: 3;
+          padding: 0 10px 7px; }
+  #vrow { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 11px;
+          font-variant-numeric: tabular-nums; }
+  #vrow svg { width: 17px; height: 17px; fill: #fff; }
+  #seek { height: 3px; background: rgba(255,255,255,.35); border-radius: 2px;
+          position: relative; margin: 0 2px 6px; }
+  #seek > i { display: block; height: 100%; background: #f00; width: 0; border-radius: 2px; }
+  #seek > b { position: absolute; top: 50%; width: 11px; height: 11px; margin: -5.5px 0 0 -5.5px;
+              border-radius: 50%; background: #f00; left: 0; }
+
+  /* title block */
+  #info { padding: 12px 12px 8px; }
+  #ttl { font-size: 16px; font-weight: 600; line-height: 1.3; }
+  #tags { color: #065fd4; font-size: 14px; margin-top: 2px; }
+  #by { color: #606060; font-size: 12px; margin-top: 6px; }
+
+  /* channel row */
+  #chan { display: flex; align-items: center; gap: 10px; padding: 8px 12px 12px; }
+  #av { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; background: #ddd; }
+  #cn { font-size: 14px; font-weight: 500; }
+  #cs { color: #606060; font-size: 12px; }
+  #sub { margin-left: auto; background: #0f0f0f; color: #fff; font-size: 13px; font-weight: 500;
+         padding: 8px 15px; border-radius: 18px; }
+
+  /* chips */
+  #chips { display: flex; gap: 8px; padding: 0 12px 12px; overflow: hidden; }
+  .chip { display: flex; align-items: center; gap: 6px; background: #f2f2f2; border-radius: 18px;
+          padding: 8px 13px; font-size: 13px; white-space: nowrap; }
+  .chip svg { width: 18px; height: 18px; fill: #0f0f0f; }
+
+  /* comments */
+  #cmt { margin: 0 12px 14px; background: #f2f2f2; border-radius: 12px; padding: 11px 13px; }
+  #cmt h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+  #cmt h3 span { color: #606060; font-weight: 400; margin-left: 5px; }
+  #cmt .c { display: flex; gap: 9px; align-items: flex-start; }
+  #cmt .pic { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto;
+              background: linear-gradient(135deg, #8ab, #456); }
+  #cmt .txt { font-size: 13px; line-height: 1.35; }
+
+  /* up next */
+  .rel { display: flex; gap: 10px; padding: 8px 12px; align-items: flex-start; }
+  .th { width: 160px; height: 90px; border-radius: 8px; position: relative; flex: 0 0 auto;
+        overflow: hidden; background: linear-gradient(135deg, #2f2f2f, #101010 55%, #3a3a3a); }
+  .th img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.8) brightness(.78); }
   .th i { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.8); color: #fff;
-          font-size: 11px; padding: 1px 4px; border-radius: 2px; font-style: normal; }
-  .rt { font-size: 14px; line-height: 1.3; }
+          font-size: 11px; padding: 1px 4px; border-radius: 4px; font-style: normal; }
+  .rt { font-size: 14px; line-height: 1.3; font-weight: 500; }
   .rc { color: #606060; font-size: 12px; margin-top: 3px; }
+
   #tap { position: fixed; inset: 0; z-index: 9; background: rgba(0,0,0,.72);
          display: flex; flex-direction: column; align-items: center; justify-content: center;
          gap: 30px; padding: 0 26px; text-align: center; }
@@ -67,36 +106,51 @@
 <div id="bar">
   <div id="mark"><div class="box"></div><span>YouTube</span></div>
   <div class="sp"></div>
+  <svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 0 0-2 2v3h2V5h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2a5 5 0 0 1 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c5 0 9 4 9 9h2c0-6.08-4.93-11-11-11z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6V11c0-3.07-1.64-5.64-4.5-6.32V4a1.5 1.5 0 0 0-3 0v.68C7.63 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>
   <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7 14 5 12 5 9.5S7 5 9.5 5 14 7 14 9.5 12 14 9.5 14z"/></svg>
-  <svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
 </div>
 
 <div id="screen">
   <img id="cover" alt="">
   <div class="ring" id="ring"></div>
   <div id="pp" class="paused"></div>
-  <div id="chrome">
-    <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
-    <div class="sp"></div>
-    <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2a5 5 0 0 1 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c5 0 9 4 9 9h2c0-6.08-4.93-11-11-11zM21 3H3v2h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
-    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-    <svg viewBox="0 0 24 24"><path d="M18 16.08a3 3 0 0 0-1.9.68l-7.05-4.1a3.3 3.3 0 0 0 0-1.32l6.97-4.06A3 3 0 1 0 15 5c0 .24.03.47.09.7L8.04 9.81a3 3 0 1 0 0 4.38l7.12 4.16a2.92 2.92 0 1 0 2.84-2.27z"/></svg>
-    <svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+  <div id="vctl">
+    <div id="seek"><i></i><b></b></div>
+    <div id="vrow">
+      <span id="tnow">0:00</span><span>/</span><span id="tend">0:30</span>
+      <div class="sp"></div>
+      <svg viewBox="0 0 24 24"><path d="M10 8v8l6-4-6-4zm11-5H3a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z" opacity=".85"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+    </div>
   </div>
-  <div id="seek"><i></i></div>
 </div>
 
-<div id="info"><div id="ttl">Loading song&hellip;</div><div id="by">Vevo &middot; 23,565,897 views</div></div>
-<div id="acts">
-  <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11a2 2 0 0 0-2-2h-6.31l.95-4.57.03-.32a1.5 1.5 0 0 0-.44-1.06L14.17 1 7.59 7.59A2 2 0 0 0 7 9v10a2 2 0 0 0 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><b>40K</b>
-  <svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2a2 2 0 0 0 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5a2 2 0 0 0-2-2zm4 0v12h4V3h-4z"/></svg><b>2K</b>
-  <div class="sp"></div>
-  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-  <svg viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
-  <svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
+<div id="info">
+  <div id="ttl">Loading song&hellip;</div>
+  <div id="tags">#music #live #official</div>
+  <div id="by">23,565,897 views &nbsp;2 years ago</div>
 </div>
-<hr>
-<div id="list"></div>
+
+<div id="chan">
+  <img id="av" alt="">
+  <div><div id="cn">Vevo</div><div id="cs">12.4M subscribers</div></div>
+  <div id="sub">Subscribe</div>
+</div>
+
+<div id="chips">
+  <div class="chip"><svg viewBox="0 0 24 24"><path d="M18.77 11h-4.23l1.52-4.94A1.54 1.54 0 0 0 14.59 4c-.4 0-.78.16-1.06.44L7 11v9h10.23a2 2 0 0 0 1.94-1.52l1.76-7A2 2 0 0 0 18.77 11zM3 20h3v-9H3v9z"/></svg><span>40K</span></div>
+  <div class="chip"><svg viewBox="0 0 24 24"><path d="M5.23 13h4.23l-1.52 4.94A1.54 1.54 0 0 0 9.41 20c.4 0 .78-.16 1.06-.44L17 13V4H6.77a2 2 0 0 0-1.94 1.52l-1.76 7A2 2 0 0 0 5.23 13zM21 4h-3v9h3V4z"/></svg><span>2K</span></div>
+  <div class="chip"><svg viewBox="0 0 24 24"><path d="M14 9V5l7 7-7 7v-4.1c-5 0-8.5 1.6-11 5.1 1-5 4-10 11-11z"/></svg><span>Share</span></div>
+  <div class="chip"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg><span>Download</span></div>
+  <div class="chip"><svg viewBox="0 0 24 24"><path d="M14 10H2v2h12v-2zm0-4H2v2h12V6zM2 16h8v-2H2v2zm19.5-4.5L23 13l-6.99 7-4.51-4.5L13 14l3.01 3 5.49-5.5z"/></svg><span>Save</span></div>
+</div>
+
+<div id="cmt">
+  <h3>Comments <span>1.2K</span></h3>
+  <div class="c"><div class="pic"></div>
+    <div class="txt">Who else is still listening to this in 2026? Absolute classic.</div></div>
+</div>
 
 <div id="tap"><p>Tap here once to stop the display from sleeping.</p><div class="circle"></div></div>
 
@@ -189,15 +243,41 @@
   }
   doPoll();
 
+  function fmt(n) {
+    n = Math.max(0, Math.floor(n || 0));
+    return Math.floor(n / 60) + ":" + String(n % 60).padStart(2, "0");
+  }
+  // Stable for a given song: the same reveal must not show a different view
+  // count if the page is reloaded in front of anyone.
+  function seeded(str, lo, hi) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return lo + (h % (hi - lo));
+  }
+  function commas(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
+
   function reveal() {
     if (revealed || !track) return;
     revealed = true;
+    ARTIST = track.artist || "Vevo";
+
     $("ttl").textContent = track.title + (track.artist ? " - " + track.artist : "");
-    $("by").textContent = (track.artist || "Vevo") + " · 23,565,897 views";
-    if (track.cover) { $("cover").src = track.cover; $("cover").style.display = "block"; }
+    $("tags").textContent = "#" + ARTIST.toLowerCase().replace(/[^a-z0-9]+/g, "") +
+                            " #official #music";
+    $("by").textContent = commas(seeded(track.title + ARTIST, 4000000, 900000000)) +
+                          " views \u00a0" + seeded(ARTIST, 2, 14) + " years ago";
+    $("cn").textContent = ARTIST;
+    $("cs").textContent = commas(seeded(ARTIST + "s", 400, 24000)) + "K subscribers";
+
+    if (track.cover) {
+      $("cover").src = track.cover;
+      $("cover").style.display = "block";
+      $("av").src = track.cover;
+    }
+    paintList(track.cover || "");
     $("ring").style.display = "none";
     $("pp").style.display = "flex";
-    $("seek").style.display = "block";
+    $("vctl").style.display = "block";
   }
   $("pp").addEventListener("click", function (e) {
     e.stopPropagation();
@@ -207,9 +287,19 @@
   setInterval(function () {
     if (!revealed) return;
     var d = audio.duration && isFinite(audio.duration) ? audio.duration : 30;
-    $("seek").firstElementChild.style.width = Math.min(100, (audio.currentTime / d) * 100) + "%";
+    var pct = Math.min(100, (audio.currentTime / d) * 100);
+    $("seek").querySelector("i").style.width = pct + "%";
+    $("seek").querySelector("b").style.left = pct + "%";
+    $("tnow").textContent = fmt(audio.currentTime);
+    $("tend").textContent = fmt(d);
     $("pp").className = audio.paused ? "paused" : "playing";
+    // YouTube hides the centre button while it plays and shows it on a tap.
+    // A permanent play triangle over a playing song gives it away.
+    $("pp").style.opacity = audio.paused ? "1" : "0";
   }, 200);
+  $("screen").addEventListener("click", function () {
+    if (revealed) $("pp").style.opacity = "1";
+  });
 </script>
 </body>
 </html>
