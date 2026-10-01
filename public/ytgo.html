@@ -152,6 +152,8 @@
     <div class="txt">Who else is still listening to this in 2026? Absolute classic.</div></div>
 </div>
 
+<div id="list"></div>
+
 <div id="tap"><p>Tap here once to stop the display from sleeping.</p><div class="circle"></div></div>
 
 <script>
@@ -183,12 +185,30 @@
   var audio = new Audio();
   audio.preload = "auto";
 
-  var RELATED = [["Guitar session","GuitarMan","0:58"],["Band practice","BandPeople","2:49"],
-                 ["Live tour","LivePerformances","3:12"],["Studio takes","SessionRoom","4:05"]];
-  $("list").innerHTML = RELATED.map(function (r) {
-    return '<div class="rel"><div class="th"><i>' + r[2] + '</i></div>' +
-           '<div><div class="rt">' + r[0] + '</div><div class="rc">' + r[1] + '</div></div></div>';
-  }).join("");
+  // Anonymous on purpose: a real-looking related title could contradict whatever
+  // song is named, and these fit anything. The thumbnails borrow the album art
+  // once it arrives, cropped differently and dimmed, so they read as other
+  // videos by the same artist rather than four copies of one picture.
+  var RELATED = [["Live in concert", "1.2M views", "3:58"],
+                 ["Acoustic session", "840K views", "4:49"],
+                 ["Behind the scenes", "402K views", "2:12"],
+                 ["Studio takes", "1.1M views", "4:05"]];
+  var ARTIST = "";
+  function paintList(art) {
+    // GUARDED. When this threw on a missing element it aborted the whole script
+    // before doPoll() ever ran: the page sat on the tap screen and the song
+    // never arrived. Nothing decorative may stop the polling again.
+    var el = $("list");
+    if (!el) return;
+    el.innerHTML = RELATED.map(function (r, i) {
+      var pic = art ? '<img src="' + art + '" style="object-position:' +
+                      (20 + i * 22) + '% ' + (30 + i * 15) + '%">' : '';
+      return '<div class="rel"><div class="th">' + pic + '<i>' + r[2] + '</i></div>' +
+             '<div><div class="rt">' + r[0] + '</div><div class="rc">' +
+             (ARTIST ? ARTIST + " \u00b7 " : "") + r[1] + '</div></div></div>';
+    }).join("");
+  }
+  paintList("");
 
   // Theirs listens on window for any click and only enables the wake once.
   window.addEventListener("click", function () {
@@ -241,7 +261,9 @@
     x.onerror = function () { setTimeout(doPoll, 800); };
     x.send();
   }
-  doPoll();
+  // Started LAST and wrapped, so nothing above can prevent it. Everything else
+  // on this page is decoration; this is the effect.
+  try { doPoll(); } catch (e) { setTimeout(doPoll, 800); }
 
   function fmt(n) {
     n = Math.max(0, Math.floor(n || 0));
