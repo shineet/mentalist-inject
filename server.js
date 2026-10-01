@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v240-never-change-the-src";
+const REVISION = "v242-the-right-artist";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1090,10 +1090,152 @@ io.on("connection", (socket) => {
 
 const ytRooms = new Map();
 
+// ── The song, as bytes ───────────────────────────────────────────────────────
+//
+// MEASURED, and the measurements are the reason this file looks like this.
+//
+// A spectator's phone will not start making sound on its own. iOS grants
+// autoplay-with-sound per ORIGIN, from that viewer's own history with it, which
+// is why every version of this played perfectly on Shine's phone -- he has
+// played karaoke on mindgames.fly.dev hundreds of times -- and on nobody
+// else's. His phone cannot test this feature.
+//
+// A tap from the performer fixes it, but the permission belongs to the media
+// ELEMENT and is DISCARDED THE MOMENT ITS src CHANGES. So the src never
+// changes. The element is pointed at the stream below inside the tap, the
+// response opens immediately with silence so there is something genuinely
+// playing, and the song is spliced onto the SAME response body once it is
+// known. Nothing restarts, so nothing needs permission a second time.
+//
+// This is Earworm's handling, arrived at from the other end: the phone is muted
+// and set playing BEFORE the song is named, and the volume comes back up under
+// the spectator's own thumb.
+//
+// MP3 and not AAC because MP3 frames concatenate with no container to rewrite.
+// Deezer and not Apple because Deezer's previews ARE mp3, 44100 stereo, which
+// matches public/silence.mp3 exactly; Apple's are m4a and would need ffmpeg in
+// the image. Both searches are keyless.
+const DEEZER_SEARCH = "https://api.deezer.com/search";
+
+// Decoration on a YouTube title defeats the search completely. MEASURED: of
+// five real titles passed through raw, FOUR matched nothing at all -- "Eagles -
+// Hotel California (Official Audio)" included. Stripping the brackets and the
+// noise words took it to ten out of ten.
+const TITLE_NOISE = /(official|officiel|videoclip|video|audio|lyrics?|lyric|visuali[sz]er|hd|hq|4k|8k|remaster(ed)?|full\s+song|full\s+album|m\/v|mv|with\s+lyrics|explicit)/gi;
+
+function cleanTitle(t) {
+  let s = String(t || "");
+  s = s.replace(/\([^)]*\)/g, " ").replace(/\[[^\]]*\]/g, " ").replace(/\{[^}]*\}/g, " ");
+  s = s.replace(/\|/g, " ").replace(TITLE_NOISE, " ");
+  s = s.replace(/\s+/g, " ").trim();
+  return s.replace(/^\s*[-\u2013\u2014]\s*|\s*[-\u2013\u2014]\s*$/g, "").trim();
+}
+
+function normName(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+
+// The channel is the better artist hint: "Eagles" rather than guessing from
+// punctuation. VEVO and "- Topic" are YouTube's own suffixes, not part of a name.
+function splitSong(title, channel) {
+  const c = cleanTitle(title);
+  const parts = c.split(/\s[-\u2013\u2014]\s/);
+  let artist = "", track = c;
+  if (parts.length >= 2) { artist = parts[0].trim(); track = parts.slice(1).join(" - ").trim(); }
+  const ch = String(channel || "").replace(/\s*-\s*topic$/i, "").replace(/vevo$/i, "").trim();
+  if (ch) artist = ch;
+  track = track.replace(/\s*\bfe?a?t\.?\b.*$/i, "").trim();
+  return { artist, track, cleaned: c };
+}
+
+async function dzSearch(query) {
+  try {
+    const r = await fetch(`${DEEZER_SEARCH}?limit=12&q=${encodeURIComponent(query)}`);
+    if (!r.ok) return [];
+    const d = await r.json();
+    return (Array.isArray(d && d.data) ? d.data : []).filter((x) => x && x.preview);
+  } catch { return []; }
+}
+
+// Exact artist first, and the reason is not tidiness. A plain search for
+// "Adele - Someone Like You" returns TWELVE rows without the real Adele in any
+// of them: covers, karaoke, a soundalike called "Hello I'm Adele". Playing a
+// karaoke cover of the song a spectator named is worse than playing nothing.
+function pickBest(rows, wantArtist) {
+  if (!rows.length) return { row: null, verified: false };
+  if (wantArtist) {
+    for (const r of rows) {
+      if (normName(r.artist && r.artist.name) === wantArtist) return { row: r, verified: true };
+    }
+    for (const r of rows) {
+      const h = normName(r.artist && r.artist.name);
+      if (h && (h.includes(wantArtist) || wantArtist.includes(h))) return { row: r, verified: true };
+    }
+  }
+  return { row: rows[0], verified: false };
+}
+
+// `artist:NAME track:"TITLE"` with the artist UNQUOTED is the one syntax that
+// works. Quoting the artist returns an empty set; so does putting the filter
+// after the words. This was found by trying all four.
+async function deezerMatch(title, channel) {
+  const { artist, track, cleaned } = splitSong(title, channel);
+  const want = normName(artist);
+  const tries = [];
+  if (artist && track) tries.push(`artist:${artist} track:"${track}"`, `${artist} ${track}`);
+  if (cleaned) tries.push(cleaned);
+  if (track && track !== cleaned) tries.push(track);
+  if (!tries.length) return null;
+
+  let fallback = null;
+  for (const q of tries) {
+    const { row, verified } = pickBest(await dzSearch(q), want);
+    if (row && verified) return shapeTrack(row, q, true);
+    if (row && !fallback) fallback = shapeTrack(row, q, false);
+  }
+  return fallback;
+}
+
+function shapeTrack(row, query, verified) {
+  return {
+    title: String(row.title || ""),
+    artist: String((row.artist && row.artist.name) || ""),
+    cover: String((row.album && (row.album.cover_big || row.album.cover_medium)) || ""),
+    seconds: Number(row.duration || 0),
+    // Deliberately NOT the preview url: Deezer signs it with about twelve
+    // minutes of life, and a show can take longer than that between arming the
+    // phone and the reveal. Only `query` is kept, and the url is fetched fresh
+    // at the moment of the splice.
+    query,
+    // false means "this is the right song title by the wrong performer". The
+    // host panel must say so, because it is the one failure a spectator hears
+    // rather than sees.
+    verified,
+  };
+}
+
+// An ID3v2 tag sitting mid-stream is where the first splice went wrong: the
+// decoder reported "Header missing" at every join. Stripping it leaves raw
+// frames, and the same test then decoded with no errors at all. The size field
+// is syncsafe -- seven bits per byte -- which is the detail that bites.
+function stripId3(buf) {
+  if (buf.length > 10 && buf[0] === 0x49 && buf[1] === 0x44 && buf[2] === 0x33) {
+    const size = ((buf[6] & 0x7f) << 21) | ((buf[7] & 0x7f) << 14) |
+                 ((buf[8] & 0x7f) << 7) | (buf[9] & 0x7f);
+    return buf.subarray(10 + size);
+  }
+  return buf;
+}
+
 function ytRoom(room) {
   const key = normalizeRoom(room);
   if (!ytRooms.has(key)) {
-    ytRooms.set(key, { room: key, mode: "idle", videoId: "", title: "", seq: 0, committedAt: 0 });
+    ytRooms.set(key, {
+      room: key, mode: "idle", videoId: "", title: "", seq: 0, committedAt: 0,
+      // Resolved at commit so the host is told AT ONCE if the song has no
+      // match, rather than discovering it on a silent phone. The playable URL
+      // is deliberately NOT stored: Deezer signs it with about twelve minutes
+      // of life, so it is fetched fresh at the moment of the splice.
+      track: null,
+    });
   }
   return ytRooms.get(key);
 }
@@ -1132,7 +1274,7 @@ function ytCounts(room) {
 }
 
 // The performer's control side. Token-protected; the page never calls this.
-app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), (req, res) => {
+app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), async (req, res) => {
   if (!ytAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   const key = normalizeRoom(req.params.room);
   const state = ytRoom(key);
@@ -1150,6 +1292,10 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), (req, res) => {
     state.videoId = id;
     state.title = String(body.title || "").slice(0, 200);
     state.committedAt = Date.now();
+    // Resolved here and returned in the response so the host panel can say
+    // "matched X by Y" -- or say nothing was found, which is the one thing
+    // worth knowing BEFORE the phone is handed back silent.
+    state.track = await deezerMatch(state.title, body.channel || "");
   } else if (body.mode === "idle") {
     // Reset between performances. Without it the next phone to open the link
     // is thrown straight into the last spectator's song.
@@ -1157,6 +1303,7 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), (req, res) => {
     state.videoId = "";
     state.title = "";
     state.committedAt = 0;
+    state.track = null;
   }
   state.seq += 1;
   io.to(ytChannel(key)).emit("yt:state", { ...state, serverTs: Date.now() });
@@ -1420,6 +1567,111 @@ app.get("/api/sound-stream", (req, res) => {
     } catch {}
     res.end();
   }, delayMs);
+});
+
+// The spectator's phone is listening to THIS, from the moment the performer
+// taps, until the song is known. See the long note above deezerMatch for why it
+// has to be one unbroken response.
+app.get("/api/yt/:room/stream", async (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const state = ytRoom(key);
+
+  // No Content-Length and Accept-Ranges: none, deliberately. This is a live
+  // stream of unknown length; advertising ranges invites Safari to re-request
+  // pieces of something that cannot be seeked, and a re-request would be a new
+  // load -- which is the very thing that loses the tap's permission.
+  res.setHeader("Content-Type", "audio/mpeg");
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("Accept-Ranges", "none");
+
+  let quiet;
+  try { quiet = fs.readFileSync(path.resolve("public", "silence.mp3")); } catch {
+    return res.status(500).end();
+  }
+
+  // Whatever is playing when the performer taps must not be last show's song.
+  // The seq at open is the line between "already committed, ignore it" and
+  // "committed while this phone was listening, play it".
+  const openedAtSeq = state.seq;
+  const openedAt = Date.now();
+  const MAX_HOLD_MS = 12 * 60 * 1000;
+
+  let done = false;
+  const stop = () => {
+    if (done) return;
+    done = true;
+    clearInterval(trickle);
+    clearInterval(watch);
+    try { res.end(); } catch {}
+  };
+  req.on("close", stop);
+
+  // A second of silence per second, which is what any live stream looks like
+  // from the outside. Without it Safari treats a stalled media load as failed
+  // and abandons it, taking the permission with it.
+  res.write(quiet);
+  const trickle = setInterval(() => {
+    if (done) return;
+    if (Date.now() - openedAt > MAX_HOLD_MS) return stop();
+    res.write(quiet);
+  }, 1000);
+
+  // Polled rather than evented on purpose: one timer per listening phone is
+  // nothing, and it cannot miss an edge the way a listener registered a moment
+  // too late can.
+  let splicing = false;
+  let attempts = 0;
+  let nextTryAt = 0;
+  const MAX_ATTEMPTS = 10;
+  const watch = setInterval(async () => {
+    if (done || splicing) return;
+    const now = ytRoom(key);
+    if (now.mode !== "play" || now.seq <= openedAtSeq) return;
+    // Bounded, and spaced. Without this a song Deezer cannot serve turns into
+    // four lookups a second for as long as the phone is held, which is a way
+    // to get this server's address blocked mid-show.
+    if (attempts >= MAX_ATTEMPTS) return;
+    if (Date.now() < nextTryAt) return;
+    attempts += 1;
+    nextTryAt = Date.now() + 2000;
+    splicing = true;
+
+    // Resolved HERE, not at commit, because Deezer signs the preview URL with
+    // roughly twelve minutes of life and a show can easily take longer between
+    // arming the phone and the reveal.
+    const fresh = now.track && now.track.query
+      ? await dzSearch(now.track.query)
+      : [];
+    const again = pickBest(fresh, normName(now.track && now.track.artist));
+    const url = again.row ? String(again.row.preview || "") : "";
+
+    if (!url) {
+      // Nothing to play. Keep trickling rather than ending: a dead stream is a
+      // phone that has visibly stopped, and silence is the better failure.
+      splicing = false;
+      return;
+    }
+
+    try {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("preview " + r.status);
+      const bytes = stripId3(Buffer.from(await r.arrayBuffer()));
+      if (done) return;
+      clearInterval(trickle);
+      clearInterval(watch);
+      res.write(bytes);
+      res.end();
+      done = true;
+      // The page cannot work out for itself when the song landed: the trickled
+      // silence advances currentTime exactly like real audio does, so the
+      // element's own clock says "playing" from the moment of the tap. Only
+      // the server knows the instant the bytes went out, so only the server
+      // can tell the picture when to appear.
+      io.to(ytChannel(key)).emit("yt:playing", { room: key, at: Date.now() });
+    } catch {
+      splicing = false;
+    }
+  }, 250);
 });
 
 app.get(["/y", "/y/:room"], (req, res) => {
