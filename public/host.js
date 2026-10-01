@@ -1085,7 +1085,11 @@ function preloadKaraokeIfConfigured(p) {
   if (p?.karaoke?.audioUrl && p?.karaoke?.lrcUrl) {
     p.karaokeEndPhotoUrl = getBestKaraokeEndPhotoUrlFromUI();
     if (!p.karaoke) p.karaoke = {};
-    if (!p.karaoke.endPhotoUrl) p.karaoke.endPhotoUrl = p.karaokeEndPhotoUrl;
+    // Unconditional on purpose. payloadFromUI() has no endPhotoUrl field, so the
+    // old `if (!...)` guard never actually fired -- but it read as "keep whatever
+    // is there", which is the behaviour that let a dead photo URL outlive the show
+    // it belonged to. Always rewrite from the UI.
+    p.karaoke.endPhotoUrl = p.karaokeEndPhotoUrl;
     emitHostAction("host:preloadKaraokeSilent", "preloadKaraokeSilent", p);
   }
 }
@@ -1096,7 +1100,7 @@ els.btnKaraokePrepareStep?.addEventListener("click", () => {
   if (!p.karaoke?.lrcUrl) return alert("Please enter a Karaoke .LRC Lyrics URL first.");
   p.karaokeEndPhotoUrl = getBestKaraokeEndPhotoUrlFromUI();
   if (!p.karaoke) p.karaoke = {};
-  if (!p.karaoke.endPhotoUrl) p.karaoke.endPhotoUrl = p.karaokeEndPhotoUrl;
+  p.karaoke.endPhotoUrl = p.karaokeEndPhotoUrl;
   emitHostAction("host:prepareKaraoke", "prepareKaraoke", p);
 });
 
@@ -1106,7 +1110,7 @@ els.btnStartKaraoke?.addEventListener("click", () => {
   if (!p.karaoke?.lrcUrl) return alert("Please enter a Karaoke .LRC Lyrics URL first.");
   p.karaokeEndPhotoUrl = getBestKaraokeEndPhotoUrlFromUI();
   if (!p.karaoke) p.karaoke = {};
-  if (!p.karaoke.endPhotoUrl) p.karaoke.endPhotoUrl = p.karaokeEndPhotoUrl;
+  p.karaoke.endPhotoUrl = p.karaokeEndPhotoUrl;
   emitHostAction("host:startKaraoke", "startKaraoke", p);
   markContentTriggered();
 });
