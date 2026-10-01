@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v239-sound-without-a-touch";
+const REVISION = "v240-never-change-the-src";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1372,6 +1372,56 @@ app.get(["/yt.html", "/yt-diag.html"], (req, res, next) => {
 // Shine appears to search for their song. Served rather than redirected so the
 // long URL never appears in the address bar in front of them; the page reads
 // its room from the path as well as from ?r=.
+// ── A held-open audio stream, for the no-touch sound test ────────────────────
+//
+// Swapping the src of a media element discards the user-gesture permission on
+// iOS. Measured: a tap that successfully plays silence buys nothing once the
+// src changes, on a phone with no history with this origin.
+//
+// So the src never changes. The element is pointed HERE inside the tap, and
+// this response stays open, trickling silent MP3 frames so the element has a
+// live stream rather than a stall Safari would abandon. When the song is known
+// the real frames are spliced onto the SAME response body. MP3 is used
+// precisely because frames concatenate without a container rewrite.
+//
+// This endpoint is the mechanism on its own, with a fixed delay and a fixed
+// song, so the question "does spliced audio play untouched" is answered before
+// any of the room plumbing is built on top of it.
+app.get("/api/sound-stream", (req, res) => {
+  const delayMs = Math.min(30000, Math.max(0, parseInt(req.query.delay || "5000", 10)));
+  const silence = path.resolve("public", "silence.mp3");
+  const song = path.resolve("public", "sound-test-song.mp3");
+
+  res.setHeader("Content-Type", "audio/mpeg");
+  res.setHeader("Cache-Control", "no-store");
+  // No Content-Length and no Accept-Ranges on purpose: this is a live stream of
+  // unknown length, and advertising ranges invites Safari to re-request pieces
+  // of something that cannot be seeked.
+  res.setHeader("Accept-Ranges", "none");
+
+  let quiet;
+  try { quiet = fs.readFileSync(silence); } catch { return res.status(500).end(); }
+
+  let stopped = false;
+  req.on("close", () => { stopped = true; clearInterval(tick); });
+
+  // One second of silence per second, which is what a live stream looks like.
+  const tick = setInterval(() => {
+    if (stopped) return;
+    res.write(quiet);
+  }, 1000);
+  res.write(quiet);
+
+  setTimeout(() => {
+    if (stopped) return;
+    clearInterval(tick);
+    try {
+      res.write(fs.readFileSync(song));
+    } catch {}
+    res.end();
+  }, delayMs);
+});
+
 app.get(["/y", "/y/:room"], (req, res) => {
   const key = normalizeRoom(req.params.room || "x");
   res.setHeader("Cache-Control", "no-store, must-revalidate");
