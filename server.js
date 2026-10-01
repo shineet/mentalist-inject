@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v246-a-countdown-not-a-watcher";
+const REVISION = "v247-prime-their-phone";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1242,6 +1242,20 @@ function ytRoom(room) {
       // intro and in the body of the track, so it is recognised the instant the
       // volume comes up. Read from their own switch file.
       startAt: 44,
+      // The primer. iOS keeps a PER-DOMAIN preference for universal links, and
+      // a phone that has been sent to Safari for youtube.com keeps going to
+      // Safari forever after. That setting lives on the spectator's phone and
+      // nothing we deploy can reach it.
+      //
+      // So it gets set by hand, before the effect, on a throwaway video: open
+      // /p, tap, and either the app opens (already primed, nothing to do) or
+      // Safari offers "Open in the YouTube app" and one tap fixes the phone for
+      // good. Then the real link is opened and everything after it is clean.
+      //
+      // Default is "Me at the zoo", the first video ever uploaded to YouTube.
+      // Nineteen seconds, it will never be taken down, and a spectator who
+      // glimpses it sees a curiosity rather than anything resembling a reveal.
+      primeVideoId: "jNQXAC9IVRw",
       // Resolved at commit so the host is told AT ONCE if the song has no
       // match, rather than discovering it on a silent phone. The playable URL
       // is deliberately NOT stored: Deezer signs it with about twelve minutes
@@ -1300,6 +1314,9 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), async (req, res)
   // Older builds of MystIO said "youtube" before there were two of them. That
   // meant the auto behaviour, so it maps there rather than to the tap variant.
   if (body.playback === "youtube") state.playback = "youtube_auto";
+  if (typeof body.primeVideoId === "string" && /^[A-Za-z0-9_-]{11}$/.test(body.primeVideoId)) {
+    state.primeVideoId = body.primeVideoId;
+  }
   if (body.startAt !== undefined) {
     const n = Number(body.startAt);
     if (Number.isFinite(n) && n >= 0 && n <= 600) state.startAt = Math.round(n);
@@ -1703,6 +1720,17 @@ app.get("/api/yt/:room/stream", async (req, res) => {
       splicing = false;
     }
   }, 250);
+});
+
+// Priming a borrowed phone. See primeVideoId in ytRoom for why this exists.
+//
+// Its own URL on purpose rather than a mode of /y: Shine opens this, taps,
+// deals with whatever iOS says, and then types the real link fresh. Folding it
+// into /y would mean the page had to know whether it was priming or performing,
+// and getting that wrong is a dummy video on screen in the middle of a show.
+app.get(["/p", "/p/:room"], (req, res) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  res.sendFile(path.resolve("public", "prime.html"));
 });
 
 app.get(["/y", "/y/:room"], (req, res) => {
