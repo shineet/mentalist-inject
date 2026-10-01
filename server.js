@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v243-real-youtube-or-our-player";
+const REVISION = "v244-earworms-mechanism";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1230,11 +1230,18 @@ function ytRoom(room) {
   if (!ytRooms.has(key)) {
     ytRooms.set(key, {
       room: key, mode: "idle", videoId: "", title: "", seq: 0, committedAt: 0,
-      // "youtube": the performer's tap opens the real YouTube app, full track,
-      // real controls. "audio": this server streams the song to a player of
-      // ours. They need OPPOSITE tap timing and that is the whole difficulty --
-      // see the note at the top of public/yt.html.
-      playback: "youtube",
+      // Three, and the difference between them is WHEN the performer taps.
+      // See the note at the top of public/yt.html -- getting it round the wrong
+      // way is a phone that plays nothing.
+      //
+      //   youtube_app   tap AFTER the song is sent -> the real YouTube app
+      //   youtube_auto  tap BEFORE -> Safari navigates itself. What Earworm does.
+      //   audio         tap BEFORE -> our own player, streamed from here
+      playback: "youtube_auto",
+      // Seconds into the song to start. Earworm uses 44, which lands past the
+      // intro and in the body of the track, so it is recognised the instant the
+      // volume comes up. Read from their own switch file.
+      startAt: 44,
       // Resolved at commit so the host is told AT ONCE if the song has no
       // match, rather than discovering it on a silent phone. The playable URL
       // is deliberately NOT stored: Deezer signs it with about twelve minutes
@@ -1287,8 +1294,15 @@ app.post("/api/yt/:room/state", express.json({ limit: "8kb" }), async (req, res)
 
   // Settable with or without a song, so the mode can be chosen while setting up
   // rather than only at the moment of committing.
-  if (body.playback === "youtube" || body.playback === "audio") {
+  if (["youtube_app", "youtube_auto", "audio"].includes(body.playback)) {
     state.playback = body.playback;
+  }
+  // Older builds of MystIO said "youtube" before there were two of them. That
+  // meant the auto behaviour, so it maps there rather than to the tap variant.
+  if (body.playback === "youtube") state.playback = "youtube_auto";
+  if (body.startAt !== undefined) {
+    const n = Number(body.startAt);
+    if (Number.isFinite(n) && n >= 0 && n <= 600) state.startAt = Math.round(n);
   }
 
   if (body.mode === "play") {

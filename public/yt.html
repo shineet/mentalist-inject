@@ -59,6 +59,14 @@
 </head>
 <body>
 
+<!-- Keeps the screen awake while the phone waits face down. The trick is
+     NoSleep.js's: iOS will not lock while a video is playing, so a 2x2 silent
+     clip loops out of sight. It is started by the performer's tap, because
+     playing it is itself media playback and needs that gesture. A phone that
+     locks face down kills the effect outright. -->
+<video id="awake" src="/awake.mp4" loop muted playsinline
+       style="position:fixed;width:2px;height:2px;opacity:0.01;pointer-events:none;left:0;top:0"></video>
+
 <div id="wait"><div class="dot"></div></div>
 
 <div id="player">
@@ -91,38 +99,65 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-  // The spectator's phone. TWO MODES, with OPPOSITE tap timing. That difference
-  // is the thing to understand before changing anything here.
+  // The spectator's phone. THREE MODES, and what separates them is WHEN the
+  // performer taps. Get that round the wrong way and the phone plays nothing,
+  // which looks like the effect failing rather than like a handling slip.
   //
-  //   playback "youtube"  the performer taps AFTER the song is committed. The
-  //                       tap IS the navigation, so the real YouTube app opens
-  //                       and plays the full track with real controls.
+  //   youtube_app   tap AFTER the song is sent. The tap IS the navigation, so
+  //                 the real YouTube APP opens. Full track, real controls, and
+  //                 the app has no autoplay policy to fight. Costs one touch
+  //                 after the reveal is set.
   //
-  //   playback "audio"    the performer taps BEFORE the song is known. The tap
-  //                       starts a held-open stream from this server, and the
-  //                       song is spliced into it later.
+  //   youtube_auto  tap BEFORE, to wake the screen only. Safari navigates
+  //                 itself when the song arrives. Nobody touches the phone
+  //                 afterwards. THIS IS WHAT EARWORM DOES -- confirmed by
+  //                 reading its own page, see below.
   //
-  // WHY, and all of it was measured on three phones rather than reasoned about:
+  //   audio         tap BEFORE, to arm a held-open stream from this server.
+  //                 Our player, 30 seconds, guaranteed sound.
   //
-  // 1. A youtube.com link opens the YouTube app ONLY with a finger in the call
+  // ALL OF THIS WAS MEASURED ON THREE PHONES. Nothing here is reasoned from
+  // documentation, because the documentation was wrong twice.
+  //
+  // 1. A youtube.com link opens the YouTube APP only with a finger in the call
   //    stack AT THE MOMENT of navigation. Eleven arrangements measured. No
-  //    timer, promise or server redirect substitutes for the finger. This is
-  //    why "youtube" mode needs the tap after the song is known.
+  //    timer, promise or server redirect substitutes for the finger.
   //
-  // 2. Safari will NOT autoplay the watch page on a stranger's phone. iOS
-  //    grants autoplay-with-sound per ORIGIN from that viewer's own history.
-  //    Shine has played karaoke on this origin hundreds of times, so every
-  //    version of this passed on his phone and failed on every other.
-  //    HIS PHONE CANNOT TEST THIS. Two phones failed what his passed.
+  // 2. Safari will not reliably autoplay the watch page on a stranger's phone.
+  //    iOS grants autoplay-with-sound per ORIGIN from that viewer's own history
+  //    with it. Shine has played karaoke on this origin hundreds of times, so
+  //    every version of this passed on his phone and failed on two others.
+  //    HIS PHONE CANNOT TEST THIS FEATURE. That trap cost two days.
   //
-  // 3. In "audio" mode the permission belongs to the media ELEMENT and is
+  // 3. In audio mode the permission belongs to the media ELEMENT and is
   //    DISCARDED THE MOMENT ITS src CHANGES. So the src is set once, inside the
   //    tap, and never again; the server answers with silence, holds the
   //    response open, and splices the song onto the same body.
   //
-  // The handling in both modes is Earworm's: the phone is muted and set going
-  // BEFORE the spectator names anything, it goes back face down, and the volume
-  // comes up under their own thumb.
+  // WHAT EARWORM DOES, read from https://iyt.pw/ rather than guessed at. Its
+  // "player" is a static JPEG of YouTube's interface plus a CSS spinner -- no
+  // video element, no audio, both commented out in the live page. It polls a
+  // switch file every 800ms and then runs top.location.replace() on a plain
+  // watch URL with a time offset:
+  //
+  //    http://www.youtube.com/watch?v=8fIUkINS1uo&t=44
+  //
+  // Three things worth taking from that, and all three are here now:
+  //   - the &t= offset, so the song is recognised instantly rather than after a
+  //     quiet intro
+  //   - replace() not href, leaving NO history entry to press Back into
+  //   - a cleanup redirect to Google a few seconds later, after which there is
+  //     nothing on the phone to find
+  //
+  // And one thing it does NOT solve: that navigation has no gesture either, so
+  // it lands in Safari and depends on the phone's own youtube.com history
+  // exactly as ours does. Earworm's own source shows the native-app path
+  // commented out and replaced by the web one, marked "temp". So this is not a
+  // limitation of our code and there is no arrangement of it left to try.
+  //
+  // The handling in every mode is Earworm's: the phone is set going BEFORE the
+  // spectator names anything, it goes back face down, and the volume comes up
+  // under their own thumb.
   var params = new URLSearchParams(location.search);
   var room = (params.get("r") || params.get("room") || "");
   if (!room) {
@@ -150,7 +185,8 @@
     document.getElementById("bad").style.display = "flex";
   }
 
-  var playback = "youtube";
+  var playback = "youtube_auto";
+  var startAt = 44;
   var videoId = "";
   var track = null;
   var gone = false;
@@ -160,14 +196,46 @@
   var audio = new Audio();
   audio.preload = "auto";
 
-  // ── youtube mode ──────────────────────────────────────────────────────────
+  // The URL, built exactly as Earworm builds it. Read off their own switch file:
+  //   http://www.youtube.com/watch?v=8fIUkINS1uo&t=44
+  // The offset is the performance detail -- 44 seconds is past the intro and
+  // into the body of the song, so it is recognised the moment the volume comes
+  // up rather than after a quiet build.
+  function watchURL() {
+    var t = Number(startAt) > 0 ? "&t=" + Math.round(startAt) : "";
+    return "https://www.youtube.com/watch?v=" + videoId + t;
+  }
+
+  // ── youtube_app: the tap comes AFTER the song is sent ─────────────────────
   // MUST stay synchronous. The navigation counts as coming from the touch only
   // while this handler is still on the stack; an await or a timer here puts the
   // phone into Safari instead, which is finding 1 above.
-  function onTapYouTube() {
+  function onTapYouTubeApp() {
     if (gone || !videoId) return;
     gone = true;
-    location.href = "https://www.youtube.com/watch?v=" + videoId;
+    location.href = watchURL();
+  }
+
+  // ── youtube_auto: nobody touches it after the song is sent ────────────────
+  // This is Earworm's mechanism, replicated: navigate from a poll callback with
+  // top.location.replace. Two consequences, both deliberate on their part.
+  //
+  // replace() rather than href leaves NO history entry, so a spectator cannot
+  // press Back and find this page.
+  //
+  // It lands in Safari, not the app, because there is no gesture at the moment
+  // of navigation -- and whether Safari then autoplays depends on that phone's
+  // own history with youtube.com. That is a real limitation and it is Earworm's
+  // too, since this is the same call. It is not something our code can fix.
+  function goAuto() {
+    if (gone || !videoId) return;
+    gone = true;
+    document.body.style.visibility = "hidden";
+    top.location.replace(watchURL());
+    // Earworm clears up after 3.4s by sending the phone to Google. After that
+    // there is nothing to scroll back to and nothing to find, which is worth
+    // copying for its own sake.
+    setTimeout(function () { top.location.replace("https://www.google.com"); }, 3400);
   }
 
   // ── audio mode ────────────────────────────────────────────────────────────
@@ -180,7 +248,14 @@
   }
 
   document.addEventListener("click", function () {
-    if (playback === "audio") onTapAudio(); else onTapYouTube();
+    // Starting the wake video needs the gesture too, so it rides along with
+    // whatever else the tap is for.
+    try { var a = document.getElementById("awake"); if (a && a.paused) a.play(); } catch (e) {}
+    if (playback === "audio") onTapAudio();
+    else if (playback === "youtube_app") onTapYouTubeApp();
+    // youtube_auto: the tap only arms the screen-wake. The navigation happens
+    // on its own when the song arrives.
+    else armed = true;
   });
 
   // ── the player chrome, audio mode only ────────────────────────────────────
@@ -241,10 +316,13 @@
 
   function onState(state) {
     if (!state) return;
-    if (state.playback === "audio" || state.playback === "youtube") playback = state.playback;
+    if (state.playback === "audio" || state.playback === "youtube_app" ||
+        state.playback === "youtube_auto") playback = state.playback;
+    if (state.startAt !== undefined && Number(state.startAt) >= 0) startAt = Number(state.startAt);
     if (state.mode !== "play") return;
     if (state.videoId) videoId = state.videoId;
     if (state.track) track = state.track;
+    if (playback === "youtube_auto") goAuto();
   }
 
   // The picture waits for the SERVER to say the bytes went out. The element's
