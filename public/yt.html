@@ -81,8 +81,16 @@
   .ytmark .box::after { content: ""; border-left: 9px solid #fff; border-top: 6px solid transparent;
                         border-bottom: 6px solid transparent; margin-left: 2px; }
   .ytmark span { font-size: 21px; font-weight: 600; letter-spacing: -.5px; color: #030303; }
-  #primelink { color: #9aa0a6; font-size: 12px; padding: 10px 16px; }
-  #primed { display: none; color: #188038; font-size: 12px; }
+  /* A real button, and a long way down. It read as a caption on the tile above
+     it, which is both unclickable-looking and, worse, close enough to hit by
+     accident while reaching for the tile. Still grey and still quiet: it is the
+     only thing on this page that would give the game away if a spectator read
+     it. */
+  #primelink { margin-top: 90px; color: #5f6368; font-size: 13px;
+               padding: 11px 20px; border: 1px solid #dadce0; border-radius: 20px;
+               background: #fff; }
+  #primelink:active { background: #f1f3f4; }
+  #primed { display: none; color: #188038; font-size: 12px; margin-top: -14px; }
 
   #bad { display: none; position: fixed; inset: 0; z-index: 20; background: #fff;
          align-items: center; justify-content: center; color: #606060;
@@ -109,7 +117,7 @@
     <div class="ytmark"><div class="box"></div><span>YouTube</span></div>
   </div>
   <div id="primelink">Check this device</div>
-  <div id="primed">This device is ready.</div>
+  <div id="primed">Ready.</div>
 </div>
 
 <div id="bar">
