@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v251-their-shape-exactly";
+const REVISION = "v252-the-second-document";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1558,7 +1558,7 @@ app.get(["/a", "/a/:room"], (req, res) => {
 // The audience pages must never be stale. A phone that has held this link
 // before will happily reuse its copy, and debugging a page that is not the page
 // you deployed costs a round of testing every time.
-app.get(["/yt.html", "/yt-diag.html"], (req, res, next) => {
+app.get(["/yt.html", "/ytgo.html"], (req, res, next) => {
   res.setHeader("Cache-Control", "no-store, must-revalidate");
   next();
 });
@@ -1567,59 +1567,6 @@ app.get(["/yt.html", "/yt-diag.html"], (req, res, next) => {
 // Shine appears to search for their song. Served rather than redirected so the
 // long URL never appears in the address bar in front of them; the page reads
 // its room from the path as well as from ?r=.
-// ── A held-open audio stream, for the no-touch sound test ────────────────────
-//
-// Swapping the src of a media element discards the user-gesture permission on
-// iOS. Measured: a tap that successfully plays silence buys nothing once the
-// src changes, on a phone with no history with this origin.
-//
-// So the src never changes. The element is pointed HERE inside the tap, and
-// this response stays open, trickling silent MP3 frames so the element has a
-// live stream rather than a stall Safari would abandon. When the song is known
-// the real frames are spliced onto the SAME response body. MP3 is used
-// precisely because frames concatenate without a container rewrite.
-//
-// This endpoint is the mechanism on its own, with a fixed delay and a fixed
-// song, so the question "does spliced audio play untouched" is answered before
-// any of the room plumbing is built on top of it.
-app.get("/api/sound-stream", (req, res) => {
-  const delayMs = Math.min(30000, Math.max(0, parseInt(req.query.delay || "5000", 10)));
-  const silence = path.resolve("public", "silence.mp3");
-  const song = path.resolve("public", "sound-test-song.mp3");
-
-  res.setHeader("Content-Type", "audio/mpeg");
-  res.setHeader("Cache-Control", "no-store");
-  // No Content-Length and no Accept-Ranges on purpose: this is a live stream of
-  // unknown length, and advertising ranges invites Safari to re-request pieces
-  // of something that cannot be seeked.
-  res.setHeader("Accept-Ranges", "none");
-
-  let quiet;
-  try { quiet = fs.readFileSync(silence); } catch { return res.status(500).end(); }
-
-  let stopped = false;
-  req.on("close", () => { stopped = true; clearInterval(tick); });
-
-  // One second of silence per second, which is what a live stream looks like.
-  const tick = setInterval(() => {
-    if (stopped) return;
-    res.write(quiet);
-  }, 1000);
-  res.write(quiet);
-
-  setTimeout(() => {
-    if (stopped) return;
-    clearInterval(tick);
-    try {
-      res.write(fs.readFileSync(song));
-    } catch {}
-    res.end();
-  }, delayMs);
-});
-
-// The spectator's phone is listening to THIS, from the moment the performer
-// taps, until the song is known. See the long note above deezerMatch for why it
-// has to be one unbroken response.
 app.get("/api/yt/:room/stream", async (req, res) => {
   const key = normalizeRoom(req.params.room);
   const state = ytRoom(key);
@@ -1756,34 +1703,33 @@ app.get(["/d", "/d/:room"], (req, res) => {
   res.sendFile(path.resolve("public", "dialler.html"));
 });
 
-// A 302 to YouTube. Kept only for yt-diag.html.
+// A 302 to YouTube, used by the PRIMING tap on the landing page.
 //
-// THE ANSWER, so nobody spends another evening on it. Eleven ways of opening a
-// youtube.com link were measured on one phone, and the conclusion was then
-// re-run on a SECOND phone that had never seen any of this, in case the first
-// had been taught by iOS to prefer Safari. Same result.
+// THE ANSWER, so nobody spends another week on it.
 //
-//   a plain <a href>, tapped                     -> the YouTube app
-//   location.href inside a click handler         -> the app
-//   a countdown started by a tap, then this 302  -> the app
-//   a navigation begun in a tap, held open, 302  -> the app, after an
-//                                                   "Open in YouTube?" dialog
-//   a countdown started by a tap, direct URL     -> Safari
-//   a countdown started on page load, 302        -> Safari
-//   the same, with a stray tap during it         -> Safari
-//   a watcher created inside a tap, firing later -> Safari
-//   <meta http-equiv="refresh">                  -> Safari
-//   an HTTP Refresh: header                      -> Safari
-//   a TYPED navigation held open, then 302'd     -> Safari
+// Opening the YouTube app needs the navigation to be user-initiated. Eleven
+// arrangements were measured and the conclusion drawn was "a touch must be in
+// the call stack AT THE MOMENT of navigation, and no page can manufacture one".
+// That conclusion was WRONG, and being confident about it cost days.
 //
-// A touch must be in the call stack AT THE MOMENT of navigation. Nothing else
-// counts, and no page can manufacture one. So the reveal plays in the browser,
-// which suits the patter anyway -- Shine says he is searching for their song,
-// and a browser playing it is what should happen.
-// NOT a convenience. This 302 is load-bearing: on a DELAYED navigation it
-// reaches the YouTube app, and the identical timer sent straight to
-// youtube.com lands in Safari. Both rows are in the matrix above. The
-// spectator page must therefore always come through here.
+// What is actually true: a DELAYED navigation reaches the app as well, provided
+// the document it runs in was itself CREATED BY A USER-INITIATED NAVIGATION.
+// That is the whole trick, and it is why the two pages exist:
+//
+//   /y/:room      the landing page. Its tile navigates from inside the click
+//                 handler, so the next document is born of a gesture.
+//   /y/:room/go   the performing page. Its navigation fires later, from an XHR
+//                 callback, and STILL reaches the app -- because of how it was
+//                 created, not because of when it fires.
+//
+// Verified on Shine's phone: one page with a timer landed in Safari every time;
+// the identical logic split across two documents opened the app.
+//
+// The other half, equally expensive: iOS keeps a PER-DOMAIN preference for
+// universal links, on the spectator's phone, where nothing deployed here can
+// reach it. A phone once sent to Safari for youtube.com keeps going to Safari.
+// Priming fixes that by hand before the effect -- see the landing page.
+//
 app.get("/yt-go/:id", (req, res) => {
   const id = String(req.params.id || "");
   if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return res.status(400).send("bad id");
