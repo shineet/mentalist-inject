@@ -97,6 +97,24 @@ function updateMediaSources(state) {
   // No fallback path here (unlike reveal/review above) -- Cinematic
   // stays silent unless Shine explicitly sets a music URL for it.
   setAudioSource(schoolShowMusic, state?.schoolShow?.musicUrl || "");
+  warmClientPhoto(state);
+}
+
+// Pull the client photo into the browser cache the MOMENT the state names it,
+// which is minutes before the photo step runs.
+//
+// Why it matters: the photo step gives the image a few seconds and then gives
+// up. A first hit on a cold Supabase project can take longer than that, so the
+// photo silently failed on the one run that mattered and worked every time it
+// was checked afterwards -- because by then it was warm. Fetching it early
+// means the step finds it already cached.
+const warmedPhotos = new Set();
+function warmClientPhoto(state) {
+  const u = (state?.clientImageUrl || "").trim();
+  if (!u || u === "/client.png" || warmedPhotos.has(u)) return;
+  warmedPhotos.add(u);
+  const img = new Image();
+  img.src = u;
 }
 
 // Some mobile browsers behave better if these are explicitly inline.
@@ -868,8 +886,15 @@ async function showClientPhotoStep(state, durationMs) {
     clientMsg.classList.toggle("hidden", !msg);
   }
 
-  const MAX_WAIT_MS = 4500;
-  const configuredUrl = (state?.clientImageUrl || cfg.clientImageUrl || cfg.imageUrl || cfg.photoUrl || "/client.jpg").trim();
+  // Was 4500. The step itself runs for durationMs (12s in Shine's show), so
+  // waiting longer costs nothing and a cold CDN can easily take more than four
+  // and a half seconds.
+  const MAX_WAIT_MS = 9000;
+  let configuredUrl = (state?.clientImageUrl || cfg.clientImageUrl || cfg.imageUrl || cfg.photoUrl || "/client.jpg").trim();
+  // Rooms saved before this was fixed still hold "/client.png", which 404s --
+  // the file is and always was client.jpg. Map it rather than make every
+  // existing room re-save to stop showing nothing.
+  if (configuredUrl === "/client.png") configuredUrl = "/client.jpg";
   const url = configuredUrl.includes("?") ? `${configuredUrl}&v=${Date.now()}` : `${configuredUrl}?v=${Date.now()}`;
 
   const loadPromise = new Promise((resolve) => {
@@ -892,7 +917,16 @@ async function showClientPhotoStep(state, durationMs) {
       clientImg.src = url;
       clientImg.classList.remove("hidden");
     } else {
+      // Hidden for now, but NOT given up on. Losing the race used to mean the
+      // photo never appeared even though it arrived a moment later, which is
+      // the difference between a slow reveal and no reveal at all.
       clientImg.classList.add("hidden");
+      loadPromise.then((late) => {
+        if (!late) return;
+        if (!views.client.classList.contains("show")) return;
+        clientImg.src = url;
+        clientImg.classList.remove("hidden");
+      });
     }
   }
 
