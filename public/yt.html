@@ -4,160 +4,165 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>Music</title>
+<title>YouTube</title>
 <style>
-  :root { color-scheme: dark; }
-  html, body {
-    margin: 0; min-height: 100%; background: #0f0f0f; color: #fff;
-    font: 15px/1.45 -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: #fff; color: #030303;
+    font: 14px/1.4 Roboto, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
-    overscroll-behavior: none; user-select: none; -webkit-user-select: none;
-  }
+    overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
 
-  /* ── Waiting. Deliberately almost nothing. ───────────────────────────────── */
-  #wait { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
-  #wait .dot { width: 10px; height: 10px; border-radius: 50%;
-               background: rgba(255,255,255,0.22); animation: breathe 2.4s ease-in-out infinite; }
-  @keyframes breathe { 0%,100% { opacity: .22; } 50% { opacity: .5; } }
+  #bar { background: #212121; height: 48px; display: flex; align-items: center;
+         padding: 0 12px; gap: 14px; }
+  #mark { display: flex; align-items: center; gap: 5px; }
+  #mark .box { width: 30px; height: 21px; background: #fff; border-radius: 4px;
+               display: flex; align-items: center; justify-content: center; }
+  #mark .box::after { content: ""; border-left: 8px solid #212121;
+                      border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+                      margin-left: 2px; }
+  #mark span { color: #fff; font-size: 17px; font-weight: 500; letter-spacing: -.4px; }
+  .sp { flex: 1; }
+  #bar svg { width: 21px; height: 21px; fill: #fff; opacity: .95; }
 
-  /* ── The player. ────────────────────────────────────────────────────────── */
-  #player { display: none; }
   #screen { position: relative; width: 100%; aspect-ratio: 16/9; background: #000;
-            overflow: hidden; display: flex; align-items: center; justify-content: center; }
-  #screen img { width: 100%; height: 100%; object-fit: cover; filter: brightness(.82); }
-  #overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
-  #big { width: 66px; height: 66px; border-radius: 50%; background: rgba(0,0,0,0.55);
-         display: flex; align-items: center; justify-content: center; }
-  #big.playing::after { content: ""; width: 18px; height: 20px; border-left: 6px solid #fff;
-                        border-right: 6px solid #fff; }
-  #big.paused::after { content: ""; border-left: 20px solid #fff; border-top: 12px solid transparent;
-                       border-bottom: 12px solid transparent; margin-left: 5px; }
+            display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  #cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+  #chrome { position: absolute; inset: 0; padding: 8px 10px; display: flex;
+            align-items: flex-start; gap: 16px; }
+  #chrome svg { width: 20px; height: 20px; fill: #fff; opacity: .82; }
+  .ring { width: 46px; height: 46px; border-radius: 50%; border: 3px solid transparent;
+          border-top-color: #fff; border-right-color: #fff; animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #pp { display: none; width: 60px; height: 60px; border-radius: 50%; background: rgba(0,0,0,.5);
+        align-items: center; justify-content: center; z-index: 3; }
+  #pp.paused::after { content: ""; border-left: 19px solid #fff; border-top: 12px solid transparent;
+                      border-bottom: 12px solid transparent; margin-left: 5px; }
+  #pp.playing::after { content: ""; width: 16px; height: 19px;
+                       border-left: 5px solid #fff; border-right: 5px solid #fff; }
+  #seek { position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+          background: rgba(255,255,255,.3); display: none; }
+  #seek > i { display: block; height: 100%; width: 0; background: #f00; }
 
-  #scrub { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 10px 8px;
-           display: flex; align-items: center; gap: 8px; }
-  #track { flex: 1; height: 3px; background: rgba(255,255,255,0.3); border-radius: 2px; position: relative; }
-  #fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #f00; border-radius: 2px; }
-  #knob { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px;
-          border-radius: 50%; background: #f00; left: 0; }
-  #clock { font: 11px/1 ui-monospace, Menlo, monospace; color: #fff; opacity: .92; }
+  #info { padding: 14px 14px 10px; }
+  #ttl { font-size: 16px; line-height: 1.3; padding-right: 26px; position: relative; }
+  #ttl::after { content: ""; position: absolute; right: 2px; top: 8px;
+                border-top: 6px solid #606060; border-left: 6px solid transparent;
+                border-right: 6px solid transparent; }
+  #by { color: #606060; font-size: 13px; margin-top: 5px; }
+  #acts { display: flex; align-items: center; gap: 7px; padding: 12px 14px 14px; }
+  #acts svg { width: 19px; height: 19px; fill: #606060; }
+  #acts b { font-weight: 400; color: #606060; font-size: 12px; margin-right: 14px; }
+  hr { border: 0; border-top: 1px solid #e5e5e5; margin: 0; }
 
-  #meta { padding: 14px 16px 0; }
-  #title { font-size: 17px; font-weight: 600; line-height: 1.3; }
-  #stats { color: #aaa; font-size: 13px; margin-top: 5px; }
-  #row { display: flex; gap: 22px; padding: 16px 16px 10px; color: #fff; font-size: 12px; }
-  #row div { display: flex; flex-direction: column; align-items: center; gap: 5px; opacity: .9; }
-  #row .g { width: 21px; height: 21px; opacity: .92; }
-  #chan { display: flex; align-items: center; gap: 11px; padding: 12px 16px;
-          border-top: 1px solid #272727; border-bottom: 1px solid #272727; margin-top: 4px; }
-  #av { width: 36px; height: 36px; border-radius: 50%; background: #333; object-fit: cover; }
-  #chanName { font-size: 14px; font-weight: 600; }
-  #subs { color: #aaa; font-size: 12px; }
+  .rel { display: flex; gap: 10px; padding: 10px 14px; align-items: flex-start; }
+  .th { width: 142px; height: 80px; border-radius: 2px; position: relative; flex: 0 0 auto;
+        background: linear-gradient(135deg, #2f2f2f, #101010 55%, #3a3a3a); }
+  .th i { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.8); color: #fff;
+          font-size: 11px; padding: 1px 4px; border-radius: 2px; font-style: normal; }
+  .rt { font-size: 14px; line-height: 1.3; }
+  .rc { color: #606060; font-size: 12px; margin-top: 3px; }
 
-  #bad { display: none; position: fixed; inset: 0; align-items: center; justify-content: center;
-         color: #8e8e93; font-size: 13px; text-align: center; padding: 0 32px; }
+  #cover2 { position: fixed; inset: 0; z-index: 9; background: rgba(0,0,0,.72);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 30px; padding: 0 26px; text-align: center; }
+  #cover2 p { color: #fff; font-size: 30px; font-weight: 700; line-height: 1.25; margin: 0; }
+  #cover2 .circle { width: 150px; height: 150px; border-radius: 50%; background: #fff; }
+  #bad { display: none; position: fixed; inset: 0; z-index: 20; background: #fff;
+         align-items: center; justify-content: center; color: #606060;
+         font-size: 13px; text-align: center; padding: 0 32px; }
 </style>
 </head>
 <body>
 
-<!-- Keeps the screen awake while the phone waits face down. The trick is
-     NoSleep.js's: iOS will not lock while a video is playing, so a 2x2 silent
-     clip loops out of sight. It is started by the performer's tap, because
-     playing it is itself media playback and needs that gesture. A phone that
-     locks face down kills the effect outright. -->
+<!-- iOS will not lock the screen while a video plays. NoSleep.js's trick, which
+     Earworm has had all along: a 2x2 silent clip loops out of sight. Starting it
+     is media playback and so needs the tap, which is the other reason the tap on
+     the cover exists. -->
 <video id="awake" src="/awake.mp4" loop muted playsinline
-       style="position:fixed;width:2px;height:2px;opacity:0.01;pointer-events:none;left:0;top:0"></video>
+       style="position:fixed;width:2px;height:2px;opacity:.01;pointer-events:none;left:0;top:0"></video>
 
-<div id="wait"><div class="dot"></div></div>
+<div id="bar">
+  <div id="mark"><div class="box"></div><span>YouTube</span></div>
+  <div class="sp"></div>
+  <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7 14 5 12 5 9.5S7 5 9.5 5 14 7 14 9.5 12 14 9.5 14z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
+</div>
 
-<div id="player">
-  <div id="screen">
-    <img id="art" alt="">
-    <div id="overlay"><div id="big" class="paused"></div></div>
-    <div id="scrub">
-      <span id="clock">0:00</span>
-      <div id="track"><div id="fill"></div><div id="knob"></div></div>
-      <span id="clockEnd">0:30</span>
-    </div>
+<div id="screen">
+  <img id="cover" alt="">
+  <div class="ring" id="ring"></div>
+  <div id="pp" class="paused"></div>
+  <div id="chrome">
+    <svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+    <div class="sp"></div>
+    <svg viewBox="0 0 24 24"><path d="M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2a5 5 0 0 1 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c5 0 9 4 9 9h2c0-6.08-4.93-11-11-11zM21 3H3v2h18v14h-7v2h7a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M18 16.08a3 3 0 0 0-1.9.68l-7.05-4.1a3.3 3.3 0 0 0 0-1.32l6.97-4.06A3 3 0 1 0 15 5c0 .24.03.47.09.7L8.04 9.81a3 3 0 1 0 0 4.38l7.12 4.16a2.92 2.92 0 1 0 2.84-2.27z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M12 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm0 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm0 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/></svg>
   </div>
-  <div id="meta">
-    <div id="title"></div>
-    <div id="stats"></div>
-  </div>
-  <div id="row">
-    <div><svg class="g" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h4V9H1v12zm22-11a2 2 0 0 0-2-2h-6.31l.95-4.57.03-.32a1.5 1.5 0 0 0-.44-1.06L14.17 1 7.59 7.59A2 2 0 0 0 7 9v10a2 2 0 0 0 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><span>Like</span></div>
-    <div><svg class="g" viewBox="0 0 24 24" fill="currentColor"><path d="M23 3H1v12h4v6l6.59-6H21a2 2 0 0 0 2-2V3z"/></svg><span>Comment</span></div>
-    <div><svg class="g" viewBox="0 0 24 24" fill="currentColor"><path d="M18 16.08a3 3 0 0 0-1.9.68l-7.05-4.1c.05-.21.08-.43.08-.66s-.03-.45-.08-.66l6.97-4.06A3 3 0 1 0 15 5c0 .24.03.47.09.7L8.04 9.81a3 3 0 1 0 0 4.38l7.12 4.16c-.05.2-.08.41-.08.63A2.92 2.92 0 1 0 18 16.08z"/></svg><span>Share</span></div>
-    <div><svg class="g" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg><span>Save</span></div>
-  </div>
-  <div id="chan">
-    <img id="av" alt="">
-    <div><div id="chanName"></div><div id="subs"></div></div>
-  </div>
+  <div id="seek"><i></i></div>
+</div>
+
+<div id="info">
+  <div id="ttl">Loading song&hellip;</div>
+  <div id="by">Vevo &middot; 23,565,897 views</div>
+</div>
+<div id="acts">
+  <svg viewBox="0 0 24 24"><path d="M1 21h4V9H1v12zm22-11a2 2 0 0 0-2-2h-6.31l.95-4.57.03-.32a1.5 1.5 0 0 0-.44-1.06L14.17 1 7.59 7.59A2 2 0 0 0 7 9v10a2 2 0 0 0 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg><b>40K</b>
+  <svg viewBox="0 0 24 24"><path d="M15 3H6c-.83 0-1.54.5-1.84 1.22l-3.02 7.05c-.09.23-.14.47-.14.73v2a2 2 0 0 0 2 2h6.31l-.95 4.57-.03.32c0 .41.17.79.44 1.06L9.83 23l6.59-6.59c.36-.36.58-.86.58-1.41V5a2 2 0 0 0-2-2zm4 0v12h4V3h-4z"/></svg><b>2K</b>
+  <div class="sp"></div>
+  <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M10 9V5l-7 7 7 7v-4.1c5 0 8.5 1.6 11 5.1-1-5-4-10-11-11z"/></svg>
+  <svg viewBox="0 0 24 24"><path d="M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z"/></svg>
+</div>
+<hr>
+
+<div id="list"></div>
+
+<div id="cover2">
+  <p>Tap here once to stop the display from sleeping.</p>
+  <div class="circle"></div>
 </div>
 
 <div id="bad">This link is missing its room. Ask for it again.</div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-  // The spectator's phone. THREE MODES, and what separates them is WHEN the
-  // performer taps. Get that round the wrong way and the phone plays nothing,
-  // which looks like the effect failing rather than like a handling slip.
+  // The spectator's phone.
   //
-  //   youtube_app   tap AFTER the song is sent. The tap IS the navigation, so
-  //                 the real YouTube APP opens. Full track, real controls, and
-  //                 the app has no autoplay policy to fight. Costs one touch
-  //                 after the reveal is set.
+  // THE TAP IS THE WHOLE EFFECT. Everything else on this page is dressing.
   //
-  //   youtube_auto  tap BEFORE, to wake the screen only. Safari navigates
-  //                 itself when the song arrives. Nobody touches the phone
-  //                 afterwards. THIS IS WHAT EARWORM DOES -- confirmed by
-  //                 reading its own page, see below.
+  // iOS opens the YouTube APP only for a navigation it can trace back to a
+  // touch on the page. Eleven arrangements measured on three phones:
   //
-  //   audio         tap BEFORE, to arm a held-open stream from this server.
-  //                 Our player, 30 seconds, guaranteed sound.
+  //   a plain <a href>, tapped                     -> the app
+  //   location.href inside a click handler         -> the app
+  //   a countdown started by a tap, then our 302   -> the app
+  //   a countdown started by a tap, direct URL     -> Safari
+  //   a countdown started on page load, 302        -> Safari
+  //   the same, with a stray tap during it         -> Safari
+  //   <meta refresh>, or an HTTP Refresh: header   -> Safari
   //
-  // ALL OF THIS WAS MEASURED ON THREE PHONES. Nothing here is reasoned from
-  // documentation, because the documentation was wrong twice.
+  // Rows three and four are the ones that matter. A DELAYED navigation does
+  // reach the app, but only through our own 302 -- the same timer sent straight
+  // to youtube.com lands in Safari. Both halves are required, which is why
+  // goAuto() never assigns a watch URL directly.
   //
-  // 1. A youtube.com link opens the YouTube APP only with a finger in the call
-  //    stack AT THE MOMENT of navigation. Eleven arrangements measured. No
-  //    timer, promise or server redirect substitutes for the finger.
+  // Earworm reaches the app the same way, and the proof is the "< Safari" badge
+  // in the status bar of its own reveal. Its tap is dressed as a screen-sleep
+  // notice, and that is the cleverest thing in the product: the gesture the
+  // effect cannot work without is explained to the spectator as housekeeping,
+  // so the one suspicious moment is spent before there is anything to suspect.
   //
-  // 2. Safari will not reliably autoplay the watch page on a stranger's phone.
-  //    iOS grants autoplay-with-sound per ORIGIN from that viewer's own history
-  //    with it. Shine has played karaoke on this origin hundreds of times, so
-  //    every version of this passed on his phone and failed on two others.
-  //    HIS PHONE CANNOT TEST THIS FEATURE. That trap cost two days.
+  // Second finding, which cost two days. Safari grants autoplay-with-sound per
+  // ORIGIN, from that viewer's own history with it. Shine has played karaoke on
+  // this origin hundreds of times, so every version of this passed on his phone
+  // and failed on two others. HIS PHONE CANNOT TEST THIS FEATURE.
   //
-  // 3. In audio mode the permission belongs to the media ELEMENT and is
-  //    DISCARDED THE MOMENT ITS src CHANGES. So the src is set once, inside the
-  //    tap, and never again; the server answers with silence, holds the
-  //    response open, and splices the song onto the same body.
-  //
-  // WHAT EARWORM DOES, read from https://iyt.pw/ rather than guessed at. Its
-  // "player" is a static JPEG of YouTube's interface plus a CSS spinner -- no
-  // video element, no audio, both commented out in the live page. It polls a
-  // switch file every 800ms and then runs top.location.replace() on a plain
-  // watch URL with a time offset:
-  //
-  //    http://www.youtube.com/watch?v=8fIUkINS1uo&t=44
-  //
-  // Three things worth taking from that, and all three are here now:
-  //   - the &t= offset, so the song is recognised instantly rather than after a
-  //     quiet intro
-  //   - replace() not href, leaving NO history entry to press Back into
-  //   - a cleanup redirect to Google a few seconds later, after which there is
-  //     nothing on the phone to find
-  //
-  // And one thing it does NOT solve: that navigation has no gesture either, so
-  // it lands in Safari and depends on the phone's own youtube.com history
-  // exactly as ours does. Earworm's own source shows the native-app path
-  // commented out and replaced by the web one, marked "temp". So this is not a
-  // limitation of our code and there is no arrangement of it left to try.
-  //
-  // The handling in every mode is Earworm's: the phone is set going BEFORE the
-  // spectator names anything, it goes back face down, and the volume comes up
-  // under their own thumb.
+  // Third, for audio mode: the permission belongs to the media ELEMENT and is
+  // discarded the moment its src changes. So the src is set once, inside the
+  // tap, and never again; the server answers with silence, holds the response
+  // open, and splices the song onto the same body.
   var params = new URLSearchParams(location.search);
   var room = (params.get("r") || params.get("room") || "");
   if (!room) {
@@ -166,192 +171,110 @@
   }
   room = room.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 40);
 
-  var elWait = document.getElementById("wait");
-  var elPlayer = document.getElementById("player");
-  var elArt = document.getElementById("art");
-  var elBig = document.getElementById("big");
-  var elTitle = document.getElementById("title");
-  var elStats = document.getElementById("stats");
-  var elChanName = document.getElementById("chanName");
-  var elSubs = document.getElementById("subs");
-  var elAv = document.getElementById("av");
-  var elFill = document.getElementById("fill");
-  var elKnob = document.getElementById("knob");
-  var elClock = document.getElementById("clock");
-  var elClockEnd = document.getElementById("clockEnd");
+  function $(id) { return document.getElementById(id); }
+  if (!room) $("bad").style.display = "flex";
 
-  if (!room) {
-    elWait.style.display = "none";
-    document.getElementById("bad").style.display = "flex";
-  }
-
-  var playback = "youtube_auto";
-  var startAt = 44;
-  var videoId = "";
-  var track = null;
-  var gone = false;
-  var armed = false;
-  var revealed = false;
-
+  var playback = "youtube_auto", startAt = 44;
+  var videoId = "", track = null;
+  var gone = false, armed = false, revealed = false;
   var audio = new Audio();
   audio.preload = "auto";
 
-  // The URL, built exactly as Earworm builds it. Read off their own switch file:
-  //   http://www.youtube.com/watch?v=8fIUkINS1uo&t=44
-  // The offset is the performance detail -- 44 seconds is past the intro and
-  // into the body of the song, so it is recognised the moment the volume comes
-  // up rather than after a quiet build.
-  function watchURL() {
-    var t = Number(startAt) > 0 ? "&t=" + Math.round(startAt) : "";
-    return "https://www.youtube.com/watch?v=" + videoId + t;
-  }
+  // Anonymous on purpose. A real-looking related video could contradict
+  // whatever song gets named; these fit anything.
+  var RELATED = [
+    ["Guitar session", "GuitarMan", "0:58"],
+    ["Band practice", "BandPeople", "2:49"],
+    ["Live tour", "LivePerformances", "3:12"],
+    ["Studio takes", "SessionRoom", "4:05"]
+  ];
+  $("list").innerHTML = RELATED.map(function (r) {
+    return '<div class="rel"><div class="th"><i>' + r[2] + '</i></div>' +
+           '<div><div class="rt">' + r[0] + '</div><div class="rc">' + r[1] + '</div></div></div>';
+  }).join("");
 
-  // ── youtube_app: the tap comes AFTER the song is sent ─────────────────────
-  // MUST stay synchronous. The navigation counts as coming from the touch only
-  // while this handler is still on the stack; an await or a timer here puts the
-  // phone into Safari instead, which is finding 1 above.
-  function onTapYouTubeApp() {
-    if (gone || !videoId) return;
-    gone = true;
-    location.href = watchURL();
-  }
-
-  // ── youtube_auto: nobody touches it after the song is sent ────────────────
-  // This is Earworm's mechanism, replicated: navigate from a poll callback with
-  // top.location.replace. Two consequences, both deliberate on their part.
-  //
-  // replace() rather than href leaves NO history entry, so a spectator cannot
-  // press Back and find this page.
-  //
-  // It lands in Safari, not the app, because there is no gesture at the moment
-  // of navigation -- and whether Safari then autoplays depends on that phone's
-  // own history with youtube.com. That is a real limitation and it is Earworm's
-  // too, since this is the same call. It is not something our code can fix.
-  function goAuto() {
-    if (gone || !videoId) return;
-    gone = true;
-    document.body.style.visibility = "hidden";
-    top.location.replace(watchURL());
-    // Earworm clears up after 3.4s by sending the phone to Google. After that
-    // there is nothing to scroll back to and nothing to find, which is worth
-    // copying for its own sake.
-    setTimeout(function () { top.location.replace("https://www.google.com"); }, 3400);
-  }
-
-  // ── audio mode ────────────────────────────────────────────────────────────
-  // Also synchronous, and the src must be assigned exactly once ever.
-  function onTapAudio() {
-    if (armed || !room) return;
+  // One handler, and it MUST stay synchronous: in youtube_app mode the
+  // navigation only counts while this is still on the stack.
+  function onTap() {
+    if (armed) { if (playback === "youtube_app") goNow(); return; }
     armed = true;
-    audio.src = "/api/yt/" + encodeURIComponent(room) + "/stream";
-    audio.play();
+    $("cover2").style.display = "none";
+    try { var a = $("awake"); if (a.paused) a.play(); } catch (e) {}
+    if (playback === "audio") {
+      audio.src = "/api/yt/" + encodeURIComponent(room) + "/stream";
+      audio.play();
+    } else if (playback === "youtube_app" && videoId) {
+      goNow();
+    }
   }
+  document.addEventListener("click", onTap);
 
-  document.addEventListener("click", function () {
-    // Starting the wake video needs the gesture too, so it rides along with
-    // whatever else the tap is for.
-    try { var a = document.getElementById("awake"); if (a && a.paused) a.play(); } catch (e) {}
-    if (playback === "audio") onTapAudio();
-    else if (playback === "youtube_app") onTapYouTubeApp();
-    // youtube_auto: the tap only arms the screen-wake. The navigation happens
-    // on its own when the song arrives.
-    else armed = true;
-  });
-
-  // ── the player chrome, audio mode only ────────────────────────────────────
-  function fmt(s) {
-    s = Math.max(0, Math.floor(s));
-    return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
+  // Through /yt-go/:id, never a direct youtube.com URL -- see rows three and
+  // four of the matrix above.
+  function ytGo() {
+    return "/yt-go/" + encodeURIComponent(videoId) +
+           (Number(startAt) > 0 ? "?t=" + Math.round(startAt) : "");
   }
-
-  function paint() {
-    var dur = audio.duration && isFinite(audio.duration) ? audio.duration : 30;
-    var pct = Math.min(100, (audio.currentTime / dur) * 100);
-    elFill.style.width = pct + "%";
-    elKnob.style.left = pct + "%";
-    elClock.textContent = fmt(audio.currentTime);
-    elClockEnd.textContent = fmt(dur);
-    elBig.className = audio.paused ? "paused" : "playing";
+  function goNow() {
+    if (gone || !videoId) return;
+    gone = true;
+    location.href = ytGo();
   }
-
-  // Play and pause, on the big button only. The screen-wide tap is the arming
-  // gesture and must not double as a pause, or the performer's own tap would
-  // stop the song the instant it started.
-  elBig.addEventListener("click", function (e) {
-    e.stopPropagation();
-    if (!revealed) return;
-    if (audio.paused) audio.play(); else audio.pause();
-    paint();
-  });
-  document.getElementById("scrub").addEventListener("click", function (e) { e.stopPropagation(); });
-  setInterval(function () { if (revealed) paint(); }, 200);
+  function goAuto() {
+    if (gone || !videoId || !armed) return;
+    gone = true;
+    // replace() leaves no history entry, so Back cannot reach this page.
+    top.location.replace(ytGo());
+  }
 
   function reveal() {
     if (revealed || !track) return;
     revealed = true;
-    elTitle.textContent = track.title + (track.artist ? " - " + track.artist : "");
-    // Plausible rather than invented from nothing: a number nobody will check,
-    // in the format they expect to see under a video.
-    elStats.textContent = viewsFor(track.title) + " views  ·  " + monthsAgo();
-    elChanName.textContent = track.artist || "";
-    elSubs.textContent = "";
-    if (track.cover) { elArt.src = track.cover; elAv.src = track.cover; }
-    elWait.style.display = "none";
-    elPlayer.style.display = "block";
-    paint();
+    $("ttl").textContent = track.title + (track.artist ? " - " + track.artist : "");
+    $("by").textContent = (track.artist || "Vevo") + " · 23,565,897 views";
+    if (track.cover) { $("cover").src = track.cover; $("cover").style.display = "block"; }
+    $("ring").style.display = "none";
+    $("pp").style.display = "flex";
+    $("seek").style.display = "block";
   }
+  $("pp").addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (!revealed) return;
+    if (audio.paused) audio.play(); else audio.pause();
+  });
+  setInterval(function () {
+    if (!revealed) return;
+    var d = audio.duration && isFinite(audio.duration) ? audio.duration : 30;
+    $("seek").firstElementChild.style.width = Math.min(100, (audio.currentTime / d) * 100) + "%";
+    $("pp").className = audio.paused ? "paused" : "playing";
+  }, 200);
 
-  // Stable for a given song, so the same reveal does not show a different
-  // number if the page is reloaded in front of anyone.
-  function viewsFor(s) {
-    var h = 0;
-    for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
-    var m = 12 + (h % 880);
-    return (m / 10).toFixed(1) + "M";
-  }
-  function monthsAgo() {
-    var y = 2 + (new Date().getMonth() % 9);
-    return y + " years ago";
-  }
-
-  function onState(state) {
-    if (!state) return;
-    if (state.playback === "audio" || state.playback === "youtube_app" ||
-        state.playback === "youtube_auto") playback = state.playback;
-    if (state.startAt !== undefined && Number(state.startAt) >= 0) startAt = Number(state.startAt);
-    if (state.mode !== "play") return;
-    if (state.videoId) videoId = state.videoId;
-    if (state.track) track = state.track;
+  function onState(s) {
+    if (!s) return;
+    if (["audio", "youtube_app", "youtube_auto"].indexOf(s.playback) >= 0) playback = s.playback;
+    if (s.startAt !== undefined && Number(s.startAt) >= 0) startAt = Number(s.startAt);
+    if (s.mode !== "play") return;
+    if (s.videoId) videoId = s.videoId;
+    if (s.track) track = s.track;
     if (playback === "youtube_auto") goAuto();
   }
-
-  // The picture waits for the SERVER to say the bytes went out. The element's
-  // own clock is useless for this: the trickled silence advances currentTime
-  // exactly as real audio does, so it reads as playing from the moment of the
-  // tap, and an early reveal on a phone turned over by accident gives the whole
-  // thing away.
+  // The server says when the bytes went out. The element's own clock cannot:
+  // the trickled silence advances currentTime exactly as real audio does.
   function onPlaying() { if (armed) reveal(); }
 
   if (room) {
     var socket = io({ transports: ["websocket", "polling"] });
     socket.on("connect", function () { socket.emit("yt:join", { room: room }); });
-    // A reconnect has to re-join: the server tracks membership per socket and a
-    // new socket is in no rooms.
     socket.io.on("reconnect", function () { socket.emit("yt:join", { room: room }); });
     socket.on("yt:state", onState);
     socket.on("yt:playing", onPlaying);
-
-    // For a socket that never comes up at all -- a captive portal, a hostile
-    // guest network. In audio mode the SOUND does not depend on this, only the
-    // picture does. In youtube mode it is how the video id arrives, so it is
-    // the difference between the tap working and doing nothing.
     setInterval(function () {
       if (gone || revealed) return;
       fetch("/api/yt/" + encodeURIComponent(room) + "/state", { cache: "no-store" })
         .then(function (r) { return r.json(); })
         .then(function (d) { if (d && d.ok) onState(d.state); })
         .catch(function () {});
-    }, 2500);
+    }, 1500);
   }
 </script>
 </body>

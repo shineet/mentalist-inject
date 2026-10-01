@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v244-earworms-mechanism";
+const REVISION = "v245-the-tap-wears-a-reason";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1745,11 +1745,19 @@ app.get(["/d", "/d/:room"], (req, res) => {
 // counts, and no page can manufacture one. So the reveal plays in the browser,
 // which suits the patter anyway -- Shine says he is searching for their song,
 // and a browser playing it is what should happen.
+// NOT a convenience. This 302 is load-bearing: on a DELAYED navigation it
+// reaches the YouTube app, and the identical timer sent straight to
+// youtube.com lands in Safari. Both rows are in the matrix above. The
+// spectator page must therefore always come through here.
 app.get("/yt-go/:id", (req, res) => {
   const id = String(req.params.id || "");
   if (!/^[A-Za-z0-9_-]{11}$/.test(id)) return res.status(400).send("bad id");
   res.setHeader("Cache-Control", "no-store");
-  res.redirect(302, "https://www.youtube.com/watch?v=" + id);
+  // Seconds to start at. Earworm uses 44 -- past the intro, so the song is
+  // recognised the instant the volume comes up rather than after a quiet build.
+  const t = Number(req.query.t);
+  const at = Number.isFinite(t) && t > 0 && t <= 600 ? "&t=" + Math.round(t) : "";
+  res.redirect(302, "https://www.youtube.com/watch?v=" + id + at);
 });
 
 // Read-only. What MystIO polls to know a phone is listening before he commits.
