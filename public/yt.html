@@ -203,8 +203,10 @@
     if (playback === "audio") {
       audio.src = "/api/yt/" + encodeURIComponent(room) + "/stream";
       audio.play();
-    } else if (playback === "youtube_app" && videoId) {
-      goNow();
+    } else if (playback === "youtube_app") {
+      if (videoId) goNow();
+    } else {
+      startHunt();
     }
   }
   document.addEventListener("click", onTap);
@@ -220,11 +222,24 @@
     gone = true;
     location.href = ytGo();
   }
-  function goAuto() {
-    if (gone || !videoId || !armed) return;
-    gone = true;
-    // replace() leaves no history entry, so Back cannot reach this page.
-    top.location.replace(ytGo());
+  // Started BY THE TAP, and never by the socket. The matrix separates these two
+  // and I had them the wrong way round:
+  //
+  //   a countdown started by a tap, then our 302    -> the app
+  //   a watcher created inside a tap, firing later  -> Safari
+  //
+  // goAuto() used to be called straight from the socket handler, which is the
+  // second row, and the test duly landed in Safari. So the tap now starts a
+  // self-rescheduling countdown that watches for the song itself. Every link in
+  // that chain descends from the touch.
+  var hunt = null;
+  function startHunt() {
+    if (hunt) return;
+    (function tick() {
+      if (gone) return;
+      if (videoId) { gone = true; top.location.replace(ytGo()); return; }
+      hunt = setTimeout(tick, 400);
+    })();
   }
 
   function reveal() {
@@ -256,7 +271,9 @@
     if (s.mode !== "play") return;
     if (s.videoId) videoId = s.videoId;
     if (s.track) track = s.track;
-    if (playback === "youtube_auto") goAuto();
+    // Deliberately does NOT navigate. The countdown started by the tap does
+    // that, for the reason above.
+    if (playback === "youtube_auto" && armed) startHunt();
   }
   // The server says when the bytes went out. The element's own clock cannot:
   // the trickled silence advances currentTime exactly as real audio does.
