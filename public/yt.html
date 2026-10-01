@@ -279,11 +279,24 @@
     if (armed && playback === "youtube_app" && videoId) goNow();
   });
 
-  // Through /yt-go/:id, never a direct youtube.com URL -- see rows three and
-  // four of the matrix above.
+  // Two ways to reach YouTube, and which is right is still being measured.
+  //
+  //   our 302    /yt-go/:id, which the old matrix said reached the app on a
+  //              delayed navigation. LIVE TEST SAYS OTHERWISE: it landed in
+  //              Safari on a phone that had just been primed and that opened
+  //              the app happily from the priming tap seconds earlier.
+  //   direct     exactly what the other product does:
+  //              http://www.youtube.com/watch?v=ID&t=44
+  //
+  // ?via=302 on the page URL forces the old path, so the two can be compared on
+  // one phone without a deploy in between.
+  var VIA = params.get("via") || "direct";
   function ytGo() {
-    return "/yt-go/" + encodeURIComponent(videoId) +
-           (Number(startAt) > 0 ? "?t=" + Math.round(startAt) : "");
+    var t = Number(startAt) > 0 ? Math.round(startAt) : 0;
+    if (VIA === "302") {
+      return "/yt-go/" + encodeURIComponent(videoId) + (t ? "?t=" + t : "");
+    }
+    return "http://www.youtube.com/watch?v=" + encodeURIComponent(videoId) + (t ? "&t=" + t : "");
   }
   function goNow() {
     if (gone || !videoId) return;
