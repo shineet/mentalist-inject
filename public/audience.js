@@ -1511,6 +1511,11 @@ function getReviewUrlFromState(state = {}) {
 }
 
 function goToGoogleReviewAfterKaraoke() {
+  // Remember which run this is. A Reset bumps runToken, and without this the
+  // timer below still fires and navigates to the review page from the idle
+  // screen -- which looks like the audience page wandering off on its own
+  // several seconds after Reset put it back on the heart.
+  const myRun = runToken;
   const state = lastKaraokeState || currentState || {};
   if (karaokeTimer) clearInterval(karaokeTimer);
   karaokeTimer = null;
@@ -1526,6 +1531,8 @@ function goToGoogleReviewAfterKaraoke() {
   const reviewUrl = getReviewUrlFromState(state);
 
   setTimeout(() => {
+    // The show may have moved on while this was waiting.
+    if (!isCurrentRun(myRun)) return;
     if (reviewUrl) {
       window.location.href = reviewUrl;
       return;
@@ -1599,6 +1606,10 @@ function getClientPhotoDurationMsFromState(state = {}) {
 // closing photo for some shows, e.g. Jacquie's karaoke ending) rather than
 // only the plain clientImageUrl the shared step uses by default.
 async function showKaraokeEndPhotoThenReview() {
+  // Same reason as goToGoogleReviewAfterKaraoke: this awaits a photo step that
+  // can take several seconds, and a Reset landing in that window used to leave
+  // the navigation below to fire anyway.
+  const myRun = runToken;
   const state = lastKaraokeState || currentState || {};
   const reviewUrl = getReviewUrlFromState(state);
 
@@ -1619,6 +1630,10 @@ async function showKaraokeEndPhotoThenReview() {
     if (karaokeStatus) karaokeStatus.textContent = "Redirecting in a few seconds…";
     await wait(1200);
   }
+
+  // Checked AFTER the awaits, which is the whole point -- the show can have
+  // been reset while the photo was on screen.
+  if (!isCurrentRun(myRun)) return;
 
   if (reviewUrl) {
     window.location.href = reviewUrl;
