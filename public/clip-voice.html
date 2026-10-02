@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>.</title>
+<style>html,body{margin:0;background:#000;height:100%}</style>
+</head>
+<body>
+<script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
+<script>
+  // THE APP CLIP'S CALL TRANSPORT. No interface -- it is never seen.
+  //
+  // Twilio's NATIVE iOS SDK is documented as unsupported in App Clips: it needs
+  // socket connections App Clips do not give it, and every call failed with
+  // 31009 "no transport available". Twilio's JAVASCRIPT SDK uses WebRTC, which
+  // works in a WKWebView on iOS 14.3 and later, and is the same SDK the web
+  // dialler has been placing real calls with all along.
+  //
+  // So the clip keeps its NATIVE dialler on screen -- Shine's own PhoneView --
+  // and hides this page behind it to carry the audio. The native UI drives it
+  // through the four functions below.
+  //
+  // Everything here is lifted from public/dialler.html's getDevice(), which is
+  // proven. Deliberately not improved on.
+  var device = null, conn = null, room = "x";
+
+  function post(tag, detail) {
+    try {
+      window.webkit.messageHandlers.voice.postMessage({ tag: tag, detail: String(detail || "") });
+    } catch (e) {}
+  }
+
+  async function getDevice() {
+    if (device) return device;
+    var r = await fetch("/api/ringer/token?room=" + encodeURIComponent(room), { cache: "no-store" });
+    var d = null;
+    try { d = await r.json(); } catch (e) {}
+    // Overwhelmingly the most common failure, and worth its own words: the room
+    // has to have been configured from Ringer first.
+    if (r.status === 403) throw new Error("room not set up — send from Ringer first");
+    if (!r.ok) throw new Error("token " + r.status);
+    if (!d || !d.token) throw new Error((d && d.error) || "no token");
+    device = new Twilio.Device(d.token, { codecPreferences: ["opus", "pcmu"] });
+    return device;
+  }
+
+  // Called from Swift.
+  window.clipCall = async function (mode, theRoom, number) {
+    room = theRoom || "x";
+    try {
+      post("say", "getting a token");
+      var dev = await getDevice();
+      post("say", "connecting");
+      conn = await dev.connect({ params: { mode: mode, room: room, To: number } });
+      conn.on("accept", function () { post("connected", "audio is up"); });
+      conn.on("disconnect", function () { post("ended", ""); conn = null; });
+      conn.on("error", function (e) { post("failed", (e && e.message) || "twilio error"); });
+    } catch (e) {
+      post("failed", (e && e.message) || String(e));
+    }
+  };
+
+  window.clipHangUp = function () {
+    try { if (conn) conn.disconnect(); } catch (e) {}
+    conn = null;
+  };
+
+  window.clipMute = function (on) {
+    try { if (conn) conn.mute(!!on); } catch (e) {}
+  };
+
+  post("ready", "transport page loaded");
+</script>
+</body>
+</html>

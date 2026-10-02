@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v255-the-list-that-killed-the-poll";
+const REVISION = "v258-the-tag-can-launch-it";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1677,6 +1677,56 @@ app.get("/api/yt/:room/stream", async (req, res) => {
 // Kept only so a /p link written on an NFC tag still works. Priming is no
 // longer a separate page: it is the quiet second option on the landing page,
 // one URL for everything, which is Earworm's shape and the one Shine asked for.
+// ── The file iOS reads before it will launch the App Clip ───────────────────
+//
+// Without this, a real NFC tag or QR code does nothing: iOS fetches it to
+// confirm this domain is allowed to launch that clip. A Local Experience
+// configured by hand in Settings bypasses it, which is how the clip was tested,
+// but no spectator's phone will have one.
+//
+// Must be served as application/json, at exactly this path, over https, with no
+// redirect. The team prefix is part of the identifier and it does not work
+// without it.
+app.get(["/.well-known/apple-app-site-association", "/apple-app-site-association"],
+  (req, res) => {
+    res.setHeader("Content-Type", "application/json");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.json({
+      appclips: {
+        apps: ["B2WG3MN7S3.MindGames.Ringer.Clip"],
+      },
+    });
+  });
+
+// ── A log the App Clip can write to ─────────────────────────────────────────
+//
+// Debugging the clip on a borrowed-phone effect is genuinely hard: there is no
+// console (devicectl's --console detaches immediately), an on-screen alert is
+// gone before a screenshot can be taken, and the clip terminates too fast to
+// read. So it posts here instead and the log is read from a laptop.
+//
+// In memory and capped. This is a diagnostic, not a feature; it holds the last
+// fifty lines and is lost on deploy, which is exactly what is wanted.
+const clipLog = [];
+
+app.post("/api/clip-log", express.json({ limit: "8kb" }), (req, res) => {
+  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false });
+  const line = {
+    at: new Date().toISOString(),
+    tag: String((req.body && req.body.tag) || "").slice(0, 60),
+    detail: String((req.body && req.body.detail) || "").slice(0, 600),
+  };
+  clipLog.push(line);
+  while (clipLog.length > 50) clipLog.shift();
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ ok: true });
+});
+
+app.get("/api/clip-log", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ ok: true, lines: clipLog });
+});
+
 app.get(["/p", "/p/:room"], (req, res) => {
   res.setHeader("Cache-Control", "no-store, must-revalidate");
   res.sendFile(path.resolve("public", "yt.html"));
