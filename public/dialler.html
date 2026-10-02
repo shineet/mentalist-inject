@@ -285,6 +285,10 @@
 </div>
 
 <!-- ── Incoming ───────────────────────────────────────────────────────── -->
+<!-- Deliberately empty: in video-only mode the page sits on this, invisible
+     behind the clip's native dialler, until the assistant rings. -->
+<div class="screen" id="blank"></div>
+
 <div class="screen" id="incoming">
   <div id="inSelf"></div>
   <div id="inAvatar" data-ic="person"></div>
@@ -506,7 +510,7 @@
   // ── Screens ───────────────────────────────────────────────────────────
   var DARK = { call: "#1c1c1c", incoming: "#1c1c1c", video: "#000" };
   function show(id) {
-    ["keypad", "calls", "call", "incoming", "video"].forEach(function (s) {
+    ["keypad", "calls", "call", "incoming", "video", "blank"].forEach(function (s) {
       document.getElementById(s).classList.toggle("on", s === id);
     });
     // Belt and braces for the same white strip: whatever the screen does not
@@ -681,6 +685,22 @@
   var lastDialled = "";
   var ringPoll = null;
 
+  // ── Video-only mode, for the App Clip ────────────────────────────────
+  //
+  // The clip draws its own keypad -- Shine's real PhoneView, natively -- and
+  // places the voice call through a separate hidden page. What it cannot do
+  // natively is the FaceTime callback, which is 400 lines of incoming screen
+  // and Twilio Video that already work here.
+  //
+  // So rather than duplicate them, the clip loads THIS page with ?videoonly=1:
+  // no keypad, no voice device, nothing on screen until the assistant rings.
+  // Swift keeps it at 1x1 and brings it full-screen when told.
+  var VIDEO_ONLY = params.get("videoonly") === "1";
+
+  function toClip(tag) {
+    try { window.webkit.messageHandlers.clipvideo.postMessage({ tag: tag }); } catch (e) {}
+  }
+
   function watchForRing() {
     clearInterval(ringPoll);
     if (!room) return;
@@ -688,7 +708,9 @@
       if (vroom || document.getElementById("incoming").classList.contains("on")) return;
       fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", { cache: "no-store" })
         .then(function (r) { return r.json(); })
-        .then(function (d) { if (d && d.ringing) showIncoming(); })
+        .then(function (d) {
+          if (d && d.ringing) { toClip("ring"); showIncoming(); }
+        })
         .catch(function () {});
     }, 1800);
   }
@@ -901,12 +923,20 @@
     vroom = null;
     document.getElementById("remoteWrap").replaceChildren();
     document.getElementById("selfWrap").replaceChildren();
+    if (VIDEO_ONLY) { toClip("done"); show("blank"); return; }
     show("keypad");
   }
 
   document.getElementById("vidEnd").addEventListener("click", endVideo);
 
   watchForRing();
+
+  if (VIDEO_ONLY) {
+    // Everything the keypad half does is skipped: no Twilio Voice device, no
+    // tabs, no recents. This page is a video receiver and nothing else.
+    show("blank");
+    toClip("ready");
+  }
 
   paint();
 })();
