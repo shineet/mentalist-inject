@@ -59,6 +59,38 @@
           -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
   .cbtn.end { background: #ff3b30; }
   .cbtn svg { width: 28px; height: 28px; fill: currentColor; }
+
+  /* ── Taking the VOICE call here instead of on her mobile ─────────────── */
+  /* One line on the idle screen, so she can see at a glance whether this page
+     is actually ready to be rung. Grey is "not yet", green is "it will ring
+     here", orange means it will go to her phone instead -- which is not a
+     failure, just a different call. */
+  #vline { font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  #vdot { width: 9px; height: 9px; border-radius: 50%; background: #48484a; flex: 0 0 auto; }
+  #vline.ready #vdot { background: #34c759; }
+  #vline.ready { color: #34c759; }
+  #vline.warn #vdot { background: #ff9500; }
+  #vline.warn { color: #ff9500; }
+
+  #vc { position: fixed; inset: 0; z-index: 30; display: none;
+        background: linear-gradient(180deg, #2e2e31, #1a1a1c);
+        flex-direction: column; align-items: center; }
+  #vc.on { display: flex; }
+  #vcWho { margin-top: 23vh; font-size: 33px; font-weight: 600; text-align: center;
+           padding: 0 20px; }
+  #vcSub { margin-top: 2px; font-size: 20px; color: #8e8e93; }
+  #vcRow { margin-top: auto; margin-bottom: calc(env(safe-area-inset-bottom) + 54px);
+           display: flex; gap: 56px; }
+  .vb { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+  .vb > div { width: 77px; height: 77px; border-radius: 50%;
+              display: flex; align-items: center; justify-content: center; }
+  .vb span { font-size: 13px; color: #fff; }
+  .vb svg { width: 34px; height: 34px; fill: #fff; }
+  .green > div { background: #34c759; }
+  .red > div { background: #ff3b30; }
+  .grey > div { background: rgba(255,255,255,0.17); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22); }
+  .grey.active > div { background: #fff; }
+  .grey.active svg { fill: #000; }
 </style>
 </head>
 <body>
@@ -67,6 +99,7 @@
   <h1>Call back</h1>
   <div class="room" id="roomLabel"></div>
   <div id="perm"></div>
+  <div id="vline"><span id="vdot"></span><span id="vstate">Starting&hellip;</span></div>
   <div id="state"></div>
   <button id="ring">Ring their phone</button>
   <p class="note">
@@ -90,7 +123,16 @@
   </div>
 </div>
 
+<!-- The voice call, when it comes here rather than to her mobile. Two states in
+     one screen: ringing (Decline / Answer) and connected (Mute / End). -->
+<div id="vc">
+  <div id="vcWho">Incoming call</div>
+  <div id="vcSub"></div>
+  <div id="vcRow"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/twilio-video@2/dist/twilio-video.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
 <script>
 (function () {
   // The assistant's phone: the other end of the callback.
@@ -337,6 +379,179 @@
       new Blob([JSON.stringify({ on: false })], { type: "application/json" }));
     if (vroom) vroom.disconnect();
   });
+})();
+</script>
+
+<script>
+(function () {
+  // ── The VOICE call, taken here instead of on her mobile ────────────────
+  //
+  // Why this page and not her phone: the divert used to <Dial> her real number,
+  // which puts the second half of the call on the telephone network -- G.711,
+  // 3.4kHz, and no codec choice at the performer's end can widen it. An
+  // audience member listening to one of these said the assistant sounded like
+  // AI. Browser to browser it is Opus instead, and the difference is the
+  // difference between "a phone call" and "in the room".
+  //
+  // Deliberately a SEPARATE block from the video leg above. The two share a
+  // room and nothing else, and the video is the part that has been used in
+  // front of people -- a mistake in here must not be able to break it.
+  //
+  // Her phone is still the fallback and still rings if this page does not pick
+  // up within fifteen seconds, which is the whole reason this can be switched
+  // on without rehearsing it first.
+
+  var ICON = {
+    answer: '<svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>',
+    end: '<svg viewBox="0 0 24 24" style="transform:rotate(135deg)"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>',
+    mute: '<svg viewBox="0 0 24 24"><path d="M15 10.6V5a3 3 0 0 0-5.8-1.1l5.8 6.7zM19 11h-1.7a5.3 5.3 0 0 1-.5 2.2l1.3 1.4A7.2 7.2 0 0 0 19 11zM4.3 3 3 4.3l6 6.9V11a3 3 0 0 0 4.2 2.8l1.2 1.4A5 5 0 0 1 7 11H5.3a6.7 6.7 0 0 0 5.8 6.6V21h1.8v-3.4a6.6 6.6 0 0 0 2.5-.8l3.3 3.8 1.3-1.3L4.3 3z"/></svg>',
+  };
+
+  var room = "";
+  var params = new URLSearchParams(location.search);
+  room = params.get("r") || params.get("room") || "";
+  if (!room) {
+    var m = location.pathname.match(/^\/a(?:\/([A-Za-z0-9_-]+))?\/?$/);
+    if (m && m[1]) room = m[1];
+  }
+  room = room.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40);
+
+  var line = document.getElementById("vline");
+  var lbl = document.getElementById("vstate");
+  var vc = document.getElementById("vc");
+  var who = document.getElementById("vcWho");
+  var sub = document.getElementById("vcSub");
+  var row = document.getElementById("vcRow");
+
+  var device = null, live = null, muted = false, timer = null, t0 = 0, renew = null;
+
+  function show(cls, text) {
+    line.className = cls || "";
+    lbl.textContent = text;
+  }
+
+  function btn(kind, label, icon, act) {
+    var b = document.createElement("div");
+    b.className = "vb " + kind;
+    b.innerHTML = '<div>' + icon + '</div><span>' + label + '</span>';
+    b.addEventListener("click", act);
+    return b;
+  }
+
+  function token() {
+    return fetch("/api/ringer/token?kind=client&room=" + encodeURIComponent(room),
+                 { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.token) throw new Error((d && d.error) || "no token");
+        return d.token;
+      });
+  }
+
+  // ── Register ──────────────────────────────────────────────────────────
+  //
+  // At load, not on a tap. The point of this page is that it is already sitting
+  // there waiting when the performer dials, and a step she has to remember is a
+  // step she will forget with an audience in front of her. The grant is
+  // incoming-only and scoped to this room, so registering early costs nothing.
+  //
+  // The microphone is NOT taken here. The block above already asked for it at
+  // load and released it, which grants the permission for this origin -- so
+  // Answer can start audio without a second prompt, and no recording dot sits
+  // lit while she waits.
+  async function arm() {
+    if (!room) { show("warn", "No room in this link"); return; }
+    if (!window.Twilio || !Twilio.Device) { show("warn", "Call support did not load"); return; }
+    show("", "Getting ready…");
+    try {
+      device = new Twilio.Device(await token(), {
+        // Same preference the dialler and the app now use. Opus is the whole
+        // reason this page exists; PCMU stays as the floor so there is always
+        // something left to agree on.
+        codecPreferences: ["opus", "pcmu"],
+        closeProtection: true,
+      });
+      device.on("registered", function () { show("ready", "The call will ring here"); });
+      device.on("unregistered", function () { show("warn", "Not registered — it will go to your phone"); });
+      device.on("error", function (e) {
+        show("warn", "Call error: " + ((e && e.message) || "unknown"));
+      });
+      device.on("incoming", incoming);
+      await device.register();
+    } catch (e) {
+      // Not fatal and worth saying so plainly: the performer's dial still
+      // reaches her mobile. She has lost the audio quality, not the routine.
+      show("warn", "It will ring your phone instead (" + ((e && e.message) || "no token") + ")");
+    }
+    // Twilio tokens last an hour. A show plus setup can outlast that, and a
+    // stale token deregisters silently, which would look exactly like this
+    // working right up to the moment it mattered.
+    clearInterval(renew);
+    renew = setInterval(function () {
+      token().then(function (t) { if (device) device.updateToken(t); }).catch(function () {});
+    }, 45 * 60 * 1000);
+  }
+
+  // ── Ringing ───────────────────────────────────────────────────────────
+  function incoming(call) {
+    live = call;
+    who.textContent = "Incoming call";
+    sub.textContent = "Ringer";
+    row.replaceChildren(
+      btn("red", "Decline", ICON.end, function () { try { call.reject(); } catch (e) {} }),
+      btn("green", "Answer", ICON.answer, function () { call.accept(); })
+    );
+    vc.classList.add("on");
+
+    call.on("accept", connected);
+    call.on("disconnect", done);
+    call.on("cancel", done);
+    call.on("reject", done);
+    call.on("error", done);
+  }
+
+  function connected() {
+    muted = false;
+    who.textContent = "On the call";
+    t0 = Date.now();
+    tick();
+    clearInterval(timer);
+    timer = setInterval(tick, 500);
+
+    var m = btn("grey", "Mute", ICON.mute, function () {
+      if (!live) return;
+      muted = !muted;
+      live.mute(muted);
+      m.classList.toggle("active", muted);
+    });
+    row.replaceChildren(
+      m,
+      btn("red", "End", ICON.end, function () { try { live.disconnect(); } catch (e) {} })
+    );
+  }
+
+  function tick() {
+    var s = Math.floor((Date.now() - t0) / 1000);
+    sub.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":"
+                    + String(s % 60).padStart(2, "0");
+  }
+
+  function done() {
+    clearInterval(timer); timer = null;
+    live = null;
+    vc.classList.remove("on");
+    // Back to waiting, because the performer may well dial again -- a call that
+    // dropped mid-effect is exactly when he will.
+    if (device && device.state === "registered") show("ready", "The call will ring here");
+  }
+
+  window.addEventListener("pagehide", function () {
+    clearInterval(renew);
+    try { if (live) live.disconnect(); } catch (e) {}
+    try { if (device) device.destroy(); } catch (e) {}
+  });
+
+  arm();
 })();
 </script>
 </body>

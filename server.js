@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v259-video-only-for-the-clip";
+const REVISION = "v260-assistant-answers-as-a-client";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1412,12 +1412,20 @@ app.get("/api/ringer/token", async (req, res) => {
   // kind=video mints a room-scoped Twilio Video grant instead, for the
   // FaceTime leg. Same gate: the room must be one Ringer configured, and the
   // grant is good for that room alone.
-  const kind = String(req.query.kind || "") === "video" ? "video" : "voice";
+  // kind=client mints an INCOMING-ONLY voice grant for the assistant's own
+  // page, so the divert can reach him as a browser client rather than on his
+  // mobile. That is the only way the call is ever wideband -- a mobile leg is
+  // narrowband whatever the performer's end prefers.
+  const kindRaw = String(req.query.kind || "");
+  const kind = kindRaw === "video" || kindRaw === "client" ? kindRaw : "voice";
   const who = String(req.query.who || "") === "assistant" ? "assistant" : "spectator";
-  const upstream = kind === "video"
-    ? RINGER_BACKEND + "/api/voice-token?kind=video&room=" + encodeURIComponent(room)
-        + "&who=" + who
-    : RINGER_BACKEND + "/api/voice-token";
+  const upstream =
+    kind === "video"
+      ? RINGER_BACKEND + "/api/voice-token?kind=video&room=" + encodeURIComponent(room)
+          + "&who=" + who
+      : kind === "client"
+        ? RINGER_BACKEND + "/api/voice-token?kind=client&room=" + encodeURIComponent(room)
+        : RINGER_BACKEND + "/api/voice-token";
   try {
     const r = await fetch(upstream, {
       headers: { "x-sms-token": token },
@@ -1483,7 +1491,13 @@ app.post("/api/ringer/:room/config", express.json({ limit: "4kb" }), (req, res) 
     const vm = String((req.body && req.body.vm) || "").slice(0, 600);
     const rawVoice = String((req.body && req.body.vmvoice) || "").trim();
     const vmvoice = /^[A-Za-z0-9.\-]+$/.test(rawVoice) ? rawVoice : "";
-    ringerRooms[key] = { assistant: raw, vm, vmvoice, at: Date.now() };
+    // "client" = the assistant answers on his own web page (/a/<room>) rather
+    // than on his mobile, which is what makes the call Opus wideband instead of
+    // G.711. Anything else, including absent, is the behaviour this has always
+    // had. The number above is still stored and still used -- it is what the
+    // divert falls back to when his page does not pick up.
+    const via = String((req.body && req.body.via) || "") === "client" ? "client" : "";
+    ringerRooms[key] = { assistant: raw, vm, vmvoice, via, at: Date.now() };
   } else {
     delete ringerRooms[key];
   }
@@ -1503,6 +1517,7 @@ app.get("/api/ringer/:room/config", (req, res) => {
     ok: true, room: key,
     endsWith: rec ? rec.assistant.slice(-4) : null,
     hasVoicemail: Boolean(rec && rec.vm),
+    via: (rec && rec.via) || "",
     at: rec ? rec.at : null,
   });
 });
@@ -1514,7 +1529,8 @@ app.get("/api/ringer/:room/assistant", (req, res) => {
   const rec = ringerRooms[key];
   res.setHeader("Cache-Control", "no-store");
   if (!rec) return res.status(404).json({ ok: false, error: "nothing set for this room" });
-  res.json({ ok: true, assistant: rec.assistant, vm: rec.vm || "", vmvoice: rec.vmvoice || "" });
+  res.json({ ok: true, assistant: rec.assistant, vm: rec.vm || "", vmvoice: rec.vmvoice || "",
+             via: rec.via || "" });
 });
 
 // ── "The assistant is calling back" ──────────────────────────────────────────
