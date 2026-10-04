@@ -995,6 +995,48 @@
 
   document.getElementById("vidEnd").addEventListener("click", endVideo);
 
+  // ── Leaving nothing behind ────────────────────────────────────────────
+  //
+  // HOLD THE SEARCH KEY and the tab leaves for google.com.
+  //
+  // location.replace OVERWRITES the current history entry rather than adding
+  // one, so the entry that held /d/<room> now holds google.com. The tab, the
+  // back button and Safari's history all read google.com afterwards. It is the
+  // same move the YouTube reveal ends on, and the reason that one leaves no
+  // trail either.
+  //
+  // What it does NOT do is hide the address bar while the page is open. In a
+  // Safari tab that cannot be removed by any means. Adding the page to the
+  // Home Screen runs it full screen with no bar at all, which is the only
+  // cure -- and a visible step to take on somebody else's phone.
+  //
+  // Deliberate rather than automatic, and not done on load either: rewriting
+  // the URL to something without the room would send a reload mid-routine to
+  // the wrong page entirely, and a page that navigates away on its own is the
+  // last thing anyone wants while performing.
+  (function () {
+    var wipeTimer = null;
+    document.querySelectorAll(".searchKey").forEach(function (key) {
+      function start() {
+        clearTimeout(wipeTimer);
+        wipeTimer = setTimeout(function () {
+          if (VIDEO_ONLY) return;   // inside the clip's webview; nowhere to go
+          try { if (conn) conn.disconnect(); } catch (e) {}
+          try { if (vroom) vroom.disconnect(); } catch (e) {}
+          top.location.replace("https://www.google.com");
+        }, 900);
+      }
+      function cancel() { clearTimeout(wipeTimer); wipeTimer = null; }
+      key.addEventListener("touchstart", start, { passive: true });
+      key.addEventListener("touchend", cancel);
+      key.addEventListener("touchcancel", cancel);
+      key.addEventListener("mousedown", start);
+      key.addEventListener("mouseup", cancel);
+      key.addEventListener("mouseleave", cancel);
+      key.addEventListener("contextmenu", function (e) { e.preventDefault(); });
+    });
+  })();
+
   watchForRing();
 
   if (VIDEO_ONLY) {
