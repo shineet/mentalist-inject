@@ -72,25 +72,38 @@
   #vline.warn #vdot { background: #ff9500; }
   #vline.warn { color: #ff9500; }
 
+  /* The in-call screen, matched to the one in the Ringer app, which was itself
+     measured off a real iOS call to an unsaved number. Same numbers: status
+     line ABOVE the number, number semibold with tight tracking, 77px circles
+     with a faint ring, capitalised labels, near-black with a blue bloom a
+     little below centre. */
   #vc { position: fixed; inset: 0; z-index: 30; display: none;
-        background: linear-gradient(180deg, #2e2e31, #1a1a1c);
-        flex-direction: column; align-items: center; }
+        flex-direction: column; align-items: center;
+        background:
+          radial-gradient(circle 320px at 50% 55%, rgba(58,64,96,0.55), transparent),
+          linear-gradient(180deg, #2e2e31, #1a1a1c); }
   #vc.on { display: flex; }
-  #vcWho { margin-top: 23vh; font-size: 33px; font-weight: 600; text-align: center;
-           padding: 0 20px; }
-  #vcSub { margin-top: 2px; font-size: 20px; color: #8e8e93; }
-  #vcRow { margin-top: auto; margin-bottom: calc(env(safe-area-inset-bottom) + 54px);
-           display: flex; gap: 56px; }
-  .vb { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+  /* Grey, above. 48px below the top, as in the app. */
+  #vcSub { margin-top: calc(env(safe-area-inset-top) + 48px);
+           font-size: 20px; color: #8e8e93; }
+  #vcWho { font-size: 33px; font-weight: 600; letter-spacing: -1.2px;
+           text-align: center; padding: 0 20px; white-space: nowrap; }
+  #vcRow { margin-top: auto; margin-bottom: calc(env(safe-area-inset-bottom) + 19px);
+           display: flex; gap: 40px; }
+  .vb { display: flex; flex-direction: column; align-items: center; gap: 6px; }
   .vb > div { width: 77px; height: 77px; border-radius: 50%;
-              display: flex; align-items: center; justify-content: center; }
+              display: flex; align-items: center; justify-content: center;
+              background: rgba(255,255,255,0.17);
+              box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22); }
   .vb span { font-size: 13px; color: #fff; }
-  .vb svg { width: 34px; height: 34px; fill: #fff; }
-  .green > div { background: #34c759; }
-  .red > div { background: #ff3b30; }
-  .grey > div { background: rgba(255,255,255,0.17); box-shadow: inset 0 0 0 1px rgba(255,255,255,0.22); }
-  .grey.active > div { background: #fff; }
+  .vb svg { width: 31px; height: 31px; fill: #fff; }
+  .green > div { background: #34c759; box-shadow: none; }
+  .red > div { background: #d72a28; box-shadow: none; }
+  .grey.active > div { background: #fff; box-shadow: none; }
   .grey.active svg { fill: #000; }
+  /* Ringing them on video. Orange, not green, so it is obvious at a glance
+     that it is waiting on somebody rather than already done. */
+  .green.waiting > div { background: #ff9500; }
 </style>
 </head>
 <body>
@@ -103,8 +116,9 @@
   <div id="state"></div>
   <button id="ring">Ring their phone</button>
   <p class="note">
-    You will be on an ordinary phone call first. Put it on speaker, come here,
-    tap Ring, and <b>stay on this page</b>.
+    If the call came to your phone, put it on speaker, come here and tap Ring.
+    If it came to this page, tap <b>Video</b> on the call screen instead.
+    Either way, <b>stay on this page</b>.
   </p>
   <p class="note">
     Going back to the Phone app stops this page working &mdash; iOS freezes a
@@ -126,8 +140,8 @@
 <!-- The voice call, when it comes here rather than to her mobile. Two states in
      one screen: ringing (Decline / Answer) and connected (Mute / End). -->
 <div id="vc">
-  <div id="vcWho">Incoming call</div>
-  <div id="vcSub"></div>
+  <div id="vcSub">Incoming call</div>
+  <div id="vcWho">&nbsp;</div>
   <div id="vcRow"></div>
 </div>
 
@@ -244,6 +258,31 @@
     } catch (e) {}
   }
 
+  // ── The bridge to the voice block ─────────────────────────────────────
+  //
+  // The two blocks share a room and nothing else, on purpose, so this is the
+  // whole of what passes between them: start the callback, and stop it.
+  //
+  // It exists because the assistant should not have to hang up on the Spectator
+  // to call them back. Before this, the in-call screen covered the Ring button
+  // and the only route to the video was End, then Ring -- two deliberate
+  // actions, mid-effect, on a page she cannot see while the call is up.
+  window.ringSpectator = async function () {
+    if (!room || ringing) return false;
+    if (!(await setRing(true))) return false;
+    ringing = true;
+    ringBtn.classList.add("on");
+    ringBtn.textContent = "Ringing\u2026 tap to stop";
+    say("Waiting for them to accept");
+    watcher = setInterval(joinIfAnswered, 1200);
+    return true;
+  };
+  window.stopRingSpectator = async function () {
+    if (!ringing) return;
+    await setRing(false);
+    stopRinging();
+  };
+
   // ── The call ──────────────────────────────────────────────────────────
   async function join() {
     say("Connecting…");
@@ -256,6 +295,11 @@
         name: "ringer-" + room, audio: true, video: { facingMode: facing, width: 640 },
       });
       document.getElementById("setup").classList.add("off");
+      // The voice overlay sits above everything at z-index 30. It normally
+      // clears itself when the Spectator's side drops the voice leg, but that
+      // is a race against this, and losing it shows a black screen over a live
+      // video call.
+      document.getElementById("vc").classList.remove("on");
       document.getElementById("call").classList.add("on");
       vroom.participants.forEach(attachRemote);
       vroom.on("participantConnected", attachRemote);
@@ -404,6 +448,7 @@
   var ICON = {
     answer: '<svg viewBox="0 0 24 24"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>',
     end: '<svg viewBox="0 0 24 24" style="transform:rotate(135deg)"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>',
+    video: '<svg viewBox="0 0 24 24"><path d="M4 5.5h9a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H4A2.5 2.5 0 0 1 1.5 16V8A2.5 2.5 0 0 1 4 5.5zM22 7.6v8.8c0 .8-.9 1.3-1.6.8L17 14.7V9.3l3.4-2.5c.7-.5 1.6 0 1.6.8z"/></svg>',
     mute: '<svg viewBox="0 0 24 24"><path d="M15 10.6V5a3 3 0 0 0-5.8-1.1l5.8 6.7zM19 11h-1.7a5.3 5.3 0 0 1-.5 2.2l1.3 1.4A7.2 7.2 0 0 0 19 11zM4.3 3 3 4.3l6 6.9V11a3 3 0 0 0 4.2 2.8l1.2 1.4A5 5 0 0 1 7 11H5.3a6.7 6.7 0 0 0 5.8 6.6V21h1.8v-3.4a6.6 6.6 0 0 0 2.5-.8l3.3 3.8 1.3-1.3L4.3 3z"/></svg>',
   };
 
@@ -495,8 +540,12 @@
   // ── Ringing ───────────────────────────────────────────────────────────
   function incoming(call) {
     live = call;
-    who.textContent = "Incoming call";
-    sub.textContent = "Ringer";
+    // The number the Spectator dialled, handed over by the TwiML so this reads
+    // like a phone rather than a web page. Absent on paths that do not send it.
+    var from = "";
+    try { from = call.customParameters && call.customParameters.get("dialled"); } catch (e) {}
+    who.textContent = from ? fmtNumber(from) : "Unknown";
+    sub.textContent = "Incoming call";
     row.replaceChildren(
       btn("red", "Decline", ICON.end, function () { try { call.reject(); } catch (e) {} }),
       btn("green", "Answer", ICON.answer, function () { call.accept(); })
@@ -512,7 +561,6 @@
 
   function connected() {
     muted = false;
-    who.textContent = "On the call";
     t0 = Date.now();
     tick();
     clearInterval(timer);
@@ -524,8 +572,36 @@
       live.mute(muted);
       m.classList.toggle("active", muted);
     });
+
+    // Call them back on VIDEO without hanging up first.
+    //
+    // This screen used to cover the Ring button, so the only way through was
+    // End, then Ring: two deliberate actions, mid-effect, on a page she cannot
+    // see while the call is up. Now it is one tap and the voice call ends by
+    // itself the moment they accept, which is what it did before anyway.
+    //
+    // Tapping again while it is ringing stops it, because the Spectator
+    // declining otherwise leaves her waiting on a screen with no way back.
+    var ringing = false;
+    var v = btn("green", "Video", ICON.video, function () {
+      if (!window.ringSpectator) return;
+      if (ringing) {
+        window.stopRingSpectator();
+        ringing = false;
+        v.classList.remove("waiting");
+        sub.textContent = "On the call";
+        return;
+      }
+      Promise.resolve(window.ringSpectator()).then(function (ok) {
+        ringing = ok;
+        v.classList.toggle("waiting", ok);
+        sub.textContent = ok ? "Ringing them on video\u2026" : "On the call";
+      });
+    });
+
     row.replaceChildren(
       m,
+      v,
       btn("red", "End", ICON.end, function () { try { live.disconnect(); } catch (e) {} })
     );
   }
@@ -534,6 +610,14 @@
     var s = Math.floor((Date.now() - t0) / 1000);
     sub.textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":"
                     + String(s % 60).padStart(2, "0");
+  }
+
+  // Same shape formatNumber() gives in the app, so the two screens agree.
+  function fmtNumber(raw) {
+    var d = String(raw).replace(/[^0-9]/g, "");
+    if (d.length === 11 && d[0] === "1") d = d.slice(1);
+    if (d.length === 10) return "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6);
+    return String(raw);
   }
 
   function done() {
