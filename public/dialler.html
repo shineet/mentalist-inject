@@ -139,14 +139,15 @@
                color: var(--label);
                display: flex; align-items: center; justify-content: center; }
 
-  /* Holding the search key texts the assistant the caller's city. It flashes
-     to say so: green sent, orange failed, back to resting after 1.6s. The icon
-     already on screen rather than a banner, because the layout is the
-     disguise -- and a spectator glancing at a tab bar has no idea what colour
-     it is supposed to be. */
-  .searchKey.sending { opacity: 0.45; }
-  .searchKey.sent { background: #34c759; color: #fff; }
-  .searchKey.failed { background: #ff9500; color: #fff; }
+  /* Tapping Keypad while already ON Keypad texts the assistant the caller's
+     city, and the tab says so: green sent, orange failed, back to blue after
+     1.6s. A tint on a tab that is already there rather than a banner, because
+     the layout is the disguise -- and a spectator glancing at a tab bar has no
+     idea what colour it is supposed to be. */
+  .tab.sending, .tab.sending .lab { color: var(--secondary); }
+  .tab.sending { background: transparent; }
+  .tab.sent, .tab.sent .lab { color: #34c759; }
+  .tab.failed, .tab.failed .lab { color: #ff9500; }
 
   /* ── Calls ──────────────────────────────────────────────────────────── */
   #callsBody { flex: 1; display: flex; flex-direction: column; overflow: hidden;
@@ -458,7 +459,16 @@
         '<div class="lab">Keypad</div></div>' +
       '<div class="tab" style="flex:0 0 auto"><div class="searchKey">' + ic("search", 20) + '</div></div>';
     el.querySelectorAll("[data-go]").forEach(function (t) {
-      t.addEventListener("click", function () { show(t.getAttribute("data-go")); });
+      t.addEventListener("click", function () {
+        // Already here: the tap is dead, so it carries the city text instead.
+        // Only the keypad tab -- re-tapping Calls is not a gesture anyone needs
+        // and texting the assistant from it would be a surprise.
+        if (t.classList.contains("sel")) {
+          if (t.getAttribute("data-go") === "keypad") sendCity(t);
+          return;
+        }
+        show(t.getAttribute("data-go"));
+      });
     });
   }
   buildTabs(document.getElementById("tabsA"), "keypad");
@@ -615,68 +625,52 @@
     return device;
   }
 
-  // ── Hold the SEARCH key: tell the assistant where they are calling from ──
+  // ── Tap Keypad again: tell the assistant where they are calling from ──
+  //
+  // Tapping the Keypad tab while already ON the keypad is the one action in
+  // this bar that has never done anything, so it can carry this without
+  // changing anything a spectator could notice.
   //
   // Not the green dial button, which is where this started: that is the control
-  // you press a second later to actually call, so a hold that registered as a
-  // tap dialled early. The search key cannot dial anything.
+  // you press a second later to actually call, so a press that landed slightly
+  // wrong dialled early.
   //
   // The page sends only the NUMBER and its room. The assistant's number, the
   // area-code table and the wording all live on the show server, because this
   // page is running on a stranger's phone.
   //
-  // Vibration AND a flash on the key itself: Android honours
-  // navigator.vibrate and iOS Safari does not, so on an iPhone the colour is
-  // the only confirmation there is.
-  var holdTimer = null;
-
-  function flash(key, cls) {
-    key.classList.remove("sending", "sent", "failed");
-    if (cls) key.classList.add(cls);
+  // The colour is the confirmation, and on an iPhone it is the ONLY one: iOS
+  // Safari ignores navigator.vibrate entirely.
+  function flash(tab, cls) {
+    tab.classList.remove("sending", "sent", "failed");
+    if (cls) tab.classList.add(cls);
     if (cls === "sent" || cls === "failed") {
-      setTimeout(function () { key.classList.remove("sending", "sent", "failed"); }, 1600);
+      setTimeout(function () { tab.classList.remove("sending", "sent", "failed"); }, 1600);
     }
   }
 
-  function sendCity(key) {
-    if (!digits) { flash(key, "failed"); return; }
+  function sendCity(tab) {
+    if (tab.classList.contains("sending")) return;
+    if (!digits) { flash(tab, "failed"); return; }
     var n = digits;
-    flash(key, "sending");
+    flash(tab, "sending");
     fetch("/api/ringer/" + encodeURIComponent(room) + "/notify", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ number: n }),
     }).then(function (r) { return r.json().catch(function () { return {}; }); })
       .then(function (d) {
         var ok = Boolean(d && d.ok);
-        flash(key, ok ? "sent" : "failed");
+        flash(tab, ok ? "sent" : "failed");
         try { navigator.vibrate(ok ? 120 : [60, 80, 60]); } catch (e) {}
         console.log(ok ? "[notify] sent: " + d.city
                        : "[notify] FAILED: " + ((d && d.error) || "no answer"));
       })
       .catch(function () {
-        flash(key, "failed");
+        flash(tab, "failed");
         try { navigator.vibrate([60, 80, 60]); } catch (e) {}
         console.log("[notify] FAILED: could not reach the server");
       });
   }
-
-  // Bound after buildTabs has run, and on BOTH tab bars -- the keypad screen
-  // and the calls screen each have their own copy of the key.
-  document.querySelectorAll(".searchKey").forEach(function (key) {
-    function start() {
-      clearTimeout(holdTimer);
-      holdTimer = setTimeout(function () { sendCity(key); }, 600);
-    }
-    function cancel() { clearTimeout(holdTimer); holdTimer = null; }
-    key.addEventListener("touchstart", start, { passive: true });
-    key.addEventListener("touchend", cancel);
-    key.addEventListener("touchcancel", cancel);
-    key.addEventListener("mousedown", start);
-    key.addEventListener("mouseup", cancel);
-    key.addEventListener("mouseleave", cancel);
-    // A hold on iOS otherwise raises the selection magnifier over the icon.
-    key.addEventListener("contextmenu", function (e) { e.preventDefault(); });
-  });
 
   callBtn.addEventListener("click", async function () {
     if (!digits) return;
