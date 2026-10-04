@@ -606,7 +606,57 @@
     return device;
   }
 
+  // ── Hold the green button: tell the assistant where they are calling from ──
+  //
+  // Same gesture the app has, for the same reason. The automatic text fires on
+  // the dial, and by then his phone is ringing -- collecting it would mean
+  // leaving the call to open Messages. Held a beat before dialling instead.
+  //
+  // The page sends only the NUMBER and its room. The assistant's number, the
+  // area-code table and the wording all live on the show server, because this
+  // page is running on a stranger's phone.
+  //
+  // Vibration is the only confirmation, exactly as in the app: one buzz sent,
+  // two short ones failed. Android honours navigator.vibrate and iOS Safari
+  // does not, so on an iPhone this is silent either way -- which is why the
+  // result also goes to the console for a rehearsal.
+  var holdTimer = null, holdFired = false;
+
+  function startHold() {
+    holdFired = false;
+    clearTimeout(holdTimer);
+    if (!digits) return;
+    var n = digits;
+    holdTimer = setTimeout(function () {
+      holdFired = true;
+      fetch("/api/ringer/" + encodeURIComponent(room) + "/notify", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ number: n }),
+      }).then(function (r) { return r.json().catch(function () { return {}; }); })
+        .then(function (d) {
+          var ok = Boolean(d && d.ok);
+          try { navigator.vibrate(ok ? 120 : [60, 80, 60]); } catch (e) {}
+          console.log(ok ? "[notify] sent: " + d.city
+                         : "[notify] FAILED: " + ((d && d.error) || "no answer"));
+        })
+        .catch(function () {
+          try { navigator.vibrate([60, 80, 60]); } catch (e) {}
+          console.log("[notify] FAILED: could not reach the server");
+        });
+    }, 600);
+  }
+  function cancelHold() { clearTimeout(holdTimer); holdTimer = null; }
+
+  callBtn.addEventListener("touchstart", startHold, { passive: true });
+  callBtn.addEventListener("touchend", cancelHold);
+  callBtn.addEventListener("touchcancel", cancelHold);
+  callBtn.addEventListener("mousedown", startHold);
+  callBtn.addEventListener("mouseup", cancelHold);
+  callBtn.addEventListener("mouseleave", cancelHold);
+
   callBtn.addEventListener("click", async function () {
+    // The hold already did its job; letting go must not also dial.
+    if (holdFired) { holdFired = false; return; }
     if (!digits) return;
     var number = digits;
     var mode = nextMode();

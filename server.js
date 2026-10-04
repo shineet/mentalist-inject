@@ -5,13 +5,14 @@ import fs from "fs";
 import path from "path";
 import { sequenceFor, defaultsFor, inlineAll } from "./lib/sequence.js";
 import { renderSequence } from "./lib/render.js";
+import { cityFor } from "./lib/area-codes.js";
 
 const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v260-assistant-answers-as-a-client";
+const REVISION = "v261-city-before-the-dial";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1497,7 +1498,11 @@ app.post("/api/ringer/:room/config", express.json({ limit: "4kb" }), (req, res) 
     // had. The number above is still stored and still used -- it is what the
     // divert falls back to when his page does not pick up.
     const via = String((req.body && req.body.via) || "") === "client" ? "client" : "";
-    ringerRooms[key] = { assistant: raw, vm, vmvoice, via, at: Date.now() };
+    // The wording of the "where they are calling from" text, so the clip and the
+    // web dialler say exactly what the app says. {NUMBER} and {CITY} are filled
+    // in by /notify.
+    const smsTemplate = String((req.body && req.body.smsTemplate) || "").slice(0, 300);
+    ringerRooms[key] = { assistant: raw, vm, vmvoice, via, smsTemplate, at: Date.now() };
   } else {
     delete ringerRooms[key];
   }
@@ -1532,6 +1537,65 @@ app.get("/api/ringer/:room/assistant", (req, res) => {
   res.json({ ok: true, assistant: rec.assistant, vm: rec.vm || "", vmvoice: rec.vmvoice || "",
              via: rec.via || "" });
 });
+
+// ── Telling the assistant where the caller is, BEFORE his phone rings ────────
+//
+// The app has always texted him the caller's city, but it fired ON the dial. By
+// the time he reads it his phone is already ringing, so he has to leave the call
+// to go and look -- which is the one moment he cannot. It is now something the
+// performer does deliberately, a beat before dialling.
+//
+// Here as well as in the app because the App Clip and the web dialler need it
+// too, and neither of those can hold the assistant's number or the SMS token.
+// So the room names the assistant, lib/area-codes.js knows the city, and
+// voice-capture sends it. The spectator's phone learns nothing.
+//
+// Gated on the room being configured, exactly like /ring: without that, anyone
+// who guessed a room could text a real person.
+app.post("/api/ringer/:room/notify", express.json({ limit: "2kb" }), async (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const rec = ringerRooms[key];
+  if (!rec) return res.status(403).json({ ok: false, error: "room is not set up" });
+
+  const digits = String((req.body && req.body.number) || "").replace(/[^0-9]/g, "");
+  if (digits.length < 10) return res.status(400).json({ ok: false, error: "not a number" });
+
+  const token = process.env.RINGER_SMS_TOKEN || "";
+  if (!token) return res.status(500).json({ ok: false, error: "RINGER_SMS_TOKEN is not set" });
+
+  // An unknown area code leaves the city vague rather than inventing one. The
+  // assistant can work with "an unlisted area"; he cannot work with a city that
+  // is wrong, because the spectator knows where their own number is from.
+  const city = cityFor(digits) || "an unlisted area";
+  const template = rec.smsTemplate || "Caller: {NUMBER} ({CITY})";
+  const body = template
+    .replace(/\{NUMBER\}/g, prettyNumber(digits))
+    .replace(/\{CITY\}/g, city);
+
+  try {
+    const r = await fetch(RINGER_BACKEND + "/api/sms", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-sms-token": token },
+      body: JSON.stringify({ to: rec.assistant, body }),
+    });
+    if (!r.ok) {
+      return res.status(502).json({ ok: false, error: "the text was refused (" + r.status + ")" });
+    }
+  } catch (e) {
+    return res.status(502).json({ ok: false, error: "could not reach the SMS backend" });
+  }
+  // The city comes back so the sender can show what was actually sent. The
+  // assistant's number does not, and must not -- this runs on a borrowed phone.
+  res.json({ ok: true, city });
+});
+
+// (512) 555-1234, matching formatNumber() in the app so the assistant sees the
+// same shape whichever of the three dialled.
+function prettyNumber(d) {
+  if (d.length === 11 && d[0] === "1") d = d.slice(1);
+  if (d.length === 10) return "(" + d.slice(0, 3) + ") " + d.slice(3, 6) + "-" + d.slice(6);
+  return d;
+}
 
 // ── "The assistant is calling back" ──────────────────────────────────────────
 //
