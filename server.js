@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v273-calc-token";
+const REVISION = "v274-public-clip-aasa";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1929,12 +1929,20 @@ app.get(["/.well-known/apple-app-site-association", "/apple-app-site-association
     res.setHeader("Cache-Control", "public, max-age=3600");
     res.json({
       appclips: {
-        // Two clips, two apps, one domain. They never collide because each is
-        // registered against its own URL prefix -- Ringer's dialler on /d, the
-        // Force Calculator on /c -- and iOS picks by the path it was handed.
+        // Three clips, one domain. Each is picked by the URL prefix its App
+        // Clip Experience is registered against: Ringer's dialler on /d, the
+        // calculator on /c.
+        //
+        // Two of them are the SAME calculator. VoiceCapture.Clip belongs to
+        // Shine's performing MystIO and runs from local experiences on phones
+        // he controls. MystIOPublic.Clip belongs to the App Store app, a
+        // separate bundle so it can never install over the performing build,
+        // and it is the one the public /c/ experience will be registered to.
+        // Both read the same rooms, so either app can configure either clip.
         apps: [
           "B2WG3MN7S3.MindGames.Ringer.Clip",
           "B2WG3MN7S3.MindGames.VoiceCapture.Clip",
+          "B2WG3MN7S3.MindGames.MystIOPublic.Clip",
         ],
       },
     });
