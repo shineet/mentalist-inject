@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v272-clip-log-gated";
+const REVISION = "v273-calc-token";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1294,6 +1294,21 @@ function ytAuthorised(req) {
   return (Boolean(photo) && given === photo) || (Boolean(sms) && given === sms);
 }
 
+// The calculator's own token, and nothing else's.
+//
+// The App Store build of MystIO and its clip have to authenticate to the calc
+// endpoints, and an App Store binary is public: anyone can download it and read
+// its strings. RINGER_SMS_TOKEN also mints Twilio voice tokens and sends SMS to
+// any number, so it must never ship in one. CALC_TOKEN opens the calculator
+// rooms and the clip log's WRITE side, which is all a public build needs.
+// Treat it as already public: the room name is still the real protection.
+function calcAuthorised(req) {
+  if (ytAuthorised(req)) return true;
+  const calc = process.env.CALC_TOKEN || "";
+  const given = req.get("x-calc-token") || req.get("x-sms-token") || "";
+  return Boolean(calc) && given === calc;
+}
+
 function ytCounts(room) {
   const channel = ytChannel(room);
   let clients = 0;
@@ -1668,7 +1683,7 @@ app.post("/api/calc/:room/config", express.json({ limit: "8kb" }), (req, res) =>
   // PHOTO token -- so gating on the ringer token alone refused the very app
   // this endpoint exists for. The YouTube room already accepts either, for
   // the same reason, and it is the same app talking.
-  if (!ytAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  if (!calcAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   const key = normalizeRoom(req.params.room);
   if (!key) return res.status(400).json({ ok: false, error: "no room" });
   const c = (req.body && req.body.config) || {};
@@ -1750,7 +1765,7 @@ app.post("/api/calc/:room/result", express.json({ limit: "2kb" }), (req, res) =>
 // `?after=N` replays everything since, so a slow poll or a dropped request
 // costs nothing. Without it, the whole log.
 app.get("/api/calc/:room/result", (req, res) => {
-  if (!ytAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  if (!calcAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   const key = normalizeRoom(req.params.room);
   const rec = calcRooms[key];
   res.setHeader("Cache-Control", "no-store");
@@ -1937,7 +1952,7 @@ app.get(["/.well-known/apple-app-site-association", "/apple-app-site-association
 const clipLog = [];
 
 app.post("/api/clip-log", express.json({ limit: "8kb" }), (req, res) => {
-  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false });
+  if (!ringerAuthorised(req) && !calcAuthorised(req)) return res.status(401).json({ ok: false });
   const line = {
     at: new Date().toISOString(),
     tag: String((req.body && req.body.tag) || "").slice(0, 60),
