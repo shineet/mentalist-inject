@@ -44,21 +44,38 @@
   #call.on { display: block; }
   #big { position: absolute; inset: 0; }
   #big video { width: 100%; height: 100%; object-fit: cover; }
-  #small { position: absolute; top: calc(env(safe-area-inset-top) + 16px); right: 16px;
-           width: 108px; height: 156px; border-radius: 14px; overflow: hidden;
+  /* Top scrim, or white text on a bright video is unreadable. */
+  #call::before { content: ""; position: absolute; left: 0; right: 0; top: 0;
+                  height: 100px; z-index: 1; pointer-events: none;
+                  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0)); }
+  #small { position: absolute; top: calc(env(safe-area-inset-top) + 20px); right: 21px;
+           width: 93px; height: 140px; border-radius: 13px; overflow: hidden;
            background: #141416; box-shadow: 0 3px 14px rgba(0,0,0,0.5); }
   #small video { width: 100%; height: 100%; object-fit: cover; }
   /* Mirrored only when it is her own FRONT camera, like every self-view. */
   .mirror video { transform: scaleX(-1); }
-  #ctlRow { position: absolute; left: 0; right: 0;
-            bottom: calc(env(safe-area-inset-bottom) + 34px);
-            display: flex; justify-content: center; gap: 26px; }
-  .cbtn { width: 64px; height: 64px; border-radius: 50%;
-          background: rgba(255,255,255,0.22); color: #fff;
-          display: flex; align-items: center; justify-content: center;
-          -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-  .cbtn.end { background: #ff3b30; }
-  .cbtn svg { width: 28px; height: 28px; fill: currentColor; }
+  #vidName { position: absolute; left: 21px; right: 130px; z-index: 2;
+             top: calc(env(safe-area-inset-top) + 20px);
+             color: #fff; font-size: 17px; font-weight: 500;
+             text-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+  #vidClock { position: absolute; left: 21px; z-index: 2;
+              top: calc(env(safe-area-inset-top) + 44px);
+              color: rgba(255,255,255,0.7); font-size: 13px;
+              text-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+  /* The same dock the Spectator sees, to the same numbers. */
+  #ctlRow { position: absolute; left: 50%; transform: translateX(-50%);
+            bottom: calc(env(safe-area-inset-bottom) + 24px);
+            width: min(350px, calc(100% - 32px)); height: 80px;
+            border-radius: 24px; padding: 0 18px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(20,20,20,0.65);
+            -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px); }
+  .cbtn { width: 47px; height: 47px; border-radius: 50%;
+          background: rgba(255,255,255,0.10); color: #fff;
+          display: flex; align-items: center; justify-content: center; }
+  .cbtn.off { background: #fff; color: #000; }
+  .cbtn svg { width: 24px; height: 24px; fill: currentColor; }
+  .cbtn.end { width: 80px; height: 47px; border-radius: 23px; background: #ff3b30; }
 
   /* ── Taking the VOICE call here instead of on her mobile ─────────────── */
   /* One line on the idle screen, so she can see at a glance whether this page
@@ -131,7 +148,11 @@
 <div id="call">
   <div id="big"></div>
   <div id="small"></div>
+  <div id="vidName"></div>
+  <div id="vidClock"></div>
   <div id="ctlRow">
+    <div class="cbtn" id="micBtn"></div>
+    <div class="cbtn" id="camBtn"></div>
     <div class="cbtn" id="flipBtn"></div>
     <div class="cbtn end" id="hangBtn"></div>
   </div>
@@ -160,6 +181,10 @@
     flip: '<svg viewBox="0 0 24 24"><path d="M9.4 3h5.2l1.3 1.8H20a2 2 0 0 1 2 2v11.4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6.8a2 2 0 0 1 2-2h4.1L9.4 3zm2.6 4.6a5.4 5.4 0 0 0-5.3 4.4l-1.4-1-.9 1.2 3 2.2 2.4-2.8-1.2-1-.9 1a3.9 3.9 0 0 1 6.6-1.9l1.1-1.1A5.4 5.4 0 0 0 12 7.6zm5.7 3.6-2.4 2.8 1.2 1 .9-1a3.9 3.9 0 0 1-6.6 1.9l-1.1 1.1a5.4 5.4 0 0 0 9.1-2.6l1.4 1 .9-1.2-3.4-2z"/></svg>',
     end: '<svg viewBox="0 0 24 24" style="transform:rotate(135deg)"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1-9.4 0-17-7.6-17-17 0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>',
   };
+  ICONS.mic = '<svg viewBox="0 0 24 24"><path d="M15 10.6V5a3 3 0 0 0-5.9-.7L15 10.6zM9 8.9v2.6a3 3 0 0 0 4.3 2.7L9 8.9zM5.7 4.3 4.3 5.7l3.1 3.1v2.7a4.6 4.6 0 0 0 6.9 4l1.4 1.4a6.4 6.4 0 0 1-3.9 1.2V21h-1.6v-2.9A6.5 6.5 0 0 1 5 11.7h1.6a4.9 4.9 0 0 0 .3 1.6L3.9 10.3l-.3.2v1.2a8.4 8.4 0 0 0 .5 2.6l14.2 4.6 1.4-1.4L5.7 4.3z"/></svg>';
+  ICONS.cam = '<svg viewBox="0 0 24 24"><path d="M4 5.5h9a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H4A2.5 2.5 0 0 1 1.5 16V8A2.5 2.5 0 0 1 4 5.5zM22 7.6v8.8c0 .8-.9 1.3-1.6.8L17 14.7V9.3l3.4-2.5c.7-.5 1.6 0 1.6.8z"/></svg>';
+  document.getElementById("micBtn").innerHTML = ICONS.mic;
+  document.getElementById("camBtn").innerHTML = ICONS.cam;
   document.getElementById("flipBtn").innerHTML = ICONS.flip;
   document.getElementById("hangBtn").innerHTML = ICONS.end;
 
@@ -301,6 +326,8 @@
       // video call.
       document.getElementById("vc").classList.remove("on");
       document.getElementById("call").classList.add("on");
+      document.getElementById("vidName").textContent = "Unknown";
+      startVidClock();
       vroom.participants.forEach(attachRemote);
       vroom.on("participantConnected", attachRemote);
       vroom.on("participantDisconnected", leave);
@@ -405,7 +432,47 @@
     if (vroom) vroom.disconnect();
   });
 
+  // ── The dock ──────────────────────────────────────────────────────────
+  //
+  // Mic and camera rather than FaceTime's audio-output button: a web page
+  // cannot change which speaker the phone uses, and a control that does nothing
+  // when pressed is its own tell.
+  var clockTick = null, clockT0 = 0;
+
+  function startVidClock() {
+    clockT0 = Date.now();
+    clearInterval(clockTick);
+    var el = document.getElementById("vidClock");
+    function paint() {
+      var n = Math.floor((Date.now() - clockT0) / 1000);
+      el.textContent = String(Math.floor(n / 60)).padStart(2, "0") + ":"
+                     + String(n % 60).padStart(2, "0");
+    }
+    paint();
+    clockTick = setInterval(paint, 500);
+  }
+
+  function localTracks(kind) {
+    if (!vroom) return [];
+    var pubs = kind === "audio" ? vroom.localParticipant.audioTracks
+                                : vroom.localParticipant.videoTracks;
+    return Array.from(pubs.values()).map(function (pub) { return pub.track; });
+  }
+
+  document.getElementById("micBtn").addEventListener("click", function () {
+    var off = !this.classList.contains("off");
+    localTracks("audio").forEach(function (t) { off ? t.disable() : t.enable(); });
+    this.classList.toggle("off", off);
+  });
+
+  document.getElementById("camBtn").addEventListener("click", function () {
+    var off = !this.classList.contains("off");
+    localTracks("video").forEach(function (t) { off ? t.disable() : t.enable(); });
+    this.classList.toggle("off", off);
+  });
+
   function leave() {
+    clearInterval(clockTick); clockTick = null;
     try { if (vroom) vroom.disconnect(); } catch (e) {}
     vroom = null;
     document.getElementById("big").replaceChildren();

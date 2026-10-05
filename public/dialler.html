@@ -203,29 +203,51 @@
   @keyframes nudge { 0%,100% { transform: none; } 50% { transform: translateY(-7px); } }
   .answer .lab { font-size: 13px; color: #fff; }
 
+  /* ── The video call, laid out like FaceTime ─────────────────────────── */
+  /* Spec values are given at @3x for a 1179x2556 screen; everything here is
+     that divided by three, because CSS px are points. The dock, the PiP and the
+     top-left header are the three things that make it read as FaceTime rather
+     than as a web page with buttons on it. */
   #video { background: #000; }
   #remoteWrap { position: absolute; inset: 0; }
   #remoteWrap video { width: 100%; height: 100%; object-fit: cover; }
-  #selfWrap { position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 14px;
-              width: 104px; height: 150px; border-radius: 12px; overflow: hidden;
+  /* Top scrim, or white text on a bright video is unreadable. */
+  #video::before { content: ""; position: absolute; left: 0; right: 0; top: 0;
+                   height: 100px; pointer-events: none;
+                   background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0)); }
+  #selfWrap { position: absolute; top: calc(env(safe-area-inset-top) + 20px); right: 21px;
+              width: 93px; height: 140px; border-radius: 13px; overflow: hidden;
               background: #111; box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
   #selfWrap video { width: 100%; height: 100%; object-fit: cover; }
   /* Mirrored only for a FRONT camera, like every self-view. */
   .mirror video { transform: scaleX(-1); }
-  /* Flip front/back, beside the end button, where FaceTime keeps it. */
-  #vidFlip { position: absolute; right: 28px;
-             bottom: calc(env(safe-area-inset-bottom) + 44px);
-             width: 60px; height: 60px; border-radius: 50%;
-             background: rgba(255,255,255,0.22); color: #fff;
-             display: flex; align-items: center; justify-content: center;
-             -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-  #vidLabel { position: absolute; left: 0; right: 0;
-              top: calc(env(safe-area-inset-top) + 22px);
-              text-align: center; color: #fff; font-size: 20px;
-              text-shadow: 0 1px 6px rgba(0,0,0,0.6); }
-  #vidEnd { position: absolute; left: 50%; transform: translateX(-50%);
-            bottom: calc(env(safe-area-inset-bottom) + 42px);
-            width: 68px; height: 68px; border-radius: 50%; background: var(--red);
+
+  /* Name and timer top LEFT, not centred. FaceTime has never centred them. */
+  #vidLabel { position: absolute; left: 21px; right: 130px;
+              top: calc(env(safe-area-inset-top) + 20px);
+              color: #fff; font-size: 17px; font-weight: 500;
+              text-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+  #vidTime { position: absolute; left: 21px;
+             top: calc(env(safe-area-inset-top) + 44px);
+             color: rgba(255,255,255,0.7); font-size: 13px;
+             text-shadow: 0 1px 6px rgba(0,0,0,0.5); }
+
+  /* One frosted dock, not buttons scattered over the picture. */
+  #vidDock { position: absolute; left: 50%; transform: translateX(-50%);
+             bottom: calc(env(safe-area-inset-bottom) + 24px);
+             width: min(350px, calc(100% - 32px)); height: 80px;
+             border-radius: 24px; padding: 0 18px;
+             display: flex; align-items: center; justify-content: space-between;
+             background: rgba(20,20,20,0.65);
+             -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px); }
+  .vdot { width: 47px; height: 47px; border-radius: 50%;
+          background: rgba(255,255,255,0.10); color: #fff;
+          display: flex; align-items: center; justify-content: center; }
+  /* A control that is OFF goes solid white with a black glyph, as iOS does. */
+  .vdot.off { background: #fff; color: #000; }
+  /* End is a pill, not a circle. It is the clearest single difference between
+     the modern dock and the old round-buttons layout. */
+  #vidEnd { width: 80px; height: 47px; border-radius: 23px; background: #ff3b30;
             display: flex; align-items: center; justify-content: center; color: #fff; }
 
   /* ── In call ────────────────────────────────────────────────────────── */
@@ -315,8 +337,13 @@
   <div id="remoteWrap"></div>
   <div id="selfWrap"></div>
   <div id="vidLabel"></div>
-  <div id="vidFlip" data-ic="flip"></div>
-  <div id="vidEnd" data-ic="phonedown"></div>
+  <div id="vidTime"></div>
+  <div id="vidDock">
+    <div class="vdot" id="vidMic" data-ic="micslash"></div>
+    <div class="vdot" id="vidCam" data-ic="video"></div>
+    <div class="vdot" id="vidFlip" data-ic="flip"></div>
+    <div id="vidEnd" data-ic="phonedown"></div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -477,7 +504,7 @@
   document.querySelectorAll(".circ[data-ic]").forEach(function (c) {
     c.innerHTML = ic(c.getAttribute("data-ic"), 32);
   });
-  document.querySelectorAll("#vidEnd[data-ic], #vidFlip[data-ic]").forEach(function (c) {
+  document.querySelectorAll("#vidEnd[data-ic], #vidFlip[data-ic], #vidMic[data-ic], #vidCam[data-ic]").forEach(function (c) {
     c.innerHTML = ic(c.getAttribute("data-ic"), 26);
   });
   document.querySelectorAll("#inAvatar[data-ic]").forEach(function (c) {
@@ -888,6 +915,7 @@
       vroom.on("participantDisconnected", endVideo);
       vroom.on("disconnected", endVideo);
       redrawVideo();
+      startVidTimer();
     } catch (e) {
       document.getElementById("vidLabel").textContent =
         "Could not connect: " + ((e && e.message) || e);
@@ -984,7 +1012,47 @@
     } catch (err) { /* stay on the camera we had */ }
   });
 
+  // ── The dock ──────────────────────────────────────────────────────────
+  //
+  // Mic and camera rather than FaceTime's audio-output button: a web page
+  // cannot change which speaker the phone uses, and a control that does nothing
+  // when pressed is its own tell. These two do exactly what they say.
+  var vidTick = null, vidT0 = 0;
+
+  function startVidTimer() {
+    vidT0 = Date.now();
+    clearInterval(vidTick);
+    var el = document.getElementById("vidTime");
+    function paintTime() {
+      var n = Math.floor((Date.now() - vidT0) / 1000);
+      el.textContent = String(Math.floor(n / 60)).padStart(2, "0") + ":"
+                     + String(n % 60).padStart(2, "0");
+    }
+    paintTime();
+    vidTick = setInterval(paintTime, 500);
+  }
+
+  function localTracks(kind) {
+    if (!vroom) return [];
+    var pubs = kind === "audio" ? vroom.localParticipant.audioTracks
+                                : vroom.localParticipant.videoTracks;
+    return Array.from(pubs.values()).map(function (pub) { return pub.track; });
+  }
+
+  document.getElementById("vidMic").addEventListener("click", function () {
+    var off = !this.classList.contains("off");
+    localTracks("audio").forEach(function (t) { off ? t.disable() : t.enable(); });
+    this.classList.toggle("off", off);
+  });
+
+  document.getElementById("vidCam").addEventListener("click", function () {
+    var off = !this.classList.contains("off");
+    localTracks("video").forEach(function (t) { off ? t.disable() : t.enable(); });
+    this.classList.toggle("off", off);
+  });
+
   function endVideo() {
+    clearInterval(vidTick); vidTick = null;
     try { if (vroom) vroom.disconnect(); } catch (e) {}
     vroom = null;
     document.getElementById("remoteWrap").replaceChildren();
