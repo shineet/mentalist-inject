@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v266-facetime-measured";
+const REVISION = "v268-calculator-event-log";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1631,6 +1631,142 @@ app.get("/api/ringer/:room/ring", (req, res) => {
   // next spectator's phone light up before anything had happened.
   const live = Boolean(rec && rec.ringing && Date.now() - rec.ringing < 120000);
   res.json({ ok: true, ringing: live });
+});
+
+// ── The calculator on a borrowed phone ───────────────────────────────────────
+//
+// MystIO's Force Calculator, run as an App Clip on a spectator's phone while
+// Shine holds it. Everything about the effect is unchanged; the only thing that
+// moves is which device the keypad is on.
+//
+// So two things have to cross the gap, and nothing else does:
+//
+//   config  MystIO pushes the force settings before the show. The clip starts
+//           blank on a stranger's phone and has no settings screen to fill in.
+//   result  the clip posts the days-alive figure back. MystIO picks it up and
+//           fires its OWN .calculatorDaysAlive notification, so the watch, the
+//           Duo, the Prism and every routine downstream behave exactly as they
+//           do when the calculator ran locally. None of them learn that it did
+//           not.
+//
+// Deliberately NOT the ringer rooms, though it is the same shape: these two
+// have nothing to do with each other, and one store wiping the other's room
+// because the names collided is a failure nobody would diagnose mid-show.
+const CALC_FILE = path.join(DATA_DIR, "calc-rooms.json");
+let calcRooms = {};
+try { calcRooms = JSON.parse(fs.readFileSync(CALC_FILE, "utf8")) || {}; } catch {}
+
+function saveCalcRooms() {
+  try { fs.writeFileSync(CALC_FILE, JSON.stringify(calcRooms)); }
+  catch (e) { console.error("calc rooms save failed:", e.message); }
+}
+
+// Set by MystIO, which is the only thing that knows tonight's force.
+app.post("/api/calc/:room/config", express.json({ limit: "8kb" }), (req, res) => {
+  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  if (!key) return res.status(400).json({ ok: false, error: "no room" });
+  const c = (req.body && req.body.config) || {};
+  // Stored as given, minus anything oversized. The clip and MystIO agree on the
+  // shape between themselves; this only has to carry it intact and refuse to
+  // become a place to park arbitrary data.
+  const clean = {};
+  for (const [k, v] of Object.entries(c)) {
+    if (typeof k !== "string" || k.length > 40) continue;
+    if (typeof v === "string" && v.length > 400) continue;
+    if (["string", "number", "boolean"].includes(typeof v) || Array.isArray(v)) clean[k] = v;
+  }
+  const prev = calcRooms[key] || {};
+  calcRooms[key] = { ...prev, config: clean, at: Date.now() };
+  saveCalcRooms();
+  res.json({ ok: true, room: key, keys: Object.keys(clean).length });
+});
+
+// Read by the CLIP, on a stranger's phone, so it cannot carry a token.
+//
+// Gated on the room existing instead, exactly like the ringer endpoints: a room
+// nobody configured returns nothing, and the room name is the secret. What
+// leaks if one is guessed is tonight's force, which is worth protecting and is
+// not personal data about anyone.
+app.get("/api/calc/:room/config", (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const rec = calcRooms[key];
+  res.setHeader("Cache-Control", "no-store");
+  if (!rec || !rec.config) return res.status(404).json({ ok: false, error: "nothing set for this room" });
+  res.json({ ok: true, config: rec.config, at: rec.at || 0 });
+});
+
+// Posted by the clip every time the calculator fires one of its events.
+//
+// A LOG, not a single value. The calculator does not produce one result: it
+// fires days-alive, it fires the hour/minute/total of a sum, and it fires a
+// handoff tap, and a routine can want all three within a few seconds. Keeping
+// only the latest would drop whichever two arrived between MystIO's polls, and
+// "the Duo showed the wrong number once" is not a bug anyone diagnoses later.
+//
+// `seq` increments per event; MystIO asks for everything after the last one it
+// replayed. Twenty is far more than a routine produces and costs nothing.
+app.post("/api/calc/:room/result", express.json({ limit: "2kb" }), (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const rec = calcRooms[key];
+  if (!rec) return res.status(403).json({ ok: false, error: "room is not set up" });
+
+  const body = req.body || {};
+  const kind = String(body.event || "days");
+  let payload = null;
+  if (kind === "days") {
+    const days = Number(body.days);
+    if (!Number.isFinite(days) || days < 0 || days > 60000) {
+      return res.status(400).json({ ok: false, error: "not a days figure" });
+    }
+    payload = { days: Math.round(days), born: String(body.born || "").slice(0, 32) };
+  } else if (kind === "sum") {
+    const nums = ["hour", "minute", "total"].map((k) => Number(body[k]));
+    if (nums.some((n) => !Number.isFinite(n))) {
+      return res.status(400).json({ ok: false, error: "sum needs hour, minute and total" });
+    }
+    payload = { hour: nums[0], minute: nums[1], total: nums[2] };
+  } else if (kind === "handoff") {
+    payload = {};
+  } else {
+    return res.status(400).json({ ok: false, error: "unknown event" });
+  }
+
+  rec.seq = (rec.seq || 0) + 1;
+  rec.events = (rec.events || []).concat([{ seq: rec.seq, event: kind, ...payload, at: Date.now() }])
+                                 .slice(-20);
+  saveCalcRooms();
+  res.json({ ok: true, seq: rec.seq });
+});
+
+// Polled by MystIO on Shine's own phone, which holds the token. Token-gated
+// rather than room-gated because this one carries the spectator's own figures.
+//
+// `?after=N` replays everything since, so a slow poll or a dropped request
+// costs nothing. Without it, the whole log.
+app.get("/api/calc/:room/result", (req, res) => {
+  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  const rec = calcRooms[key];
+  res.setHeader("Cache-Control", "no-store");
+  if (!rec) return res.json({ ok: true, seq: 0, events: [] });
+  const after = Number(req.query.after || 0);
+  const events = (rec.events || []).filter((e) => e.seq > (Number.isFinite(after) ? after : 0));
+  res.json({ ok: true, seq: rec.seq || 0, events });
+});
+
+// The clip's invocation path. Off /d and /a so the three links cannot be
+// confused at a glance, and served rather than redirected so nothing long
+// appears in an address bar.
+//
+// There is deliberately NO web fallback here. A Safari toolbar under a dialler
+// is survivable; under a CALCULATOR it is not, because the real one has no
+// browser around it at all. A phone that cannot run the clip should get
+// nothing rather than something that gives the method away.
+app.get(["/c", "/c/:room"], (req, res) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  res.type("html").send("<!doctype html><title>Calculator</title>"
+    + "<body style=\"margin:0;background:#000\"></body>");
 });
 
 // The assistant's own page, for their phone. Kept off the /d path so the two
