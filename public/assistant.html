@@ -40,42 +40,60 @@
      it, and how this did NOT: the first version attached only her own camera
      and never the other participant at all, so she saw a small window of
      herself and nothing else. That was a missing feature, not a setting. */
+  /* The same FaceTime layout the Spectator sees, measured off a real call:
+     vertical control column on the RIGHT, name pill top-left, shutter top-right,
+     flip inside the self-view, and the whole lot fades after four seconds. */
   #call { position: fixed; inset: 0; display: none; background: #000; }
   #call.on { display: block; }
   #big { position: absolute; inset: 0; }
   #big video { width: 100%; height: 100%; object-fit: cover; }
-  /* Top scrim, or white text on a bright video is unreadable. */
-  #call::before { content: ""; position: absolute; left: 0; right: 0; top: 0;
-                  height: 100px; z-index: 1; pointer-events: none;
-                  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0)); }
-  #small { position: absolute; top: calc(env(safe-area-inset-top) + 20px); right: 21px;
-           width: 93px; height: 140px; border-radius: 13px; overflow: hidden;
-           background: #141416; box-shadow: 0 3px 14px rgba(0,0,0,0.5); }
+
+  #vidChrome { position: absolute; inset: 0; pointer-events: none;
+               transition: opacity .25s ease; z-index: 2; }
+  #vidChrome > * { pointer-events: auto; }
+  #vidChrome.hid { opacity: 0; }
+
+  #vidPill { position: absolute; left: 16px; top: calc(env(safe-area-inset-top) + 16px);
+             height: 36px; max-width: 60%; border-radius: 18px; padding: 0 12px 0 5px;
+             display: flex; align-items: center; gap: 8px;
+             background: rgba(255,255,255,0.26);
+             -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
+  #vidPillAv { width: 26px; height: 26px; border-radius: 50%; flex: 0 0 auto;
+               background: #5a5a60; }
+  #vidName { color: #fff; font-size: 15px; font-weight: 500; white-space: nowrap; }
+  #vidPill .chev { color: rgba(255,255,255,0.75); font-size: 15px; }
+
+  #vidShutter { position: absolute; right: 16px; top: calc(env(safe-area-inset-top) + 17px);
+                width: 34px; height: 34px; border-radius: 50%; background: #fff;
+                box-shadow: 0 0 0 2px rgba(255,255,255,0.35); }
+
+  #pipWrap { position: absolute; right: 16px; top: calc(env(safe-area-inset-top) + 62px);
+             width: 84px; height: 180px; }
+  #small { position: absolute; inset: 0; border-radius: 20px; overflow: hidden;
+           background: #141416; box-shadow: 0 2px 14px rgba(0,0,0,0.45); }
   #small video { width: 100%; height: 100%; object-fit: cover; }
-  /* Mirrored only when it is her own FRONT camera, like every self-view. */
   .mirror video { transform: scaleX(-1); }
-  #vidName { position: absolute; left: 21px; right: 130px; z-index: 2;
-             top: calc(env(safe-area-inset-top) + 20px);
-             color: #fff; font-size: 17px; font-weight: 500;
-             text-shadow: 0 1px 6px rgba(0,0,0,0.5); }
-  #vidClock { position: absolute; left: 21px; z-index: 2;
-              top: calc(env(safe-area-inset-top) + 44px);
-              color: rgba(255,255,255,0.7); font-size: 13px;
-              text-shadow: 0 1px 6px rgba(0,0,0,0.5); }
-  /* The same dock the Spectator sees, to the same numbers. */
-  #ctlRow { position: absolute; left: 50%; transform: translateX(-50%);
-            bottom: calc(env(safe-area-inset-bottom) + 24px);
-            width: min(350px, calc(100% - 32px)); height: 80px;
-            border-radius: 24px; padding: 0 18px;
-            display: flex; align-items: center; justify-content: space-between;
-            background: rgba(20,20,20,0.65);
-            -webkit-backdrop-filter: blur(30px); backdrop-filter: blur(30px); }
+  #flipBtn { position: absolute; left: 8px; bottom: 8px;
+             width: 30px; height: 30px; border-radius: 50%;
+             background: rgba(40,40,42,0.7); color: #fff;
+             display: flex; align-items: center; justify-content: center;
+             -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  #flipBtn svg { width: 17px; height: 17px; fill: currentColor; }
+
+  #ctlRow { position: absolute; right: 16px;
+            bottom: calc(env(safe-area-inset-bottom) + 18px);
+            display: flex; flex-direction: column; gap: 13px; }
   .cbtn { width: 47px; height: 47px; border-radius: 50%;
-          background: rgba(255,255,255,0.10); color: #fff;
           display: flex; align-items: center; justify-content: center; }
-  .cbtn.off { background: #fff; color: #000; }
-  .cbtn svg { width: 24px; height: 24px; fill: currentColor; }
-  .cbtn.end { width: 80px; height: 47px; border-radius: 23px; background: #ff3b30; }
+  .cbtn svg { width: 23px; height: 23px; fill: currentColor; }
+  #camBtn { background: #34c759; color: #fff; }
+  #camBtn.off { background: #fff; color: #ff3b30; }
+  #micBtn { background: #fff; color: #ff9f0a; }
+  #micBtn.off { background: #fff; color: #8e8e93; }
+  #moreBtn { background: rgba(120,120,128,0.55); color: #fff;
+             -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .cbtn.end { background: #ff3b30; color: #fff; }
+  .cbtn.end svg { width: 21px; height: 21px; }
 
   /* ── Taking the VOICE call here instead of on her mobile ─────────────── */
   /* One line on the idle screen, so she can see at a glance whether this page
@@ -147,14 +165,21 @@
 
 <div id="call">
   <div id="big"></div>
-  <div id="small"></div>
-  <div id="vidName"></div>
-  <div id="vidClock"></div>
-  <div id="ctlRow">
-    <div class="cbtn" id="micBtn"></div>
-    <div class="cbtn" id="camBtn"></div>
-    <div class="cbtn" id="flipBtn"></div>
-    <div class="cbtn end" id="hangBtn"></div>
+  <div id="vidChrome">
+    <div id="vidPill">
+      <span id="vidPillAv"></span><span id="vidName"></span><span class="chev">&rsaquo;</span>
+    </div>
+    <div id="vidShutter"></div>
+    <div id="pipWrap">
+      <div id="small"></div>
+      <div id="flipBtn"></div>
+    </div>
+    <div id="ctlRow">
+      <div class="cbtn" id="camBtn"></div>
+      <div class="cbtn" id="micBtn"></div>
+      <div class="cbtn" id="moreBtn"></div>
+      <div class="cbtn end" id="hangBtn"></div>
+    </div>
   </div>
 </div>
 
@@ -183,10 +208,14 @@
   };
   ICONS.mic = '<svg viewBox="0 0 24 24"><path d="M15 10.6V5a3 3 0 0 0-5.9-.7L15 10.6zM9 8.9v2.6a3 3 0 0 0 4.3 2.7L9 8.9zM5.7 4.3 4.3 5.7l3.1 3.1v2.7a4.6 4.6 0 0 0 6.9 4l1.4 1.4a6.4 6.4 0 0 1-3.9 1.2V21h-1.6v-2.9A6.5 6.5 0 0 1 5 11.7h1.6a4.9 4.9 0 0 0 .3 1.6L3.9 10.3l-.3.2v1.2a8.4 8.4 0 0 0 .5 2.6l14.2 4.6 1.4-1.4L5.7 4.3z"/></svg>';
   ICONS.cam = '<svg viewBox="0 0 24 24"><path d="M4 5.5h9a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5H4A2.5 2.5 0 0 1 1.5 16V8A2.5 2.5 0 0 1 4 5.5zM22 7.6v8.8c0 .8-.9 1.3-1.6.8L17 14.7V9.3l3.4-2.5c.7-.5 1.6 0 1.6.8z"/></svg>';
-  document.getElementById("micBtn").innerHTML = ICONS.mic;
+  ICONS.ellipsis = '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>';
+  ICONS.xmark = '<svg viewBox="0 0 24 24"><path d="M19.7 5.7 13.4 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4L10.6 12 4.3 5.7l1.4-1.4L12 10.6l6.3-6.3z"/></svg>';
+  ICONS.micOn = '<svg viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm7 9a7 7 0 0 1-6 6.9V21h-2v-3.1A7 7 0 0 1 5 11h1.8a5.2 5.2 0 0 0 10.4 0H19z"/></svg>';
+  document.getElementById("micBtn").innerHTML = ICONS.micOn;
   document.getElementById("camBtn").innerHTML = ICONS.cam;
+  document.getElementById("moreBtn").innerHTML = ICONS.ellipsis;
   document.getElementById("flipBtn").innerHTML = ICONS.flip;
-  document.getElementById("hangBtn").innerHTML = ICONS.end;
+  document.getElementById("hangBtn").innerHTML = ICONS.xmark;
 
   var params = new URLSearchParams(location.search);
   var room = params.get("r") || params.get("room") || "";
@@ -327,7 +356,7 @@
       document.getElementById("vc").classList.remove("on");
       document.getElementById("call").classList.add("on");
       document.getElementById("vidName").textContent = "Unknown";
-      startVidClock();
+      showChrome();
       vroom.participants.forEach(attachRemote);
       vroom.on("participantConnected", attachRemote);
       vroom.on("participantDisconnected", leave);
@@ -437,20 +466,20 @@
   // Mic and camera rather than FaceTime's audio-output button: a web page
   // cannot change which speaker the phone uses, and a control that does nothing
   // when pressed is its own tell.
-  var clockTick = null, clockT0 = 0;
+  //
+  // FaceTime fades all of it after a few seconds and brings it back on a tap.
+  // That fade is most of why a fixed set of buttons reads as "not FaceTime"
+  // however well the buttons themselves are drawn.
+  var chromeTimer = null;
 
-  function startVidClock() {
-    clockT0 = Date.now();
-    clearInterval(clockTick);
-    var el = document.getElementById("vidClock");
-    function paint() {
-      var n = Math.floor((Date.now() - clockT0) / 1000);
-      el.textContent = String(Math.floor(n / 60)).padStart(2, "0") + ":"
-                     + String(n % 60).padStart(2, "0");
-    }
-    paint();
-    clockTick = setInterval(paint, 500);
+  function showChrome() {
+    var c = document.getElementById("vidChrome");
+    if (!c) return;
+    c.classList.remove("hid");
+    clearTimeout(chromeTimer);
+    chromeTimer = setTimeout(function () { c.classList.add("hid"); }, 4000);
   }
+  document.getElementById("call").addEventListener("click", showChrome);
 
   function localTracks(kind) {
     if (!vroom) return [];
@@ -463,6 +492,7 @@
     var off = !this.classList.contains("off");
     localTracks("audio").forEach(function (t) { off ? t.disable() : t.enable(); });
     this.classList.toggle("off", off);
+    this.innerHTML = off ? ICONS.mic : ICONS.micOn;
   });
 
   document.getElementById("camBtn").addEventListener("click", function () {
@@ -472,7 +502,7 @@
   });
 
   function leave() {
-    clearInterval(clockTick); clockTick = null;
+    clearTimeout(chromeTimer); chromeTimer = null;
     try { if (vroom) vroom.disconnect(); } catch (e) {}
     vroom = null;
     document.getElementById("big").replaceChildren();
