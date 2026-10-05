@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v268-calculator-event-log";
+const REVISION = "v269-two-clips-one-domain";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1909,7 +1909,13 @@ app.get(["/.well-known/apple-app-site-association", "/apple-app-site-association
     res.setHeader("Cache-Control", "public, max-age=3600");
     res.json({
       appclips: {
-        apps: ["B2WG3MN7S3.MindGames.Ringer.Clip"],
+        // Two clips, two apps, one domain. They never collide because each is
+        // registered against its own URL prefix -- Ringer's dialler on /d, the
+        // Force Calculator on /c -- and iOS picks by the path it was handed.
+        apps: [
+          "B2WG3MN7S3.MindGames.Ringer.Clip",
+          "B2WG3MN7S3.MindGames.VoiceCapture.Clip",
+        ],
       },
     });
   });
