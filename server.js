@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v274-public-clip-aasa";
+const REVISION = "v275-vsend-pages";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1923,6 +1923,11 @@ app.get("/api/yt/:room/stream", async (req, res) => {
 // Must be served as application/json, at exactly this path, over https, with no
 // redirect. The team prefix is part of the identifier and it does not work
 // without it.
+// Vsend's App Store pages. Short paths, because they are typed into App Store
+// Connect and printed on the listing.
+app.get(["/vsend/privacy", "/vsend/privacy/"], (req, res) => res.sendFile(path.resolve("public", "vsend", "privacy.html")));
+app.get(["/vsend/support", "/vsend/support/", "/vsend", "/vsend/"], (req, res) => res.sendFile(path.resolve("public", "vsend", "support.html")));
+
 app.get(["/.well-known/apple-app-site-association", "/apple-app-site-association"],
   (req, res) => {
     res.setHeader("Content-Type", "application/json");
