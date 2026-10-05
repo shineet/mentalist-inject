@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v269-two-clips-one-domain";
+const REVISION = "v272-clip-log-gated";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1663,7 +1663,12 @@ function saveCalcRooms() {
 
 // Set by MystIO, which is the only thing that knows tonight's force.
 app.post("/api/calc/:room/config", express.json({ limit: "8kb" }), (req, res) => {
-  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  // ytAuthorised, not ringerAuthorised. MystIO deliberately prefers a token
+  // typed into Settings over the one in its binary, and that typed one is the
+  // PHOTO token -- so gating on the ringer token alone refused the very app
+  // this endpoint exists for. The YouTube room already accepts either, for
+  // the same reason, and it is the same app talking.
+  if (!ytAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   const key = normalizeRoom(req.params.room);
   if (!key) return res.status(400).json({ ok: false, error: "no room" });
   const c = (req.body && req.body.config) || {};
@@ -1745,7 +1750,7 @@ app.post("/api/calc/:room/result", express.json({ limit: "2kb" }), (req, res) =>
 // `?after=N` replays everything since, so a slow poll or a dropped request
 // costs nothing. Without it, the whole log.
 app.get("/api/calc/:room/result", (req, res) => {
-  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  if (!ytAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   const key = normalizeRoom(req.params.room);
   const rec = calcRooms[key];
   res.setHeader("Cache-Control", "no-store");
@@ -1944,7 +1949,11 @@ app.post("/api/clip-log", express.json({ limit: "8kb" }), (req, res) => {
   res.json({ ok: true });
 });
 
+// Token-gated to READ as well as write. The lines name the ROOM, and the room
+// is the only thing protecting a calculator force from anyone who guesses the
+// URL -- so an open log here would quietly undo the gate on /api/calc.
 app.get("/api/clip-log", (req, res) => {
+  if (!ytAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   res.setHeader("Cache-Control", "no-store");
   res.json({ ok: true, lines: clipLog });
 });
