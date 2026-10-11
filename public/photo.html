@@ -47,6 +47,19 @@
       pointer-events: none;
     }
     #note.hidden { display: none; }
+
+    /* LANDING ZOOM (?zoom=2.5&cx=0.6&cy=0.3). The page opens already zoomed in
+       on a chosen part of the photo, so the card is out of view, and from then
+       on the zoom belongs to the spectator: they pinch out with their own
+       fingers. This page does the zooming itself rather than leaving it to
+       Safari, because (a) Safari cannot be told to START zoomed, and (b) this
+       page usually lives in an iframe, where Safari's pinch zooms the outer
+       page instead. Zoom is real layout (the frame is given its zoomed size),
+       not a CSS scale, so the photograph is re-rasterised sharp at every zoom
+       instead of a blurry enlargement of the screen-sized picture. */
+    body.zoomable { position: fixed; inset: 0; overflow: hidden; touch-action: none; }
+    body.zoomable #frame { position: absolute; left: 0; top: 0; width: auto; visibility: hidden; }
+    body.zoomable #orig { width: 100%; height: 100%; }
   </style>
 </head>
 <body>
@@ -75,6 +88,92 @@
     const reveal = document.getElementById("reveal");
     const note = document.getElementById("note");
 
+    // ---- landing zoom -------------------------------------------------------
+    const frame = document.getElementById("frame");
+    const startZoom = Math.min(12, Math.max(1, parseFloat(params.get("zoom") || "1") || 1));
+    const zoomable = startZoom > 1.001;
+    let imgW = 0, imgH = 0;          // the photograph's own pixel size
+    let view = { s: startZoom,       // zoom relative to "whole photo fits the screen"
+                 cx: clamp01(parseFloat(params.get("cx") || "0.5")),   // view centre, as fractions of the photo
+                 cy: clamp01(parseFloat(params.get("cy") || "0.5")) };
+    let laidOut = false;
+    function clamp01(v) { return isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5; }
+    if (zoomable) document.body.classList.add("zoomable");
+
+    function fitScale() { return Math.min(window.innerWidth / imgW, window.innerHeight / imgH); }
+
+    // Draw the frame for the current view. The centre is clamped so the photo
+    // never leaves an edge of the screen bare while it is bigger than the screen.
+    function layout() {
+      if (!zoomable || !imgW || !imgH) return;
+      const Vw = window.innerWidth, Vh = window.innerHeight;
+      const k = fitScale() * view.s;               // screen px per photo px
+      const w = imgW * k, h = imgH * k;
+      let x = Vw / 2 - view.cx * w, y = Vh / 2 - view.cy * h;
+      if (w <= Vw) x = (Vw - w) / 2; else x = Math.min(0, Math.max(Vw - w, x));
+      if (h <= Vh) y = (Vh - h) / 2; else y = Math.min(0, Math.max(Vh - h, y));
+      view.cx = (Vw / 2 - x) / w; view.cy = (Vh / 2 - y) / h;   // keep what the clamp did
+      frame.style.width = w + "px"; frame.style.height = h + "px";
+      frame.style.left = x + "px"; frame.style.top = y + "px";
+      if (!laidOut && orig.complete && orig.naturalWidth) {
+        // Only now: the first frame anybody sees is already the zoomed one.
+        frame.style.visibility = "visible";
+        laidOut = true;
+      }
+    }
+
+    function setImageSize(w, h) {
+      if (!w || !h || (w === imgW && h === imgH)) return;
+      imgW = w; imgH = h; layout();
+    }
+
+    if (zoomable) {
+      window.addEventListener("resize", layout);
+      let pinch = null, pan = null;
+      function mid(t) { return { x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 }; }
+      function dist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
+      function photoPoint(px, py) {      // screen point -> photo fraction under it
+        const r = frame.getBoundingClientRect();
+        return { fx: (px - r.left) / r.width, fy: (py - r.top) / r.height };
+      }
+      // Put photo fraction (fx,fy) under screen point (px,py) at zoom s.
+      function anchor(fx, fy, px, py, s) {
+        const k = fitScale() * s, w = imgW * k, h = imgH * k;
+        view.s = s;
+        view.cx = (window.innerWidth / 2 - (px - fx * w)) / w;
+        view.cy = (window.innerHeight / 2 - (py - fy * h)) / h;
+        layout();
+      }
+      document.addEventListener("touchstart", function (e) {
+        if (e.touches.length >= 2) {
+          const m = mid(e.touches);
+          pinch = { d: dist(e.touches), s: view.s, p: photoPoint(m.x, m.y) }; pan = null;
+        } else if (e.touches.length === 1) {
+          pan = { x: e.touches[0].clientX, y: e.touches[0].clientY, p: photoPoint(e.touches[0].clientX, e.touches[0].clientY) };
+        }
+      }, { passive: false });
+      document.addEventListener("touchmove", function (e) {
+        e.preventDefault();
+        if (pinch && e.touches.length >= 2) {
+          const m = mid(e.touches);
+          const s = Math.min(12, Math.max(1, pinch.s * dist(e.touches) / pinch.d));
+          anchor(pinch.p.fx, pinch.p.fy, m.x, m.y, s);
+        } else if (pan && e.touches.length === 1) {
+          anchor(pan.p.fx, pan.p.fy, e.touches[0].clientX, e.touches[0].clientY, view.s);
+        }
+      }, { passive: false });
+      document.addEventListener("touchend", function (e) {
+        if (e.touches.length === 0) { pinch = null; pan = null; }
+        else if (e.touches.length === 1) {
+          pinch = null;
+          pan = { x: e.touches[0].clientX, y: e.touches[0].clientY, p: photoPoint(e.touches[0].clientX, e.touches[0].clientY) };
+        }
+      });
+      // iOS Safari's own page zoom, which would fight ours.
+      document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
+      orig.addEventListener("load", function () { setImageSize(orig.naturalWidth, orig.naturalHeight); layout(); });
+    }
+
     let currentSeq = -1;
     let placedFor = "";
     let shown = false;
@@ -96,6 +195,7 @@
     // loading the NEW patch -- so the reveal landed where the previous box had
     // been, on a page that had every correct number in hand.
     function place(state) {
+      if (state.imageSize) setImageSize(state.imageSize.width, state.imageSize.height);
       if (!state.patchRect || !state.imageSize) return;
       const r = state.patchRect, s = state.imageSize;
       if (!s.width || !s.height) return;
@@ -161,6 +261,7 @@
       // looking at is never re-requested and never repainted.
       if (state.originalUrl && orig.getAttribute("src") !== state.originalUrl) {
         await preload(orig, state.originalUrl);
+        if (zoomable) { setImageSize(orig.naturalWidth, orig.naturalHeight); layout(); }
       }
       place(state);
       if (state.patchUrl) await preload(patch, state.patchUrl);
