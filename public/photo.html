@@ -169,8 +169,45 @@
           pan = { x: e.touches[0].clientX, y: e.touches[0].clientY, p: photoPoint(e.touches[0].clientX, e.touches[0].clientY) };
         }
       });
-      // iOS Safari's own page zoom, which would fight ours.
-      document.addEventListener("gesturestart", function (e) { e.preventDefault(); });
+      // Safari's own pinch (iPhone, and a Mac trackpad): take it over rather
+      // than let the browser zoom the page, which can only zoom IN from 100%.
+      let gesture = null;
+      document.addEventListener("gesturestart", function (e) {
+        e.preventDefault();
+        gesture = { s: view.s, p: photoPoint(e.clientX, e.clientY), x: e.clientX, y: e.clientY };
+      });
+      document.addEventListener("gesturechange", function (e) {
+        e.preventDefault();
+        if (!gesture || pinch) return;   // touch pinch already handles iPhone
+        const s = Math.min(12, Math.max(1, gesture.s * e.scale));
+        anchor(gesture.p.fx, gesture.p.fy, gesture.x, gesture.y, s);
+      });
+      document.addEventListener("gestureend", function (e) { e.preventDefault(); gesture = null; });
+
+      // Computers. A trackpad pinch arrives as a wheel event with ctrlKey set
+      // (Chrome, Edge, Firefox); two-finger scroll and a mouse wheel pan.
+      document.addEventListener("wheel", function (e) {
+        e.preventDefault();
+        if (e.ctrlKey) {
+          const p = photoPoint(e.clientX, e.clientY);
+          const s = Math.min(12, Math.max(1, view.s * Math.exp(-e.deltaY * 0.01)));
+          anchor(p.fx, p.fy, e.clientX, e.clientY, s);
+        } else {
+          const r = frame.getBoundingClientRect();
+          view.cx += e.deltaX / r.width; view.cy += e.deltaY / r.height;
+          layout();
+        }
+      }, { passive: false });
+
+      // A mouse drag pans.
+      let mouse = null;
+      document.addEventListener("mousedown", function (e) {
+        mouse = { p: photoPoint(e.clientX, e.clientY) }; e.preventDefault();
+      });
+      document.addEventListener("mousemove", function (e) {
+        if (mouse) anchor(mouse.p.fx, mouse.p.fy, e.clientX, e.clientY, view.s);
+      });
+      document.addEventListener("mouseup", function () { mouse = null; });
       orig.addEventListener("load", function () { setImageSize(orig.naturalWidth, orig.naturalHeight); layout(); });
     }
 
