@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v277-photo-landing-zoom";
+const REVISION = "v278-photo-rooms-persist";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -923,6 +923,26 @@ app.get("/counts.json", (req, res) => {
 
 const photoRooms = new Map();
 
+// Persisted, because a deploy or a Fly restart used to empty every room while
+// the media files stayed on the volume: the performer's app still believed the
+// room held his photo and 52 cards, and the audience saw nothing. Its own file,
+// still nothing in state.json.
+const PHOTO_ROOMS_FILE = path.join(DATA_DIR, "photo-rooms.json");
+try {
+  const saved = JSON.parse(fs.readFileSync(PHOTO_ROOMS_FILE, "utf8"));
+  for (const [k, v] of Object.entries(saved || {})) photoRooms.set(k, { ...v, acks: [] });
+  console.log(`photo rooms restored: ${photoRooms.size}`);
+} catch (e) { /* first run, or no file yet */ }
+let photoSaveTimer = null;
+function savePhotoRooms() {
+  clearTimeout(photoSaveTimer);
+  photoSaveTimer = setTimeout(() => {
+    const out = {};
+    for (const [k, v] of photoRooms) { const { acks, ...rest } = v; out[k] = rest; }
+    fs.writeFile(PHOTO_ROOMS_FILE, JSON.stringify(out), () => {});
+  }, 200);
+}
+
 function photoRoom(room) {
   const key = normalizeRoom(room);
   if (!photoRooms.has(key)) {
@@ -982,6 +1002,7 @@ app.post("/api/photo/:room/asset",
     if (part === "original") state.originalUrl = url;
     if (part === "patch") state.patchUrl = url;
     if (part === "reveal") state.revealUrl = url;
+    savePhotoRooms();
     res.json({ ok: true, url, bytes: req.body.length });
   });
 
@@ -1013,6 +1034,7 @@ app.post("/api/photo/:room/state", express.json({ limit: "64kb" }), (req, res) =
     state.acks = [];
   }
   state.seq += 1;
+  savePhotoRooms();
   io.to(photoChannel(key)).emit("photo:state", { ...state, serverTs: Date.now() });
   res.json({ ok: true, state: { ...state, clients: photoCounts(key) } });
 });
