@@ -97,6 +97,15 @@
                  cx: clamp01(parseFloat(params.get("cx") || "0.5")),   // view centre, as fractions of the photo
                  cy: clamp01(parseFloat(params.get("cy") || "0.5")) };
     let laidOut = false;
+    // LOCK UNTIL THE REVEAL (on unless &lock=0). Before the reveal nobody can
+    // see past the framing they landed on: zooming IN is allowed, zooming out
+    // stops at the landing zoom, and panning stays inside the landing view --
+    // otherwise a zoomed-in thumb could simply drag across to the card. The
+    // reveal lifts it; going back to the original puts the landing view back.
+    const lockUntilReveal = zoomable && params.get("lock") !== "0";
+    let revealed = false;
+    let landing = null;              // the landing view, in photo fractions {x0,x1,y0,y1}
+    const startCx = view.cx, startCy = view.cy;
     function clamp01(v) { return isFinite(v) ? Math.min(1, Math.max(0, v)) : 0.5; }
     if (zoomable) document.body.classList.add("zoomable");
 
@@ -107,12 +116,25 @@
     function layout() {
       if (!zoomable || !imgW || !imgH) return;
       const Vw = window.innerWidth, Vh = window.innerHeight;
+      const locked = lockUntilReveal && !revealed && landing;
+      if (locked) view.s = Math.max(view.s, landing.s);
       const k = fitScale() * view.s;               // screen px per photo px
       const w = imgW * k, h = imgH * k;
       let x = Vw / 2 - view.cx * w, y = Vh / 2 - view.cy * h;
       if (w <= Vw) x = (Vw - w) / 2; else x = Math.min(0, Math.max(Vw - w, x));
       if (h <= Vh) y = (Vh - h) / 2; else y = Math.min(0, Math.max(Vh - h, y));
       view.cx = (Vw / 2 - x) / w; view.cy = (Vh / 2 - y) / h;   // keep what the clamp did
+      if (locked) {
+        // keep the visible area inside the landing view
+        const hw = Vw / (2 * w), hh = Vh / (2 * h);
+        view.cx = Math.min(landing.x1 - hw, Math.max(landing.x0 + hw, view.cx));
+        view.cy = Math.min(landing.y1 - hh, Math.max(landing.y0 + hh, view.cy));
+        x = Vw / 2 - view.cx * w; y = Vh / 2 - view.cy * h;
+      }
+      if (!landing && lockUntilReveal) {
+        const hw = Vw / (2 * w), hh = Vh / (2 * h);
+        landing = { s: view.s, x0: view.cx - hw, x1: view.cx + hw, y0: view.cy - hh, y1: view.cy + hh };
+      }
       frame.style.width = w + "px"; frame.style.height = h + "px";
       frame.style.left = x + "px"; frame.style.top = y + "px";
       if (!laidOut && orig.complete && orig.naturalWidth) {
@@ -127,8 +149,21 @@
       imgW = w; imgH = h; layout();
     }
 
+    // Back to the landing view (and re-measure it): a rotation changes what
+    // "the landing view" covers, and a reset to the original re-locks it.
+    function backToLanding() {
+      view.s = startZoom; view.cx = startCx; view.cy = startCy; landing = null; layout();
+    }
+    function setRevealed(on) {
+      if (on === revealed) return;
+      revealed = on;
+      if (!on && lockUntilReveal) backToLanding();
+    }
+
     if (zoomable) {
-      window.addEventListener("resize", layout);
+      window.addEventListener("resize", function () {
+        if (lockUntilReveal && !revealed) backToLanding(); else layout();
+      });
       let pinch = null, pan = null;
       function mid(t) { return { x: (t[0].clientX + t[1].clientX) / 2, y: (t[0].clientY + t[1].clientY) / 2 }; }
       function dist(t) { return Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY); }
@@ -305,9 +340,10 @@
 
       if (state.mode === "reveal" && state.revealUrl) {
         const ok = await preload(reveal, state.revealUrl);
-        if (ok) showReveal(state, recvTs);
+        if (ok) { showReveal(state, recvTs); setRevealed(true); }
       } else if (shown) {
         hideReveal();
+        setRevealed(false);
       } else {
         say("original");
       }
