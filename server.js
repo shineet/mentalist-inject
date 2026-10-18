@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v280-photo-zoom-lock";
+const REVISION = "v281-mind-unlock";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1809,6 +1809,105 @@ app.get(["/c", "/c/:room"], (req, res) => {
   res.setHeader("Cache-Control", "no-store, must-revalidate");
   res.type("html").send("<!doctype html><title>Calculator</title>"
     + "<body style=\"margin:0;background:#000\"></body>");
+});
+
+// ---------------------------------------------------------------------------
+// Mind Unlock: a fake passcode screen on a borrowed phone that "fails" until
+// Shine reads the passcode from the spectator's mind. /u is the page (settings
+// in the query string), /u/<room> also follows the remote at /u/<room>/remote.
+//
+// The room name is the only secret, like the calc and ringer rooms: what a
+// guessed room exposes is tonight's settings and the power to unlock a trick
+// early, nothing about anyone. The page NEVER sends the digits typed on it;
+// the status it posts is a stage name and two counts, and the schema below
+// refuses anything else, so it cannot become a place where a passcode lands.
+const UNLOCK_FILE = path.join(DATA_DIR, "unlock-rooms.json");
+let unlockRooms = {};
+try { unlockRooms = JSON.parse(fs.readFileSync(UNLOCK_FILE, "utf8")) || {}; } catch {}
+
+function saveUnlockRooms() {
+  try { fs.writeFileSync(UNLOCK_FILE, JSON.stringify(unlockRooms)); }
+  catch (e) { console.error("unlock rooms save failed:", e.message); }
+}
+
+const UNLOCK_TINTS = ["dark", "blue", "purple", "warm", "green", "light"];
+const UNLOCK_CMDS = ["lock", "wake", "unlock", "nextUnlock", "nextFail", "reset"];
+const UNLOCK_STAGES = ["cover", "black", "passcode", "unlocked"];
+
+function cleanUnlockConfig(c) {
+  const out = {};
+  if (c.fails !== undefined) out.fails = Math.max(0, Math.min(4, Math.round(Number(c.fails) || 0)));
+  if (c.digits !== undefined) out.digits = Number(c.digits) === 4 ? 4 : 6;
+  if (UNLOCK_TINTS.includes(c.tint)) out.tint = c.tint;
+  if (c.bio === "face" || c.bio === "touch") out.bio = c.bio;
+  return out;
+}
+
+// Rooms are created by the remote. A cap keeps a room-gated write from being
+// a way to fill the volume; the oldest goes first.
+function unlockRoom(key, create) {
+  if (!unlockRooms[key] && create) {
+    const keys = Object.keys(unlockRooms);
+    if (keys.length >= 50) {
+      keys.sort((a, b) => (unlockRooms[a].at || 0) - (unlockRooms[b].at || 0));
+      delete unlockRooms[keys[0]];
+    }
+    unlockRooms[key] = { config: {}, seq: 0, cmd: null, status: null, at: Date.now() };
+  }
+  return unlockRooms[key];
+}
+
+app.get(["/u", "/u/:room"], (req, res) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  res.sendFile(path.resolve("public", "unlock.html"));
+});
+
+app.get("/u/:room/remote", (req, res) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  res.sendFile(path.resolve("public", "unlock-remote.html"));
+});
+
+// Polled by both pages: the spectator's for settings and commands, the remote
+// for the spectator's stage.
+app.get("/api/unlock/:room", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const rec = unlockRooms[normalizeRoom(req.params.room)];
+  if (!rec) return res.json({ ok: true, exists: false });
+  res.json({ ok: true, exists: true, config: rec.config, seq: rec.seq, cmd: rec.cmd,
+             status: rec.status, now: Date.now() });
+});
+
+// From the remote: settings and/or one command.
+app.post("/api/unlock/:room/control", express.json({ limit: "2kb" }), (req, res) => {
+  const rec = unlockRoom(normalizeRoom(req.params.room), true);
+  const body = req.body || {};
+  if (body.config && typeof body.config === "object") {
+    rec.config = { ...rec.config, ...cleanUnlockConfig(body.config) };
+  }
+  if (body.cmd !== undefined) {
+    if (!UNLOCK_CMDS.includes(body.cmd)) return res.status(400).json({ ok: false, error: "unknown command" });
+    rec.seq += 1;
+    rec.cmd = { seq: rec.seq, name: body.cmd, at: Date.now() };
+  }
+  rec.at = Date.now();
+  saveUnlockRooms();
+  res.json({ ok: true, config: rec.config, seq: rec.seq });
+});
+
+// From the spectator's page: where it is, never what was typed. Kept in memory
+// only; a restart losing it costs one poll.
+app.post("/api/unlock/:room/status", express.json({ limit: "1kb" }), (req, res) => {
+  const rec = unlockRooms[normalizeRoom(req.params.room)];
+  if (!rec) return res.status(404).json({ ok: false });
+  const b = req.body || {};
+  if (!UNLOCK_STAGES.includes(b.stage)) return res.status(400).json({ ok: false });
+  rec.status = {
+    stage: b.stage,
+    attempts: Math.max(0, Math.min(20, Math.round(Number(b.attempts) || 0))),
+    typed: Math.max(0, Math.min(6, Math.round(Number(b.typed) || 0))),
+    at: Date.now(),
+  };
+  res.json({ ok: true });
 });
 
 // The assistant's own page, for their phone. Kept off the /d path so the two

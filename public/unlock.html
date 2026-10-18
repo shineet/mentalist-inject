@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" id="theme" content="#ffffff">
+<meta name="robots" content="noindex">
+<title>&#8203;</title>
+<style>
+  /* Mind Unlock. Four stages on one page:
+     cover    -> a blank white page, what "Safari" shows while Shine "searches"
+     black    -> the screen looks asleep (secret tap on the cover's top-right corner)
+     passcode -> a copy of the iOS passcode screen, which fails until it doesn't
+     unlocked -> the page replaces itself with Google
+     Nothing typed on the keypad is ever stored or sent anywhere. */
+  :root { --bg-top: #2a2c31; --bg-bot: #101114; }
+  html, body { margin: 0; height: 100%; background: #fff; overflow: hidden;
+               -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+               -webkit-tap-highlight-color: transparent; touch-action: none;
+               font-family: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif; }
+  .stage { position: fixed; inset: 0; display: none; }
+  .on { display: block; }
+
+  #cover { background: #fff; }
+  #black { background: #000; }
+
+  #pass { color: #fff; background: linear-gradient(180deg, var(--bg-top), var(--bg-bot)); }
+  #pass .dim { position: absolute; inset: 0; background: rgba(0,0,0,.28); }
+  #pass .wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+                padding-top: calc(env(safe-area-inset-top) + 7vh); }
+  #lock { width: 18px; height: 24px; opacity: .95; margin-bottom: 4.2vh; }
+  #title { font-size: 20px; font-weight: 400; letter-spacing: .2px; margin-bottom: 22px; text-align: center; }
+  #dots { display: flex; gap: 24px; height: 14px; margin-bottom: 7vh; }
+  #dots i { width: 13px; height: 13px; border-radius: 50%; box-sizing: border-box;
+            border: 1.4px solid rgba(255,255,255,.95); transition: background .06s; }
+  #dots i.f { background: #fff; }
+  #pad { display: grid; grid-template-columns: repeat(3, 78px); column-gap: 28px; row-gap: 15px; }
+  .k { width: 78px; height: 78px; border-radius: 50%; display: flex; flex-direction: column;
+       align-items: center; justify-content: center; background: rgba(255,255,255,.17);
+       transition: background .45s ease-out; }
+  .k.p { background: rgba(255,255,255,.5); transition: none; }
+  .k b { font-weight: 400; font-size: 36px; line-height: 38px; font-family: -apple-system, "SF Pro Display", sans-serif; }
+  .k s { text-decoration: none; font-size: 9.5px; font-weight: 600; letter-spacing: 2.2px; margin-top: 1px; margin-left: 2px; height: 11px; }
+  .k.z { grid-column: 2; }
+  #foot { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 3.5vh);
+          display: flex; justify-content: center; }
+  #foot div { width: 290px; display: flex; justify-content: space-between; font-size: 17px; }
+  #foot span { width: 78px; text-align: center; }
+
+  .shake { animation: shake .5s cubic-bezier(.36,.07,.19,.97); }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); } 12% { transform: translateX(-22px); } 26% { transform: translateX(18px); }
+    40% { transform: translateX(-13px); } 54% { transform: translateX(9px); } 68% { transform: translateX(-5px); }
+    82% { transform: translateX(2px); } }
+  .lockshake { animation: lockshake .45s ease-in-out; }
+  @keyframes lockshake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
+  #pass.in { animation: in .28s ease-out; }
+  @keyframes in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+  #pass.out { animation: out .38s ease-in forwards; }
+  @keyframes out { to { opacity: 0; transform: scale(1.12); } }
+
+  #haptic { position: fixed; left: -100px; top: -100px; opacity: 0; }
+</style>
+</head>
+<body>
+
+<!-- iOS will not auto-lock while a video plays: the same 2x2 silent clip the YouTube pages use. -->
+<video id="awake" src="/awake.mp4" loop muted playsinline
+       style="position:fixed;width:2px;height:2px;opacity:.01;pointer-events:none;left:0;top:0"></video>
+<!-- iOS 18+ Safari buzzes when a switch toggles inside a tap; the only haptic a web page gets. -->
+<label id="haptic"><input type="checkbox" switch></label>
+
+<div id="cover" class="stage on"></div>
+<div id="black" class="stage"></div>
+<div id="pass" class="stage">
+  <div class="dim"></div>
+  <div class="wrap">
+    <svg id="lock" viewBox="0 0 18 24"><path fill="#fff" d="M9 1.2a5.6 5.6 0 0 0-5.6 5.6V10H2.6A1.6 1.6 0 0 0 1 11.6v9.8A1.6 1.6 0 0 0 2.6 23h12.8a1.6 1.6 0 0 0 1.6-1.6v-9.8A1.6 1.6 0 0 0 15.4 10h-.8V6.8A5.6 5.6 0 0 0 9 1.2zm0 2a3.6 3.6 0 0 1 3.6 3.6V10H5.4V6.8A3.6 3.6 0 0 1 9 3.2z"/></svg>
+    <div id="title">Enter Passcode</div>
+    <div id="dots"></div>
+    <div id="pad"></div>
+  </div>
+  <div id="foot"><div><span id="emg">Emergency</span><span id="act">Cancel</span></div></div>
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var q = new URLSearchParams(location.search);
+  var m = location.pathname.match(/^\/u\/([A-Za-z0-9_-]+)\/?$/);
+  var room = m ? m[1] : null;
+
+  var TINTS = {
+    dark:   ["#2a2c31", "#101114"], blue:  ["#24466e", "#0c1a2c"], purple: ["#45305f", "#170f24"],
+    warm:   ["#6b4a35", "#24160e"], green: ["#2f5143", "#0e1a15"], light:  ["#9aa3ad", "#4b525a"]
+  };
+
+  // Defaults, then the link, then whatever the remote says (live).
+  var base = {
+    fails: clampInt(q.get("f"), 0, 4, 2),
+    digits: q.get("d") === "4" ? 4 : 6,
+    tint: TINTS[q.get("t")] ? q.get("t") : "dark",
+    bio: q.get("b") === "touch" ? "touch" : "face"
+  };
+  var cfg = Object.assign({}, base);
+
+  var stage = "cover", attempts = 0, typed = 0, override = null, busy = false;
+  var lastSeq = null;
+
+  function clampInt(v, lo, hi, d) { var n = parseInt(v, 10); return isNaN(n) ? d : Math.max(lo, Math.min(hi, n)); }
+
+  // ---- building the keypad ----
+  var LET = ["", "A B C", "D E F", "G H I", "J K L", "M N O", "P Q R S", "T U V", "W X Y Z"];
+  var pad = $("pad");
+  [1,2,3,4,5,6,7,8,9,0].forEach(function (n) {
+    var k = document.createElement("div");
+    k.className = "k" + (n === 0 ? " z" : "");
+    k.innerHTML = "<b>" + n + "</b><s>" + (n >= 2 ? LET[n - 1] : "") + "</s>";
+    k.addEventListener("pointerdown", function (e) { e.stopPropagation(); press(k); });
+    k.addEventListener("pointerup", function () { k.classList.remove("p"); });
+    k.addEventListener("pointercancel", function () { k.classList.remove("p"); });
+    k.addEventListener("pointerleave", function () { k.classList.remove("p"); });
+    pad.appendChild(k);
+  });
+
+  function drawDots() {
+    var d = $("dots"); d.innerHTML = "";
+    for (var i = 0; i < cfg.digits; i++) {
+      var dot = document.createElement("i"); if (i < typed) dot.className = "f"; d.appendChild(dot);
+    }
+    $("act").textContent = typed > 0 ? "Delete" : "Cancel";
+  }
+
+  function applyLook() {
+    var t = TINTS[cfg.tint] || TINTS.dark;
+    document.documentElement.style.setProperty("--bg-top", t[0]);
+    document.documentElement.style.setProperty("--bg-bot", t[1]);
+    $("title").textContent = cfg.bio === "touch" ? "Touch ID or Enter Passcode" : "Enter Passcode";
+    if (typed > cfg.digits) typed = 0;
+    drawDots();
+    paintChrome();
+  }
+
+  // Safari colours its status bar and toolbar from theme-color; keep it matched.
+  function paintChrome() {
+    var c = stage === "cover" ? "#ffffff" : stage === "black" ? "#000000" : (TINTS[cfg.tint] || TINTS.dark)[0];
+    $("theme").setAttribute("content", c);
+    document.documentElement.style.background = c;
+    document.body.style.background = c;
+  }
+
+  function show(s) {
+    stage = s;
+    ["cover", "black", "pass"].forEach(function (id) { $(id).classList.remove("on"); });
+    $(s === "passcode" ? "pass" : s).classList.add("on");
+    paintChrome();
+    report();
+  }
+
+  function haptic() { try { $("haptic").click(); } catch (e) {} }
+
+  var awoke = false;
+  function keepAwake() {
+    if (awoke) return; awoke = true;
+    try { var v = $("awake"); if (v.paused) v.play(); } catch (e) {}
+    try { if (navigator.wakeLock) navigator.wakeLock.request("screen").catch(function () {}); } catch (e) {}
+  }
+
+  // ---- stages ----
+  function goBlack() { typed = 0; drawDots(); show("black"); }
+
+  function goPasscode() {
+    typed = 0; drawDots();
+    show("passcode");
+    var p = $("pass"); p.classList.remove("in"); void p.offsetWidth; p.classList.add("in");
+    // Face ID "failing": the padlock shakes as the screen arrives.
+    var l = $("lock"); l.classList.remove("lockshake"); void l.offsetWidth;
+    setTimeout(function () { l.classList.add("lockshake"); }, 180);
+  }
+
+  function unlockNow() {
+    if (stage === "unlocked") return;
+    stage = "unlocked"; report();
+    var p = $("pass"); p.classList.remove("in"); p.classList.add("out");
+    setTimeout(function () { location.replace("https://www.google.com/"); }, 360);
+  }
+
+  function press(k) {
+    if (stage !== "passcode" || busy) return;
+    keepAwake();
+    k.classList.add("p");
+    if (typed >= cfg.digits) return;
+    typed++; drawDots(); report();
+    if (typed < cfg.digits) return;
+    busy = true;
+    attempts++;
+    var win = override === "unlock" ? true : override === "fail" ? false : attempts > cfg.fails;
+    override = null;
+    setTimeout(function () {
+      if (win) { unlockNow(); return; }
+      haptic();
+      var d = $("dots"); d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake");
+      setTimeout(function () { typed = 0; drawDots(); busy = false; report(); }, 520);
+    }, 140);
+  }
+
+  $("act").addEventListener("pointerdown", function (e) {
+    e.stopPropagation();
+    if (stage !== "passcode" || busy) return;
+    if (typed > 0) { typed--; drawDots(); report(); } else { goBlack(); }
+  });
+
+  // ---- secret and visible taps ----
+  // Cover: top-right corner goes black. Black: any tap wakes to the passcode.
+  // Passcode: top-left corner = next attempt unlocks; top-right = next attempt
+  // fails; two fingers = 4 digits; three fingers = 6 digits.
+  var CORNER = 90;
+  document.addEventListener("pointerdown", function (e) {
+    keepAwake();
+    var top = e.clientY < CORNER + 40, left = e.clientX < CORNER, right = e.clientX > innerWidth - CORNER;
+    if (stage === "cover") { if (top && right) goBlack(); return; }
+    if (stage === "black") { goPasscode(); return; }
+    if (stage === "passcode" && top) { if (left) override = "unlock"; else if (right) override = "fail"; }
+  });
+  document.addEventListener("touchstart", function (e) {
+    if (stage !== "passcode" || busy) return;
+    if (e.touches.length === 2) { cfg.digits = 4; typed = 0; drawDots(); }
+    if (e.touches.length === 3) { cfg.digits = 6; typed = 0; drawDots(); }
+  }, { passive: true });
+  ["gesturestart", "gesturechange", "dblclick", "contextmenu"].forEach(function (ev) {
+    document.addEventListener(ev, function (e) { e.preventDefault(); });
+  });
+
+  // ---- remote ----
+  var reportTimer = null;
+  function report() {
+    if (!room) return;
+    clearTimeout(reportTimer);
+    reportTimer = setTimeout(function () {
+      // Where the page is and how many dots are filled. Never which keys.
+      fetch("/api/unlock/" + room + "/status", {
+        method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+        body: JSON.stringify({ stage: stage, attempts: attempts, typed: typed })
+      }).catch(function () {});
+    }, 60);
+  }
+
+  function poll() {
+    if (!room || stage === "unlocked") return;
+    fetch("/api/unlock/" + room, { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j || !j.exists) return;
+      var c = j.config || {};
+      var before = cfg.digits;
+      cfg = Object.assign({}, base, c);
+      if (cfg.digits !== before) typed = 0;
+      applyLook();
+      // Commands sent before this page loaded are history, not instructions.
+      if (lastSeq === null) { lastSeq = j.seq || 0; report(); return; }
+      if (j.cmd && j.cmd.seq > lastSeq) { lastSeq = j.cmd.seq; run(j.cmd.name); }
+    }).catch(function () {}).then(function () { setTimeout(poll, 700); });
+  }
+
+  function run(name) {
+    if (name === "lock") goBlack();
+    else if (name === "wake") { if (stage !== "passcode") goPasscode(); }
+    else if (name === "unlock") { if (stage === "passcode") unlockNow(); else override = "unlock"; }
+    else if (name === "nextUnlock") override = "unlock";
+    else if (name === "nextFail") override = "fail";
+    else if (name === "reset") { attempts = 0; override = null; typed = 0; busy = false; show("cover"); drawDots(); }
+  }
+
+  applyLook();
+  poll();
+  // A heartbeat, so the remote can tell a quiet page from a closed one.
+  if (room) setInterval(function () { if (stage !== "unlocked") report(); }, 5000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0f13">
+<meta name="robots" content="noindex">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Unlock remote</title>
+<style>
+  :root { --bg: #0d0f13; --card: #181b22; --line: #2a2f3a; --fg: #eef1f6; --mute: #8b93a3;
+          --acc: #4f8cff; --ok: #34c77b; --bad: #ff5d5d; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg);
+         font: 16px -apple-system, "SF Pro Text", sans-serif; -webkit-tap-highlight-color: transparent;
+         padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 24px); }
+  h1 { font-size: 20px; margin: 0 0 2px; }
+  .link { color: var(--mute); font-size: 14px; margin-bottom: 14px; word-break: break-all; }
+  .link b { color: var(--fg); font-weight: 600; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+  .status { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+  .led { width: 10px; height: 10px; border-radius: 50%; background: var(--mute); flex: none; }
+  .led.ok { background: var(--ok); } .led.bad { background: var(--bad); }
+  .big { font-size: 26px; font-weight: 700; margin-top: 6px; }
+  .sub { color: var(--mute); font-size: 14px; margin-top: 2px; }
+  .lbl { color: var(--mute); font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: .6px; }
+  .seg { display: flex; gap: 6px; margin-bottom: 14px; }
+  .seg:last-child { margin-bottom: 0; }
+  .seg button { flex: 1; }
+  button { font: inherit; color: var(--fg); background: #232834; border: 1px solid var(--line);
+           border-radius: 10px; padding: 12px 6px; min-height: 46px; }
+  button.sel { background: var(--acc); border-color: var(--acc); }
+  button:active { filter: brightness(1.3); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid .wide { grid-column: span 2; }
+  .go { background: var(--ok); border-color: var(--ok); color: #04150c; font-weight: 700; font-size: 18px; min-height: 58px; }
+  .sw { height: 40px; border-radius: 10px; border: 2px solid transparent; padding: 0; min-height: 40px; }
+  .sw.sel { border-color: #fff; }
+  .note { color: var(--mute); font-size: 13px; line-height: 1.45; }
+</style>
+</head>
+<body>
+<h1>Mind Unlock</h1>
+<div class="link">Type on their phone: <b id="url"></b></div>
+
+<div class="card">
+  <div class="status"><span class="led" id="led"></span><span id="conn">Waiting for their phone</span></div>
+  <div class="big" id="stage">-</div>
+  <div class="sub" id="detail"></div>
+</div>
+
+<div class="card">
+  <div class="grid">
+    <button class="go wide" data-cmd="unlock">Unlock now</button>
+    <button data-cmd="nextUnlock">Next try unlocks</button>
+    <button data-cmd="nextFail">Next try fails</button>
+    <button data-cmd="lock">Go black</button>
+    <button data-cmd="wake">Show passcode</button>
+    <button class="wide" data-cmd="reset">Reset to blank page</button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="lbl">Fails before it unlocks</div>
+  <div class="seg" id="fails"></div>
+  <div class="lbl">Passcode length</div>
+  <div class="seg" id="digits"></div>
+  <div class="lbl">Unlock method</div>
+  <div class="seg" id="bio"></div>
+  <div class="lbl">Background tint</div>
+  <div class="seg" id="tint"></div>
+</div>
+
+<div class="card note">
+  On their phone: tap the <b>top-right corner</b> of the blank page to go black. Any tap wakes it.
+  On the passcode screen, the <b>top-left corner</b> makes the next try unlock, the <b>top-right corner</b>
+  makes it fail, <b>two fingers</b> switch to 4 digits, <b>three fingers</b> to 6.
+  Digits typed there are never sent here.
+</div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var room = (location.pathname.match(/^\/u\/([A-Za-z0-9_-]+)\/remote/) || [])[1];
+  $("url").textContent = location.host + "/u/" + room;
+  var TINTS = { dark: "#2a2c31", blue: "#24466e", purple: "#45305f", warm: "#6b4a35", green: "#2f5143", light: "#9aa3ad" };
+  var cfg = { fails: 2, digits: 6, tint: "dark", bio: "face" };
+
+  function send(body) {
+    return fetch("/api/unlock/" + room + "/control", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.config) { cfg = Object.assign(cfg, j.config); draw(); }
+    }).catch(function () {});
+  }
+
+  function seg(id, values, labels, key, swatch) {
+    var el = $(id); el.innerHTML = "";
+    values.forEach(function (v, i) {
+      var b = document.createElement("button");
+      if (swatch) { b.className = "sw"; b.style.background = TINTS[v]; b.setAttribute("aria-label", v); }
+      else b.textContent = labels[i];
+      if (cfg[key] === v) b.classList.add("sel");
+      b.onclick = function () { var c = {}; c[key] = v; cfg[key] = v; draw(); send({ config: c }); };
+      el.appendChild(b);
+    });
+  }
+
+  function draw() {
+    seg("fails", [0, 1, 2, 3, 4], ["0", "1", "2", "3", "4"], "fails");
+    seg("digits", [4, 6], ["4 digits", "6 digits"], "digits");
+    seg("bio", ["face", "touch"], ["Face ID", "Touch ID"], "bio");
+    seg("tint", Object.keys(TINTS), null, "tint", true);
+  }
+
+  document.querySelectorAll("[data-cmd]").forEach(function (b) {
+    b.onclick = function () { send({ cmd: b.getAttribute("data-cmd") }); };
+  });
+
+  var NAMES = { cover: "Blank page", black: "Black (looks locked)", passcode: "Passcode screen", unlocked: "Unlocked → Google" };
+  function poll() {
+    fetch("/api/unlock/" + room, { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.exists) { send({ config: cfg }); return; }
+      var s = j.status;
+      var fresh = s && (j.now - s.at) < 20000;
+      $("led").className = "led " + (fresh ? "ok" : s ? "bad" : "");
+      $("conn").textContent = !s ? "Waiting for their phone" : fresh ? "Their phone is connected" : "Their phone went quiet";
+      $("stage").textContent = s ? NAMES[s.stage] || s.stage : "-";
+      $("detail").textContent = s ? ("Failed tries: " + Math.max(0, s.attempts - (s.stage === "unlocked" ? 1 : 0))
+                                      + "  ·  Dots filled: " + s.typed) : "";
+    }).catch(function () {}).then(function () { setTimeout(poll, 800); });
+  }
+
+  fetch("/api/unlock/" + room, { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+    if (j.exists && j.config) cfg = Object.assign(cfg, j.config);
+    draw();
+    if (!j.exists) send({ config: cfg });
+  }).catch(draw).then(poll);
+})();
+</script>
+</body>
+</html>
