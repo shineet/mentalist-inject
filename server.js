@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v283-unlock-clip-aasa";
+const REVISION = "v284-mindunlock-pages";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2046,6 +2046,8 @@ app.get("/api/yt/:room/stream", async (req, res) => {
 // without it.
 // Vsend's App Store pages. Short paths, because they are typed into App Store
 // Connect and printed on the listing.
+app.get(["/mindunlock/privacy", "/mindunlock/privacy/"], (req, res) => res.sendFile(path.resolve("public", "mindunlock", "privacy.html")));
+app.get(["/mindunlock/support", "/mindunlock/support/", "/mindunlock", "/mindunlock/"], (req, res) => res.sendFile(path.resolve("public", "mindunlock", "support.html")));
 app.get(["/vsend/privacy", "/vsend/privacy/"], (req, res) => res.sendFile(path.resolve("public", "vsend", "privacy.html")));
 app.get(["/vsend/support", "/vsend/support/", "/vsend", "/vsend/"], (req, res) => res.sendFile(path.resolve("public", "vsend", "support.html")));
 
