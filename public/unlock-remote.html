@@ -36,6 +36,7 @@
   .go { background: var(--ok); border-color: var(--ok); color: #04150c; font-weight: 700; font-size: 18px; min-height: 58px; }
   .sw { height: 40px; border-radius: 10px; border: 2px solid transparent; padding: 0; min-height: 40px; }
   .sw.sel { border-color: #fff; }
+  .sw { box-shadow: inset 0 0 0 1px #3a404c; }
   .note { color: var(--mute); font-size: 13px; line-height: 1.45; }
 </style>
 </head>
@@ -83,8 +84,8 @@
   var $ = function (id) { return document.getElementById(id); };
   var room = (location.pathname.match(/^\/u\/([A-Za-z0-9_-]+)\/remote/) || [])[1];
   $("url").textContent = location.host + "/u/" + room;
-  var TINTS = { dark: "#2a2c31", blue: "#24466e", purple: "#45305f", warm: "#6b4a35", green: "#2f5143", light: "#9aa3ad" };
-  var cfg = { fails: 2, digits: 6, tint: "dark", bio: "face" };
+  var TINTS = { black: "#000000", dark: "#2a2c31", blue: "#24466e", purple: "#45305f", warm: "#6b4a35", green: "#2f5143", light: "#9aa3ad" };
+  var cfg = { fails: 2, digits: 6, tint: "black", bio: "face" };
 
   function send(body) {
     return fetch("/api/unlock/" + room + "/control", {

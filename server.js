@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v281-mind-unlock";
+const REVISION = "v282-unlock-real-layout";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1830,7 +1830,7 @@ function saveUnlockRooms() {
   catch (e) { console.error("unlock rooms save failed:", e.message); }
 }
 
-const UNLOCK_TINTS = ["dark", "blue", "purple", "warm", "green", "light"];
+const UNLOCK_TINTS = ["black", "dark", "blue", "purple", "warm", "green", "light"];
 const UNLOCK_CMDS = ["lock", "wake", "unlock", "nextUnlock", "nextFail", "reset"];
 const UNLOCK_STAGES = ["cover", "black", "passcode", "unlocked"];
 

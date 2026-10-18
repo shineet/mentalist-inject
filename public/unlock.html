@@ -26,35 +26,39 @@
 
   #pass { color: #fff; background: linear-gradient(180deg, var(--bg-top), var(--bg-bot)); }
   #pass .dim { position: absolute; inset: 0; background: rgba(0,0,0,.28); }
+  /* Measured against a real iOS 26 passcode screen (iPhone 17 Pro Max): title
+     centre ~195pt from the top, keys 87pt on a 112 x 108pt grid, first row
+     centre ~382pt. The padlock lives in the Dynamic Island there, which a page
+     cannot draw into, so there is none on the page. */
   #pass .wrap { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
-                padding-top: calc(env(safe-area-inset-top) + 7vh); }
-  #lock { width: 18px; height: 24px; opacity: .95; margin-bottom: 4.2vh; }
-  #title { font-size: 20px; font-weight: 400; letter-spacing: .2px; margin-bottom: 22px; text-align: center; }
-  #dots { display: flex; gap: 24px; height: 14px; margin-bottom: 7vh; }
+                padding-top: calc(env(safe-area-inset-top) + 7vh + 67px); }
+  #title { font-size: 21px; font-weight: 400; letter-spacing: .2px; margin-bottom: 22px; text-align: center; }
+  #dots { display: flex; gap: 24px; height: 14px; margin-bottom: calc(7vh + 28px); }
   #dots i { width: 13px; height: 13px; border-radius: 50%; box-sizing: border-box;
             border: 1.4px solid rgba(255,255,255,.95); transition: background .06s; }
   #dots i.f { background: #fff; }
-  #pad { display: grid; grid-template-columns: repeat(3, 78px); column-gap: 28px; row-gap: 15px; }
-  .k { width: 78px; height: 78px; border-radius: 50%; display: flex; flex-direction: column;
-       align-items: center; justify-content: center; background: rgba(255,255,255,.17);
+  #pad { display: grid; grid-template-columns: repeat(3, 87px); column-gap: 25px; row-gap: 21px; }
+  /* iOS 26 keys are glass: translucent, a bright rim at the top edge. */
+  .k { width: 87px; height: 87px; border-radius: 50%; display: flex; flex-direction: column;
+       align-items: center; justify-content: center; box-sizing: border-box;
+       background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.16);
+       box-shadow: inset 0 1px 1px rgba(255,255,255,.28);
+       -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
        transition: background .45s ease-out; }
   .k.p { background: rgba(255,255,255,.5); transition: none; }
-  .k b { font-weight: 400; font-size: 36px; line-height: 38px; font-family: -apple-system, "SF Pro Display", sans-serif; }
-  .k s { text-decoration: none; font-size: 9.5px; font-weight: 600; letter-spacing: 2.2px; margin-top: 1px; margin-left: 2px; height: 11px; }
+  .k b { font-weight: 400; font-size: 39px; line-height: 40px; font-family: -apple-system, "SF Pro Display", sans-serif; }
+  .k s { text-decoration: none; font-size: 11.5px; font-weight: 700; letter-spacing: 2px; margin-top: 3px; margin-left: 2px; height: 13px; }
   .k.z { grid-column: 2; }
   #foot { position: absolute; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom) + 3.5vh);
           display: flex; justify-content: center; }
-  #foot div { width: 290px; display: flex; justify-content: space-between; font-size: 17px; }
-  #foot span { width: 78px; text-align: center; }
+  #foot div { width: 311px; display: flex; justify-content: space-between; font-size: 16px; }
+  #foot span { width: 87px; display: flex; justify-content: center; white-space: nowrap; }
 
   .shake { animation: shake .5s cubic-bezier(.36,.07,.19,.97); }
   @keyframes shake {
     0%,100% { transform: translateX(0); } 12% { transform: translateX(-22px); } 26% { transform: translateX(18px); }
     40% { transform: translateX(-13px); } 54% { transform: translateX(9px); } 68% { transform: translateX(-5px); }
     82% { transform: translateX(2px); } }
-  .lockshake { animation: lockshake .45s ease-in-out; }
-  @keyframes lockshake { 0%,100% { transform: translateX(0); } 20% { transform: translateX(-6px); }
-    40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
   #pass.in { animation: in .28s ease-out; }
   @keyframes in { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
   #pass.out { animation: out .38s ease-in forwards; }
@@ -76,7 +80,6 @@
 <div id="pass" class="stage">
   <div class="dim"></div>
   <div class="wrap">
-    <svg id="lock" viewBox="0 0 18 24"><path fill="#fff" d="M9 1.2a5.6 5.6 0 0 0-5.6 5.6V10H2.6A1.6 1.6 0 0 0 1 11.6v9.8A1.6 1.6 0 0 0 2.6 23h12.8a1.6 1.6 0 0 0 1.6-1.6v-9.8A1.6 1.6 0 0 0 15.4 10h-.8V6.8A5.6 5.6 0 0 0 9 1.2zm0 2a3.6 3.6 0 0 1 3.6 3.6V10H5.4V6.8A3.6 3.6 0 0 1 9 3.2z"/></svg>
     <div id="title">Enter Passcode</div>
     <div id="dots"></div>
     <div id="pad"></div>
@@ -92,7 +95,7 @@
   var room = m ? m[1] : null;
 
   var TINTS = {
-    dark:   ["#2a2c31", "#101114"], blue:  ["#24466e", "#0c1a2c"], purple: ["#45305f", "#170f24"],
+    black:  ["#000000", "#000000"], dark: ["#2a2c31", "#101114"], blue:  ["#24466e", "#0c1a2c"], purple: ["#45305f", "#170f24"],
     warm:   ["#6b4a35", "#24160e"], green: ["#2f5143", "#0e1a15"], light:  ["#9aa3ad", "#4b525a"]
   };
 
@@ -100,7 +103,7 @@
   var base = {
     fails: clampInt(q.get("f"), 0, 4, 2),
     digits: q.get("d") === "4" ? 4 : 6,
-    tint: TINTS[q.get("t")] ? q.get("t") : "dark",
+    tint: TINTS[q.get("t")] ? q.get("t") : "black",
     bio: q.get("b") === "touch" ? "touch" : "face"
   };
   var cfg = Object.assign({}, base);
@@ -111,7 +114,7 @@
   function clampInt(v, lo, hi, d) { var n = parseInt(v, 10); return isNaN(n) ? d : Math.max(lo, Math.min(hi, n)); }
 
   // ---- building the keypad ----
-  var LET = ["", "A B C", "D E F", "G H I", "J K L", "M N O", "P Q R S", "T U V", "W X Y Z"];
+  var LET = ["", "ABC", "DEF", "GHI", "JKL", "MNO", "PQRS", "TUV", "WXYZ"];
   var pad = $("pad");
   [1,2,3,4,5,6,7,8,9,0].forEach(function (n) {
     var k = document.createElement("div");
@@ -133,7 +136,7 @@
   }
 
   function applyLook() {
-    var t = TINTS[cfg.tint] || TINTS.dark;
+    var t = TINTS[cfg.tint] || TINTS.black;
     document.documentElement.style.setProperty("--bg-top", t[0]);
     document.documentElement.style.setProperty("--bg-bot", t[1]);
     $("title").textContent = cfg.bio === "touch" ? "Touch ID or Enter Passcode" : "Enter Passcode";
@@ -144,7 +147,7 @@
 
   // Safari colours its status bar and toolbar from theme-color; keep it matched.
   function paintChrome() {
-    var c = stage === "cover" ? "#ffffff" : stage === "black" ? "#000000" : (TINTS[cfg.tint] || TINTS.dark)[0];
+    var c = stage === "cover" ? "#ffffff" : stage === "black" ? "#000000" : (TINTS[cfg.tint] || TINTS.black)[0];
     $("theme").setAttribute("content", c);
     document.documentElement.style.background = c;
     document.body.style.background = c;
@@ -174,9 +177,6 @@
     typed = 0; drawDots();
     show("passcode");
     var p = $("pass"); p.classList.remove("in"); void p.offsetWidth; p.classList.add("in");
-    // Face ID "failing": the padlock shakes as the screen arrives.
-    var l = $("lock"); l.classList.remove("lockshake"); void l.offsetWidth;
-    setTimeout(function () { l.classList.add("lockshake"); }, 180);
   }
 
   function unlockNow() {
