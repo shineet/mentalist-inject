@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v282-unlock-real-layout";
+const REVISION = "v283-unlock-clip-aasa";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2069,6 +2069,8 @@ app.get(["/.well-known/apple-app-site-association", "/apple-app-site-association
           "B2WG3MN7S3.MindGames.Ringer.Clip",
           "B2WG3MN7S3.MindGames.VoiceCapture.Clip",
           "B2WG3MN7S3.MindGames.MystIOPublic.Clip",
+          // Mind Unlock's clip, the fake passcode screen, on /u.
+          "B2WG3MN7S3.MindGames.MindUnlock.Clip",
         ],
       },
     });
