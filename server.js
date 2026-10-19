@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v287-unlock-swap-tries";
+const REVISION = "v288-unlock-swap-order";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1897,12 +1897,17 @@ app.post("/api/unlock/:room/swap", express.json({ limit: "1kb" }), (req, res) =>
   if (b.clear) { unlockSwaps.delete(key); return res.json({ ok: true }); }
   const code = String(b.code || "").replace(/[^0-9]/g, "").slice(0, 6);
   const s = freshSwap(key) || { typing: "", tries: [] };
+  // Posts can overtake each other on the way here: a late "typing" after
+  // its own result showed the code twice. Older numbers are dropped.
+  const n = Number(b.n) || 0;
+  const last = (unlockSwaps.get(key) || {}).n || 0;
+  if (n && n <= last) return res.json({ ok: true, stale: true });
   if (b.phase === "typing") s.typing = code;
   else if (b.phase === "fail" || b.phase === "open") {
     s.typing = "";
     s.tries = [...s.tries, { code, result: b.phase }].slice(-8);
   } else return res.status(400).json({ ok: false });
-  unlockSwaps.set(key, { ...s, at: Date.now() });
+  unlockSwaps.set(key, { ...s, n: n || last, at: Date.now() });
   res.json({ ok: true });
 });
 
