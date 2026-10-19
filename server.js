@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v293-custom-urls-profiles";
+const REVISION = "v294-access-profiles";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1955,6 +1955,19 @@ const MYSTIO_FILE = path.join(DATA_DIR, "mystio-access.json");
 let mystioAccess = { codes: {} };
 try { mystioAccess = JSON.parse(fs.readFileSync(MYSTIO_FILE, "utf8")) || { codes: {} }; } catch {}
 if (!mystioAccess.codes) mystioAccess.codes = {};
+if (!mystioAccess.profiles) mystioAccess.profiles = {};
+let mystioMigrated = false;
+// Profiles (Shine, 2026-10-19): modules live on a profile; a person points at
+// one, so changing a profile changes everyone on it. Codes made before
+// profiles existed each become a profile of their own, so nothing changes.
+for (const [code, r] of Object.entries(mystioAccess.codes)) {
+  if (r.owner || r.profileId) continue;
+  const id = "p" + crypto.randomBytes(4).toString("hex");
+  mystioAccess.profiles[id] = { name: r.name + "'s profile", modules: r.modules || [], created: Date.now() };
+  r.profileId = id;
+  delete r.modules;
+  mystioMigrated = true;
+}
 function saveMystioAccess() {
   try { fs.writeFileSync(MYSTIO_FILE, JSON.stringify(mystioAccess, null, 1)); }
   catch (e) { console.error("mystio access save failed:", e.message); }
@@ -1980,6 +1993,14 @@ const MYSTIO_MODULES = [
   ["pitata", "Pitata"], ["sprocket", "Sprocket"], ["legacywallet", "Legacy Wallet"],
 ];
 const MYSTIO_IDS = new Set(MYSTIO_MODULES.map(m => m[0]));
+if (mystioMigrated) saveMystioAccess();
+
+/// The modules a person has: everything for the owner, else their profile's.
+function mystioModulesOf(rec) {
+  if (rec.owner) return MYSTIO_MODULES.map(m => m[0]);
+  const p = mystioAccess.profiles[rec.profileId];
+  return p ? p.modules.filter(m => MYSTIO_IDS.has(m)) : [];
+}
 function mystioCodeRecord(code) {
   const c = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   return c ? mystioAccess.codes[c] : null;
@@ -2003,8 +2024,7 @@ app.get("/api/mystio/access", (req, res) => {
   const rec = mystioCodeRecord(req.query.code);
   if (!rec || rec.disabled) return res.status(404).json({ ok: false });
   rec.seenAt = Date.now();
-  res.json({ ok: true, name: rec.name, owner: !!rec.owner,
-             modules: rec.owner ? MYSTIO_MODULES.map(m => m[0]) : rec.modules.filter(m => MYSTIO_IDS.has(m)) });
+  res.json({ ok: true, name: rec.name, owner: !!rec.owner, modules: mystioModulesOf(rec) });
 });
 
 // The backend, server to server: may this code use this module (any of a
@@ -2014,7 +2034,8 @@ app.get("/api/mystio/check", (req, res) => {
   const rec = mystioCodeRecord(req.query.code);
   if (!rec || rec.disabled) return res.json({ ok: false });
   const want = String(req.query.module || "any").split(",");
-  const ok = rec.owner || want.includes("any") || want.some(m => rec.modules.includes(m));
+  const mods = mystioModulesOf(rec);
+  const ok = rec.owner || want.includes("any") || want.some(m => mods.includes(m));
   res.json({ ok });
 });
 
@@ -2026,36 +2047,62 @@ app.get(["/mystio/admin", "/mystio/admin/"], (req, res) => {
 app.get("/api/mystio/admin", (req, res) => {
   if (!mystioAdminOK(req)) return res.status(401).json({ ok: false });
   res.setHeader("Cache-Control", "no-store");
-  const codes = Object.entries(mystioAccess.codes).map(([code, r]) => ({ code, ...r }));
-  res.json({ ok: true, modules: MYSTIO_MODULES, codes });
+  const users = Object.entries(mystioAccess.codes).map(([code, r]) => ({ code, ...r }));
+  const profiles = Object.entries(mystioAccess.profiles).map(([id, p]) => ({
+    id, ...p, users: users.filter(u => u.profileId === id).length }));
+  res.json({ ok: true, modules: MYSTIO_MODULES, profiles, users });
 });
 
 app.post("/api/mystio/admin", express.json({ limit: "16kb" }), (req, res) => {
   if (!mystioAdminOK(req)) return res.status(401).json({ ok: false });
   const b = req.body || {};
-  if (b.action === "create") {
-    const code = mystioNewCode();
-    const from = b.from ? mystioCodeRecord(b.from) : null;
-    mystioAccess.codes[code] = { name: String(b.name || "Tester").slice(0, 60),
-                                 modules: from && !from.owner ? [...from.modules] : [],
-                                 owner: !!b.owner, created: Date.now() };
-    saveMystioAccess();
-    return res.json({ ok: true, code });
+  const P = mystioAccess.profiles;
+  switch (b.action) {
+    case "createProfile": {
+      const id = "p" + crypto.randomBytes(4).toString("hex");
+      const from = b.from && P[b.from];
+      P[id] = { name: String(b.name || (from ? "Copy of " + from.name : "New profile")).slice(0, 60),
+                modules: from ? [...from.modules] : [], created: Date.now() };
+      saveMystioAccess();
+      return res.json({ ok: true, id });
+    }
+    case "setProfile": {
+      const p = P[b.id];
+      if (!p) return res.status(404).json({ ok: false });
+      if (Array.isArray(b.modules)) p.modules = b.modules.filter(m => MYSTIO_IDS.has(m));
+      if (typeof b.name === "string") p.name = b.name.slice(0, 60);
+      break;
+    }
+    case "deleteProfile": {
+      if (Object.values(mystioAccess.codes).some(r => r.profileId === b.id))
+        return res.status(409).json({ ok: false, error: "Move everyone off this profile first" });
+      delete P[b.id];
+      break;
+    }
+    case "createUser": {
+      const code = mystioNewCode();
+      mystioAccess.codes[code] = { name: String(b.name || "Tester").slice(0, 60),
+                                   profileId: P[b.profileId] ? b.profileId : null, created: Date.now() };
+      saveMystioAccess();
+      return res.json({ ok: true, code });
+    }
+    case "setUser": {
+      const rec = mystioCodeRecord(b.code);
+      if (!rec) return res.status(404).json({ ok: false });
+      if (typeof b.name === "string") rec.name = b.name.slice(0, 60);
+      if (b.profileId !== undefined && !rec.owner) rec.profileId = P[b.profileId] ? b.profileId : null;
+      if (typeof b.disabled === "boolean" && !rec.owner) rec.disabled = b.disabled;
+      break;
+    }
+    case "deleteUser": {
+      const rec = mystioCodeRecord(b.code);
+      if (!rec || rec.owner) return res.status(400).json({ ok: false });
+      delete mystioAccess.codes[String(b.code).toUpperCase()];
+      break;
+    }
+    default:
+      return res.status(400).json({ ok: false });
   }
-  const rec = mystioCodeRecord(b.code);
-  if (!rec) return res.status(404).json({ ok: false });
-  if (b.action === "set") {
-    if (Array.isArray(b.modules)) rec.modules = b.modules.filter(m => MYSTIO_IDS.has(m));
-    if (typeof b.name === "string") rec.name = b.name.slice(0, 60);
-    if (typeof b.disabled === "boolean") rec.disabled = b.disabled;
-  } else if (b.action === "copy") {
-    // Copy another profile's modules onto this one (a one-time copy).
-    const from = mystioCodeRecord(b.from);
-    if (!from) return res.status(404).json({ ok: false });
-    rec.modules = from.owner ? MYSTIO_MODULES.map(m => m[0]) : [...from.modules];
-  } else if (b.action === "delete") {
-    delete mystioAccess.codes[String(b.code).toUpperCase()];
-  } else return res.status(400).json({ ok: false });
   saveMystioAccess();
   res.json({ ok: true });
 });

@@ -9,18 +9,19 @@
   :root { --bg:#0e0f12; --card:#181a20; --line:#2a2d36; --text:#eef0f4; --dim:#9aa0ad; --accent:#7c6cff; --ok:#3ccf7a; --bad:#ff6b6b; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  main { max-width:900px; margin:0 auto; padding:20px 16px 60px; }
-  h1 { font-size:24px; margin:4px 0 4px; }
-  .sub { color:var(--dim); margin-bottom:18px; }
-  select { background:#0b0c0f; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-size:14px; }
-  input[type=text], input[type=password] { background:#0b0c0f; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-size:15px; }
+  main { max-width:920px; margin:0 auto; padding:20px 16px 60px; }
+  h1 { font-size:24px; margin:4px 0; }
+  h2 { font-size:19px; margin:28px 0 4px; }
+  .sub { color:var(--dim); margin-bottom:10px; }
+  input[type=text], input[type=password], select { background:#0b0c0f; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-size:15px; max-width:100%; }
   button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:9px 14px; font-size:14px; cursor:pointer; }
   button.ghost { background:transparent; border:1px solid var(--line); color:var(--text); }
   button.danger { background:transparent; border:1px solid var(--bad); color:var(--bad); }
   .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin:14px 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin:12px 0; }
   .head { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center; }
-  .name { font-size:18px; font-weight:600; background:transparent; border:0; color:var(--text); padding:0; min-width:0; }
+  .name { font-size:18px; font-weight:600; background:transparent; border:0; border-bottom:1px dashed var(--line); color:var(--text); padding:0 0 2px; min-width:0; width:100%; max-width:420px; }
+  .hint { color:var(--dim); font-size:12px; margin-top:2px; }
   .code { font-family:ui-monospace, Menlo, monospace; color:var(--dim); font-size:13px; }
   .tag { font-size:12px; padding:2px 8px; border-radius:20px; border:1px solid var(--line); color:var(--dim); }
   .tag.owner { color:var(--ok); border-color:var(--ok); }
@@ -28,16 +29,17 @@
   h3 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin:16px 0 6px; }
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:6px 12px; }
   label.mod { display:flex; gap:8px; align-items:center; padding:5px 0; cursor:pointer; }
-  label.mod input { width:18px; height:18px; accent-color:var(--accent); }
+  label.mod input { width:18px; height:18px; accent-color:var(--accent); flex:none; }
   .core { color:var(--dim); font-size:13px; margin-top:8px; }
-  .msg { color:var(--dim); font-size:13px; min-height:18px; }
-  .actions { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; }
+  .msg { color:var(--dim); font-size:13px; min-height:18px; margin-top:6px; }
+  .actions { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  details > summary { cursor:pointer; color:var(--dim); margin-top:10px; }
 </style>
 </head>
 <body>
 <main>
   <h1>MystIO Access</h1>
-  <div class="sub">Tick what each tester may use. Changes reach their MystIO the next time it opens. Core is always on.</div>
+  <div class="sub">Profiles hold the modules. Each person is given a profile: change a profile and everyone on it gets the change the next time their MystIO opens. Core is always on.</div>
 
   <div id="login" class="card">
     <div class="row">
@@ -48,15 +50,28 @@
   </div>
 
   <div id="app" hidden>
+    <h2>People</h2>
+    <div class="sub">Who has MystIO, and which profile they are on.</div>
     <div class="card">
       <div class="row">
-        <input id="newName" type="text" placeholder="New tester's name">
-        <select id="newFrom"><option value="">Start empty (Core only)</option></select>
-        <button id="add">Add tester</button>
+        <input id="newUser" type="text" placeholder="Name">
+        <select id="newUserProfile"></select>
+        <button id="addUser">Add person</button>
       </div>
-      <div class="msg" id="addMsg"></div>
+      <div class="msg" id="userMsg"></div>
     </div>
-    <div id="list"></div>
+    <div id="users"></div>
+
+    <h2>Profiles</h2>
+    <div class="sub">Tick what a profile includes. Duplicate one to start a new profile from it.</div>
+    <div class="card">
+      <div class="row">
+        <input id="newProfile" type="text" placeholder="New profile name">
+        <button id="addProfile">Add empty profile</button>
+      </div>
+      <div class="msg" id="profileMsg"></div>
+    </div>
+    <div id="profiles"></div>
   </div>
 </main>
 <script>
@@ -67,10 +82,11 @@ const GROUPS = [
   ["Companion apps", ["app_chatgpt","app_notes","app_calculator","app_clock","app_phone"]],
   ["Props", ["motherboard","duo","secondsight","ultrasharpie","novasharpie","pad","kronaby","lumenspectra","lumenprism","missingtape","inception","thermal","pitata","sprocket","legacywallet"]],
 ];
+const CORE = "Always on (Core): routines, show setup, screen swipe and writing, clipboard, Shortcuts, another app, Handoff, Apple Watch.";
 let pw = "";
 try { pw = localStorage.getItem("mystioAdmin") || ""; } catch {}
-let names = {};
-let allCodes = [];
+let names = {}, profiles = [], users = [];
+const open = new Set();
 
 async function api(method, body) {
   const r = await fetch("/api/mystio/admin", {
@@ -78,96 +94,128 @@ async function api(method, body) {
     body: body ? JSON.stringify(body) : undefined, cache: "no-store",
   });
   if (r.status === 401) throw new Error("Wrong password");
-  return r.json();
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || "Did not work");
+  return j;
 }
 
 async function load() {
   const d = await api("GET");
   names = Object.fromEntries(d.modules);
+  profiles = d.profiles.sort((a, b) => a.created - b.created);
+  users = d.users.sort((a, b) => (b.owner - a.owner) || (a.created - b.created));
   document.getElementById("login").hidden = true;
   document.getElementById("app").hidden = false;
-  allCodes = d.codes;
-  const sel = document.getElementById("newFrom");
-  sel.innerHTML = '<option value="">Start empty (Core only)</option>' +
-    d.codes.filter(c => !c.owner).map(c => `<option value="${c.code}">Copy of ${esc(c.name)}</option>`).join("");
-  const list = document.getElementById("list");
-  list.innerHTML = "";
-  d.codes.sort((a, b) => (b.owner - a.owner) || (a.created - b.created)).forEach(c => list.appendChild(card(c)));
+  document.getElementById("newUserProfile").innerHTML = profileOptions(null, "Core only");
+  const ul = document.getElementById("users"); ul.innerHTML = "";
+  users.forEach(u => ul.appendChild(userCard(u)));
+  const pl = document.getElementById("profiles"); pl.innerHTML = "";
+  profiles.forEach(p => pl.appendChild(profileCard(p)));
 }
 
-function card(c) {
+function profileOptions(selected, none) {
+  return `<option value="">${none}</option>` + profiles.map(p =>
+    `<option value="${p.id}" ${p.id === selected ? "selected" : ""}>${esc(p.name)}</option>`).join("");
+}
+
+function userCard(u) {
   const el = document.createElement("div");
   el.className = "card";
-  const link = "mystio://access?code=" + c.code;
+  const link = "mystio://access?code=" + u.code;
   el.innerHTML = `
     <div class="head">
-      <div style="min-width:0">
-        <input class="name" value="${esc(c.name)}" aria-label="Name" title="Tap to rename">
-        <div class="code" style="margin-top:2px">Tap the name to rename</div>
-        <div class="code">${c.code}</div>
+      <div style="min-width:0; flex:1">
+        <input class="name" value="${esc(u.name)}" aria-label="Name">
+        <div class="hint">Tap the name to rename · <span class="code">${u.code}</span></div>
       </div>
       <div class="row">
-        ${c.owner ? '<span class="tag owner">Owner: everything</span>' : ''}
-        ${c.disabled ? '<span class="tag off">Switched off</span>' : ''}
-        ${c.seenAt ? '<span class="tag">Last seen ' + new Date(c.seenAt).toLocaleString() + '</span>' : '<span class="tag">Never opened</span>'}
+        ${u.owner ? '<span class="tag owner">Owner: everything</span>' : ''}
+        ${u.disabled ? '<span class="tag off">Switched off</span>' : ''}
+        ${u.seenAt ? '<span class="tag">Last seen ' + new Date(u.seenAt).toLocaleString() + '</span>' : '<span class="tag">Never opened</span>'}
       </div>
     </div>
-    <div class="body"></div>
+    ${u.owner ? '<div class="core">Every module, plus your booking and destinations sync.</div>'
+              : `<div class="row" style="margin-top:12px"><span>Profile</span><select class="prof">${profileOptions(u.profileId, "Core only")}</select></div>`}
     <div class="actions">
       <button class="ghost copy">Copy their link</button>
-      ${c.owner ? '' : `<select class="from"><option value="">Copy modules from…</option>${allCodes.filter(o => o.code !== c.code && !o.owner).map(o => `<option value="${o.code}">${esc(o.name)}</option>`).join("")}</select>`}
-      ${c.owner ? '' : `<button class="ghost toggle">${c.disabled ? "Switch on" : "Switch off"}</button>`}
-      ${c.owner ? '' : '<button class="danger del">Delete</button>'}
+      ${u.owner ? '' : `<button class="ghost toggle">${u.disabled ? "Switch on" : "Switch off"}</button>`}
+      ${u.owner ? '' : '<button class="danger del">Delete</button>'}
     </div>
     <div class="msg"></div>`;
   const msg = el.querySelector(".msg");
-  const body = el.querySelector(".body");
-  if (c.owner) {
-    body.innerHTML = '<div class="core">Every module, plus your booking and destinations sync.</div>';
-  } else {
-    GROUPS.forEach(([title, ids]) => {
-      const h = document.createElement("h3"); h.textContent = title; body.appendChild(h);
-      const g = document.createElement("div"); g.className = "grid";
-      ids.forEach(id => {
-        const l = document.createElement("label"); l.className = "mod";
-        l.innerHTML = `<input type="checkbox" ${c.modules.includes(id) ? "checked" : ""}> <span>${esc(names[id] || id)}</span>`;
-        l.querySelector("input").addEventListener("change", async e => {
-          if (e.target.checked) c.modules.push(id); else c.modules = c.modules.filter(m => m !== id);
-          try { await api("POST", { action: "set", code: c.code, modules: c.modules }); msg.textContent = "Saved"; }
-          catch (err) { msg.textContent = err.message; }
-        });
-        g.appendChild(l);
-      });
-      body.appendChild(g);
-    });
-    const core = document.createElement("div"); core.className = "core";
-    core.textContent = "Always on (Core): routines, show setup, remote and digits, screen swipe and writing, clipboard, Shortcuts, another app, Handoff, Apple Watch.";
-    body.appendChild(core);
-  }
-  el.querySelector(".name").addEventListener("change", async e => {
-    try { await api("POST", { action: "set", code: c.code, name: e.target.value }); msg.textContent = "Saved"; }
-    catch (err) { msg.textContent = err.message; }
-  });
+  el.querySelector(".name").addEventListener("change", e => save({ action: "setUser", code: u.code, name: e.target.value }, msg));
+  const prof = el.querySelector(".prof");
+  if (prof) prof.addEventListener("change", async () => { await save({ action: "setUser", code: u.code, profileId: prof.value }, msg); load(); });
   el.querySelector(".copy").addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(link); msg.textContent = "Copied: " + link; }
-    catch { msg.textContent = link; }
-  });
-  const from = el.querySelector(".from");
-  if (from) from.addEventListener("change", async () => {
-    if (!from.value) return;
-    const src = allCodes.find(o => o.code === from.value);
-    await api("POST", { action: "copy", code: c.code, from: from.value });
-    msg.textContent = "Copied the modules of " + (src ? src.name : "that profile");
-    load();
+    try { await navigator.clipboard.writeText(link); msg.textContent = "Copied: " + link; } catch { msg.textContent = link; }
   });
   const t = el.querySelector(".toggle");
-  if (t) t.addEventListener("click", async () => { await api("POST", { action: "set", code: c.code, disabled: !c.disabled }); load(); });
+  if (t) t.addEventListener("click", async () => { await save({ action: "setUser", code: u.code, disabled: !u.disabled }, msg); load(); });
   const del = el.querySelector(".del");
   if (del) del.addEventListener("click", async () => {
-    if (del.dataset.sure) { await api("POST", { action: "delete", code: c.code }); load(); }
+    if (del.dataset.sure) { await save({ action: "deleteUser", code: u.code }, msg); load(); }
     else { del.dataset.sure = "1"; del.textContent = "Tap again to delete"; }
   });
   return el;
+}
+
+function profileCard(p) {
+  const el = document.createElement("div");
+  el.className = "card";
+  const who = users.filter(u => u.profileId === p.id).map(u => u.name);
+  el.innerHTML = `
+    <div class="head">
+      <div style="min-width:0; flex:1">
+        <input class="name" value="${esc(p.name)}" aria-label="Profile name">
+        <div class="hint">Tap the name to rename</div>
+      </div>
+      <div class="row"><span class="tag">${who.length ? "Used by " + who.map(esc).join(", ") : "Nobody on it yet"}</span>
+        <span class="tag count">${p.modules.length} module${p.modules.length === 1 ? "" : "s"}</span></div>
+    </div>
+    <details ${open.has(p.id) ? "open" : ""}><summary>Modules</summary><div class="body"></div></details>
+    <div class="actions">
+      <button class="ghost dup">Duplicate</button>
+      <button class="danger del">Delete</button>
+    </div>
+    <div class="msg"></div>`;
+  const msg = el.querySelector(".msg");
+  const det = el.querySelector("details");
+  det.addEventListener("toggle", () => det.open ? open.add(p.id) : open.delete(p.id));
+  const body = el.querySelector(".body");
+  GROUPS.forEach(([title, ids]) => {
+    const h = document.createElement("h3"); h.textContent = title; body.appendChild(h);
+    const g = document.createElement("div"); g.className = "grid";
+    ids.forEach(id => {
+      const l = document.createElement("label"); l.className = "mod";
+      l.innerHTML = `<input type="checkbox" ${p.modules.includes(id) ? "checked" : ""}> <span>${esc(names[id] || id)}</span>`;
+      l.querySelector("input").addEventListener("change", e => {
+        if (e.target.checked) p.modules.push(id); else p.modules = p.modules.filter(m => m !== id);
+        el.querySelector(".count").textContent = p.modules.length + " module" + (p.modules.length === 1 ? "" : "s");
+        save({ action: "setProfile", id: p.id, modules: p.modules }, msg,
+             who.length ? "Saved for " + who.join(", ") : "Saved");
+      });
+      g.appendChild(l);
+    });
+    body.appendChild(g);
+  });
+  const core = document.createElement("div"); core.className = "core"; core.textContent = CORE; body.appendChild(core);
+  el.querySelector(".name").addEventListener("change", async e => { await save({ action: "setProfile", id: p.id, name: e.target.value }, msg); load(); });
+  el.querySelector(".dup").addEventListener("click", async () => {
+    const r = await api("POST", { action: "createProfile", from: p.id });
+    open.add(r.id); load();
+  });
+  const del = el.querySelector(".del");
+  del.addEventListener("click", async () => {
+    if (who.length) { msg.textContent = "Move " + who.join(", ") + " to another profile first."; return; }
+    if (del.dataset.sure) { await save({ action: "deleteProfile", id: p.id }, msg); load(); }
+    else { del.dataset.sure = "1"; del.textContent = "Tap again to delete"; }
+  });
+  return el;
+}
+
+async function save(body, msg, ok = "Saved") {
+  try { await api("POST", body); msg.textContent = ok; }
+  catch (e) { msg.textContent = e.message; }
 }
 
 function esc(s) { return String(s).replace(/[&<>"]/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[ch])); }
@@ -178,13 +226,19 @@ document.getElementById("go").addEventListener("click", async () => {
   catch (e) { document.getElementById("loginMsg").textContent = e.message; }
 });
 document.getElementById("pw").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("go").click(); });
-document.getElementById("add").addEventListener("click", async () => {
-  const name = document.getElementById("newName").value.trim();
+document.getElementById("addUser").addEventListener("click", async () => {
+  const name = document.getElementById("newUser").value.trim();
   if (!name) return;
-  const d = await api("POST", { action: "create", name, from: document.getElementById("newFrom").value || undefined });
-  document.getElementById("addMsg").textContent = "Added. Their link: mystio://access?code=" + d.code;
-  document.getElementById("newName").value = "";
+  const d = await api("POST", { action: "createUser", name, profileId: document.getElementById("newUserProfile").value });
+  document.getElementById("userMsg").textContent = "Added. Their link: mystio://access?code=" + d.code;
+  document.getElementById("newUser").value = "";
   load();
+});
+document.getElementById("addProfile").addEventListener("click", async () => {
+  const name = document.getElementById("newProfile").value.trim() || "New profile";
+  const r = await api("POST", { action: "createProfile", name });
+  document.getElementById("newProfile").value = "";
+  open.add(r.id); load();
 });
 if (pw) load().catch(() => {});
 </script>
