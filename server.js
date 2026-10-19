@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v285-mindunlock-demo";
+const REVISION = "v286-unlock-swap-relay";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1871,10 +1871,34 @@ app.get("/u/:room/remote", (req, res) => {
 // for the spectator's stage.
 app.get("/api/unlock/:room", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
-  const rec = unlockRooms[normalizeRoom(req.params.room)];
+  const key = normalizeRoom(req.params.room);
+  const rec = unlockRooms[key];
   if (!rec) return res.json({ ok: true, exists: false });
   res.json({ ok: true, exists: true, config: rec.config, seq: rec.seq, cmd: rec.cmd,
-             status: rec.status, now: Date.now() });
+             status: rec.status, swap: freshSwap(key), now: Date.now() });
+});
+
+// Mind Unlock 1.1 "Swap": the code a participant makes up on the PERFORMER's
+// phone, relayed live to the performer's view on the other phone. Held in
+// memory only, in its own map so saveUnlockRooms never writes it to disk,
+// and gone after ten minutes or a reset. Never logged.
+const unlockSwaps = new Map();
+const SWAP_PHASES = ["new", "confirm", "mismatch", "set"];
+function freshSwap(key) {
+  const s = unlockSwaps.get(key);
+  if (!s) return null;
+  if (Date.now() - s.at > 10 * 60 * 1000) { unlockSwaps.delete(key); return null; }
+  return s;
+}
+app.post("/api/unlock/:room/swap", express.json({ limit: "1kb" }), (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  if (!unlockRooms[key]) return res.status(404).json({ ok: false });
+  const b = req.body || {};
+  if (b.clear) { unlockSwaps.delete(key); return res.json({ ok: true }); }
+  const code = String(b.code || "").replace(/[^0-9]/g, "").slice(0, 6);
+  if (!SWAP_PHASES.includes(b.phase)) return res.status(400).json({ ok: false });
+  unlockSwaps.set(key, { code, phase: b.phase, at: Date.now() });
+  res.json({ ok: true });
 });
 
 // From the remote: settings and/or one command.
@@ -1888,6 +1912,7 @@ app.post("/api/unlock/:room/control", express.json({ limit: "2kb" }), (req, res)
     if (!UNLOCK_CMDS.includes(body.cmd)) return res.status(400).json({ ok: false, error: "unknown command" });
     rec.seq += 1;
     rec.cmd = { seq: rec.seq, name: body.cmd, at: Date.now() };
+    if (body.cmd === "reset") unlockSwaps.delete(normalizeRoom(req.params.room));
   }
   rec.at = Date.now();
   saveUnlockRooms();
