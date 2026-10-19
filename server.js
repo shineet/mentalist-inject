@@ -3,6 +3,7 @@ import http from "http";
 import { Server } from "socket.io";
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import { sequenceFor, defaultsFor, inlineAll } from "./lib/sequence.js";
 import { renderSequence } from "./lib/render.js";
 import { cityFor } from "./lib/area-codes.js";
@@ -12,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v288-unlock-swap-order";
+const REVISION = "v289-mystio-access";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1942,6 +1943,110 @@ app.post("/api/unlock/:room/status", express.json({ limit: "1kb" }), (req, res) 
     typed: Math.max(0, Math.min(6, Math.round(Number(b.typed) || 0))),
     at: Date.now(),
   };
+  res.json({ ok: true });
+});
+
+// ===== MystIO access codes (2026-10-19) =====================================
+// Each tester's MystIO carries one code; this says which modules it may use.
+// Shine ticks modules per tester at /mystio/admin. The owner code gets
+// everything, including the owner-only syncs. The voice-capture backend asks
+// /api/mystio/check before spending money on a paid service.
+const MYSTIO_FILE = path.join(DATA_DIR, "mystio-access.json");
+let mystioAccess = { codes: {} };
+try { mystioAccess = JSON.parse(fs.readFileSync(MYSTIO_FILE, "utf8")) || { codes: {} }; } catch {}
+if (!mystioAccess.codes) mystioAccess.codes = {};
+function saveMystioAccess() {
+  try { fs.writeFileSync(MYSTIO_FILE, JSON.stringify(mystioAccess, null, 1)); }
+  catch (e) { console.error("mystio access save failed:", e.message); }
+}
+// The ids the app knows. Order is the admin page's order.
+const MYSTIO_MODULES = [
+  ["audience", "Audience Page"], ["voice", "Voice & Conversation"], ["chatgpt", "ChatGPT"],
+  ["notes", "Notes"], ["calculator", "Calculator"], ["stopwatch", "Stopwatch"], ["phone", "Phone"],
+  ["readers", "Camera Readers"], ["cardphoto", "Card in a Photo"], ["video", "Video Recorder"],
+  ["photostudio", "Photo Studio"], ["song", "Song, Spotify & YouTube"], ["lookups", "AI Lookups"],
+  ["routinemaker", "Routine Maker"], ["inject", "Inject"], ["instagram", "Instagram"],
+  ["wififlood", "Wi-Fi Flood"], ["timehacker", "Time Hacker"], ["mentalvoice", "Mental Voice"],
+  ["letterbook", "Letter Mode & Book Test"], ["acrostic", "Acrostic Names"],
+  ["app_chatgpt", "ChatGPT app"], ["app_notes", "Notes app"], ["app_calculator", "Calculator app"],
+  ["app_clock", "Clock app"], ["app_phone", "Phone app"],
+  ["motherboard", "Motherboard"], ["duo", "Duo"], ["secondsight", "Second Sight"],
+  ["ultrasharpie", "Ultra Sharpie"], ["novasharpie", "Nova Sharpie"], ["pad", "Impression Pad"],
+  ["kronaby", "Kronaby"], ["lumenspectra", "Lumen Spectra"], ["lumenprism", "Lumen Prism"],
+  ["missingtape", "Missing Tape"], ["inception", "Inception"], ["thermal", "Thermal Printers"],
+  ["pitata", "Pitata"], ["sprocket", "Sprocket"], ["legacywallet", "Legacy Wallet"],
+];
+const MYSTIO_IDS = new Set(MYSTIO_MODULES.map(m => m[0]));
+function mystioCodeRecord(code) {
+  const c = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return c ? mystioAccess.codes[c] : null;
+}
+function mystioNewCode() {
+  // No 0/O/1/I: read aloud or typed, they cannot be confused.
+  const abc = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let c;
+  do { c = Array.from(crypto.randomBytes(8)).map(b => abc[b % abc.length]).join(""); }
+  while (mystioAccess.codes[c]);
+  return c;
+}
+function mystioAdminOK(req) {
+  const want = process.env.MYSTIO_ADMIN_PASSWORD || "";
+  return want && req.headers["x-admin-password"] === want;
+}
+
+// The app: which modules this code has. Unknown code: 404, the app keeps Core.
+app.get("/api/mystio/access", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const rec = mystioCodeRecord(req.query.code);
+  if (!rec || rec.disabled) return res.status(404).json({ ok: false });
+  rec.seenAt = Date.now();
+  res.json({ ok: true, name: rec.name, owner: !!rec.owner,
+             modules: rec.owner ? MYSTIO_MODULES.map(m => m[0]) : rec.modules.filter(m => MYSTIO_IDS.has(m)) });
+});
+
+// The backend, server to server: may this code use this module (any of a
+// comma list)? "any" asks only whether the code is valid at all.
+app.get("/api/mystio/check", (req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  const rec = mystioCodeRecord(req.query.code);
+  if (!rec || rec.disabled) return res.json({ ok: false });
+  const want = String(req.query.module || "any").split(",");
+  const ok = rec.owner || want.includes("any") || want.some(m => rec.modules.includes(m));
+  res.json({ ok });
+});
+
+app.get(["/mystio/admin", "/mystio/admin/"], (req, res) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  res.sendFile(path.resolve("public", "mystio-admin.html"));
+});
+
+app.get("/api/mystio/admin", (req, res) => {
+  if (!mystioAdminOK(req)) return res.status(401).json({ ok: false });
+  res.setHeader("Cache-Control", "no-store");
+  const codes = Object.entries(mystioAccess.codes).map(([code, r]) => ({ code, ...r }));
+  res.json({ ok: true, modules: MYSTIO_MODULES, codes });
+});
+
+app.post("/api/mystio/admin", express.json({ limit: "16kb" }), (req, res) => {
+  if (!mystioAdminOK(req)) return res.status(401).json({ ok: false });
+  const b = req.body || {};
+  if (b.action === "create") {
+    const code = mystioNewCode();
+    mystioAccess.codes[code] = { name: String(b.name || "Tester").slice(0, 60), modules: [],
+                                 owner: !!b.owner, created: Date.now() };
+    saveMystioAccess();
+    return res.json({ ok: true, code });
+  }
+  const rec = mystioCodeRecord(b.code);
+  if (!rec) return res.status(404).json({ ok: false });
+  if (b.action === "set") {
+    if (Array.isArray(b.modules)) rec.modules = b.modules.filter(m => MYSTIO_IDS.has(m));
+    if (typeof b.name === "string") rec.name = b.name.slice(0, 60);
+    if (typeof b.disabled === "boolean") rec.disabled = b.disabled;
+  } else if (b.action === "delete") {
+    delete mystioAccess.codes[String(b.code).toUpperCase()];
+  } else return res.status(400).json({ ok: false });
+  saveMystioAccess();
   res.json({ ok: true });
 });
 

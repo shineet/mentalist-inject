@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>MystIO Access</title>
+<style>
+  :root { --bg:#0e0f12; --card:#181a20; --line:#2a2d36; --text:#eef0f4; --dim:#9aa0ad; --accent:#7c6cff; --ok:#3ccf7a; --bad:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  main { max-width:900px; margin:0 auto; padding:20px 16px 60px; }
+  h1 { font-size:24px; margin:4px 0 4px; }
+  .sub { color:var(--dim); margin-bottom:18px; }
+  input[type=text], input[type=password] { background:#0b0c0f; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-size:15px; }
+  button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:9px 14px; font-size:14px; cursor:pointer; }
+  button.ghost { background:transparent; border:1px solid var(--line); color:var(--text); }
+  button.danger { background:transparent; border:1px solid var(--bad); color:var(--bad); }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin:14px 0; }
+  .head { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; align-items:center; }
+  .name { font-size:18px; font-weight:600; background:transparent; border:0; color:var(--text); padding:0; min-width:0; }
+  .code { font-family:ui-monospace, Menlo, monospace; color:var(--dim); font-size:13px; }
+  .tag { font-size:12px; padding:2px 8px; border-radius:20px; border:1px solid var(--line); color:var(--dim); }
+  .tag.owner { color:var(--ok); border-color:var(--ok); }
+  .tag.off { color:var(--bad); border-color:var(--bad); }
+  h3 { font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin:16px 0 6px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:6px 12px; }
+  label.mod { display:flex; gap:8px; align-items:center; padding:5px 0; cursor:pointer; }
+  label.mod input { width:18px; height:18px; accent-color:var(--accent); }
+  .core { color:var(--dim); font-size:13px; margin-top:8px; }
+  .msg { color:var(--dim); font-size:13px; min-height:18px; }
+  .actions { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+<main>
+  <h1>MystIO Access</h1>
+  <div class="sub">Tick what each tester may use. Changes reach their MystIO the next time it opens. Core is always on.</div>
+
+  <div id="login" class="card">
+    <div class="row">
+      <input id="pw" type="password" placeholder="Admin password" autocomplete="current-password">
+      <button id="go">Open</button>
+    </div>
+    <div class="msg" id="loginMsg"></div>
+  </div>
+
+  <div id="app" hidden>
+    <div class="card">
+      <div class="row">
+        <input id="newName" type="text" placeholder="New tester's name">
+        <button id="add">Add tester</button>
+      </div>
+      <div class="msg" id="addMsg"></div>
+    </div>
+    <div id="list"></div>
+  </div>
+</main>
+<script>
+const GROUPS = [
+  ["Features", ["audience","voice","chatgpt","notes","calculator","stopwatch","phone","readers","cardphoto","video","photostudio","song","lookups","routinemaker","inject","instagram","wififlood","timehacker","mentalvoice","letterbook","acrostic"]],
+  ["Companion apps", ["app_chatgpt","app_notes","app_calculator","app_clock","app_phone"]],
+  ["Props", ["motherboard","duo","secondsight","ultrasharpie","novasharpie","pad","kronaby","lumenspectra","lumenprism","missingtape","inception","thermal","pitata","sprocket","legacywallet"]],
+];
+let pw = "";
+try { pw = localStorage.getItem("mystioAdmin") || ""; } catch {}
+let names = {};
+
+async function api(method, body) {
+  const r = await fetch("/api/mystio/admin", {
+    method, headers: { "Content-Type": "application/json", "x-admin-password": pw },
+    body: body ? JSON.stringify(body) : undefined, cache: "no-store",
+  });
+  if (r.status === 401) throw new Error("Wrong password");
+  return r.json();
+}
+
+async function load() {
+  const d = await api("GET");
+  names = Object.fromEntries(d.modules);
+  document.getElementById("login").hidden = true;
+  document.getElementById("app").hidden = false;
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+  d.codes.sort((a, b) => (b.owner - a.owner) || (a.created - b.created)).forEach(c => list.appendChild(card(c)));
+}
+
+function card(c) {
+  const el = document.createElement("div");
+  el.className = "card";
+  const link = "mystio://access?code=" + c.code;
+  el.innerHTML = `
+    <div class="head">
+      <div style="min-width:0">
+        <input class="name" value="${esc(c.name)}" aria-label="Name">
+        <div class="code">${c.code}</div>
+      </div>
+      <div class="row">
+        ${c.owner ? '<span class="tag owner">Owner: everything</span>' : ''}
+        ${c.disabled ? '<span class="tag off">Switched off</span>' : ''}
+        ${c.seenAt ? '<span class="tag">Last seen ' + new Date(c.seenAt).toLocaleString() + '</span>' : '<span class="tag">Never opened</span>'}
+      </div>
+    </div>
+    <div class="body"></div>
+    <div class="actions">
+      <button class="ghost copy">Copy their link</button>
+      ${c.owner ? '' : `<button class="ghost toggle">${c.disabled ? "Switch on" : "Switch off"}</button>`}
+      ${c.owner ? '' : '<button class="danger del">Delete</button>'}
+    </div>
+    <div class="msg"></div>`;
+  const msg = el.querySelector(".msg");
+  const body = el.querySelector(".body");
+  if (c.owner) {
+    body.innerHTML = '<div class="core">Every module, plus your booking and destinations sync.</div>';
+  } else {
+    GROUPS.forEach(([title, ids]) => {
+      const h = document.createElement("h3"); h.textContent = title; body.appendChild(h);
+      const g = document.createElement("div"); g.className = "grid";
+      ids.forEach(id => {
+        const l = document.createElement("label"); l.className = "mod";
+        l.innerHTML = `<input type="checkbox" ${c.modules.includes(id) ? "checked" : ""}> <span>${esc(names[id] || id)}</span>`;
+        l.querySelector("input").addEventListener("change", async e => {
+          if (e.target.checked) c.modules.push(id); else c.modules = c.modules.filter(m => m !== id);
+          try { await api("POST", { action: "set", code: c.code, modules: c.modules }); msg.textContent = "Saved"; }
+          catch (err) { msg.textContent = err.message; }
+        });
+        g.appendChild(l);
+      });
+      body.appendChild(g);
+    });
+    const core = document.createElement("div"); core.className = "core";
+    core.textContent = "Always on (Core): routines, show setup, remote and digits, screen swipe and writing, clipboard, Shortcuts, another app, Handoff, Apple Watch.";
+    body.appendChild(core);
+  }
+  el.querySelector(".name").addEventListener("change", async e => {
+    try { await api("POST", { action: "set", code: c.code, name: e.target.value }); msg.textContent = "Saved"; }
+    catch (err) { msg.textContent = err.message; }
+  });
+  el.querySelector(".copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(link); msg.textContent = "Copied: " + link; }
+    catch { msg.textContent = link; }
+  });
+  const t = el.querySelector(".toggle");
+  if (t) t.addEventListener("click", async () => { await api("POST", { action: "set", code: c.code, disabled: !c.disabled }); load(); });
+  const del = el.querySelector(".del");
+  if (del) del.addEventListener("click", async () => {
+    if (del.dataset.sure) { await api("POST", { action: "delete", code: c.code }); load(); }
+    else { del.dataset.sure = "1"; del.textContent = "Tap again to delete"; }
+  });
+  return el;
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, ch => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[ch])); }
+
+document.getElementById("go").addEventListener("click", async () => {
+  pw = document.getElementById("pw").value;
+  try { await load(); try { localStorage.setItem("mystioAdmin", pw); } catch {} }
+  catch (e) { document.getElementById("loginMsg").textContent = e.message; }
+});
+document.getElementById("pw").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("go").click(); });
+document.getElementById("add").addEventListener("click", async () => {
+  const name = document.getElementById("newName").value.trim();
+  if (!name) return;
+  const d = await api("POST", { action: "create", name });
+  document.getElementById("addMsg").textContent = "Added. Their link: mystio://access?code=" + d.code;
+  document.getElementById("newName").value = "";
+  load();
+});
+if (pw) load().catch(() => {});
+</script>
+</body>
+</html>
