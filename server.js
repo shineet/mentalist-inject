@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v290-mystio-labels";
+const REVISION = "v291-inject-print-module";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1965,7 +1965,7 @@ const MYSTIO_MODULES = [
   ["notes", "Notes"], ["calculator", "Calculator"], ["stopwatch", "Stopwatch"], ["phone", "Phone"],
   ["readers", "Camera Readers"], ["cardphoto", "Card in a Photo"], ["video", "Video Recorder"],
   ["photostudio", "Photo Studio"], ["song", "Song, Spotify & YouTube"], ["lookups", "AI Lookups (Famous for, Movie, T9 name)"],
-  ["routinemaker", "Routine Maker"], ["inject", "Inject"], ["instagram", "Instagram"],
+  ["routinemaker", "Routine Maker"], ["inject", "Inject"], ["injectprint", "Print Inject photos"], ["instagram", "Instagram"],
   ["wififlood", "Wi-Fi Flood"], ["timehacker", "Time Hacker"], ["mentalvoice", "Mental Voice"],
   ["letterbook", "Letter Mode & Book Test"], ["acrostic", "Acrostic Names"],
   ["app_chatgpt", "ChatGPT app"], ["app_notes", "Notes app"], ["app_calculator", "Calculator app"],
