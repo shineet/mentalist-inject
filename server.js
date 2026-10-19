@@ -12,7 +12,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v286-unlock-swap-relay";
+const REVISION = "v287-unlock-swap-tries";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1878,17 +1878,17 @@ app.get("/api/unlock/:room", (req, res) => {
              status: rec.status, swap: freshSwap(key), now: Date.now() });
 });
 
-// Mind Unlock 1.1 "Swap": the code a participant makes up on the PERFORMER's
-// phone, relayed live to the performer's view on the other phone. Held in
-// memory only, in its own map so saveUnlockRooms never writes it to disk,
-// and gone after ten minutes or a reset. Never logged.
+// Mind Unlock 1.1 "Swap": what the participant types on the PERFORMER's phone,
+// relayed live to the clip on the participant's phone in the performer's
+// hands: the digits being typed, and each finished try with how it ended.
+// Held in memory only, in its own map so saveUnlockRooms never writes it to
+// disk; gone after ten minutes or a reset. Never logged.
 const unlockSwaps = new Map();
-const SWAP_PHASES = ["new", "confirm", "mismatch", "set"];
 function freshSwap(key) {
   const s = unlockSwaps.get(key);
   if (!s) return null;
   if (Date.now() - s.at > 10 * 60 * 1000) { unlockSwaps.delete(key); return null; }
-  return s;
+  return { typing: s.typing, tries: s.tries };
 }
 app.post("/api/unlock/:room/swap", express.json({ limit: "1kb" }), (req, res) => {
   const key = normalizeRoom(req.params.room);
@@ -1896,8 +1896,13 @@ app.post("/api/unlock/:room/swap", express.json({ limit: "1kb" }), (req, res) =>
   const b = req.body || {};
   if (b.clear) { unlockSwaps.delete(key); return res.json({ ok: true }); }
   const code = String(b.code || "").replace(/[^0-9]/g, "").slice(0, 6);
-  if (!SWAP_PHASES.includes(b.phase)) return res.status(400).json({ ok: false });
-  unlockSwaps.set(key, { code, phase: b.phase, at: Date.now() });
+  const s = freshSwap(key) || { typing: "", tries: [] };
+  if (b.phase === "typing") s.typing = code;
+  else if (b.phase === "fail" || b.phase === "open") {
+    s.typing = "";
+    s.tries = [...s.tries, { code, result: b.phase }].slice(-8);
+  } else return res.status(400).json({ ok: false });
+  unlockSwaps.set(key, { ...s, at: Date.now() });
   res.json({ ok: true });
 });
 
