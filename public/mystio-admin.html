@@ -12,6 +12,7 @@
   main { max-width:900px; margin:0 auto; padding:20px 16px 60px; }
   h1 { font-size:24px; margin:4px 0 4px; }
   .sub { color:var(--dim); margin-bottom:18px; }
+  select { background:#0b0c0f; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-size:14px; }
   input[type=text], input[type=password] { background:#0b0c0f; color:var(--text); border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-size:15px; }
   button { background:var(--accent); color:#fff; border:0; border-radius:8px; padding:9px 14px; font-size:14px; cursor:pointer; }
   button.ghost { background:transparent; border:1px solid var(--line); color:var(--text); }
@@ -50,6 +51,7 @@
     <div class="card">
       <div class="row">
         <input id="newName" type="text" placeholder="New tester's name">
+        <select id="newFrom"><option value="">Start empty (Core only)</option></select>
         <button id="add">Add tester</button>
       </div>
       <div class="msg" id="addMsg"></div>
@@ -61,12 +63,14 @@
 const GROUPS = [
   ["Features", ["audience","voice","chatgpt","notes","calculator","stopwatch","phone","readers","cardphoto","video","photostudio","song","lookups","routinemaker","inject","injectprint","instagram","wififlood","timehacker","mentalvoice","letterbook","acrostic","india"]],
   ["Remotes (the Remote input appears once any is ticked; Duo is under Props)", ["remote_mb","remote_wilson","remote_thumper","remote_synaptic","remote_clicker"]],
+  ["Custom URLs (tick Custom URLs, then the ready-made ones they get)", ["customurl","url_unifi","url_motherboard","url_dfbx"]],
   ["Companion apps", ["app_chatgpt","app_notes","app_calculator","app_clock","app_phone"]],
   ["Props", ["motherboard","duo","secondsight","ultrasharpie","novasharpie","pad","kronaby","lumenspectra","lumenprism","missingtape","inception","thermal","pitata","sprocket","legacywallet"]],
 ];
 let pw = "";
 try { pw = localStorage.getItem("mystioAdmin") || ""; } catch {}
 let names = {};
+let allCodes = [];
 
 async function api(method, body) {
   const r = await fetch("/api/mystio/admin", {
@@ -82,6 +86,10 @@ async function load() {
   names = Object.fromEntries(d.modules);
   document.getElementById("login").hidden = true;
   document.getElementById("app").hidden = false;
+  allCodes = d.codes;
+  const sel = document.getElementById("newFrom");
+  sel.innerHTML = '<option value="">Start empty (Core only)</option>' +
+    d.codes.filter(c => !c.owner).map(c => `<option value="${c.code}">Copy of ${esc(c.name)}</option>`).join("");
   const list = document.getElementById("list");
   list.innerHTML = "";
   d.codes.sort((a, b) => (b.owner - a.owner) || (a.created - b.created)).forEach(c => list.appendChild(card(c)));
@@ -94,7 +102,8 @@ function card(c) {
   el.innerHTML = `
     <div class="head">
       <div style="min-width:0">
-        <input class="name" value="${esc(c.name)}" aria-label="Name">
+        <input class="name" value="${esc(c.name)}" aria-label="Name" title="Tap to rename">
+        <div class="code" style="margin-top:2px">Tap the name to rename</div>
         <div class="code">${c.code}</div>
       </div>
       <div class="row">
@@ -106,6 +115,7 @@ function card(c) {
     <div class="body"></div>
     <div class="actions">
       <button class="ghost copy">Copy their link</button>
+      ${c.owner ? '' : `<select class="from"><option value="">Copy modules from…</option>${allCodes.filter(o => o.code !== c.code && !o.owner).map(o => `<option value="${o.code}">${esc(o.name)}</option>`).join("")}</select>`}
       ${c.owner ? '' : `<button class="ghost toggle">${c.disabled ? "Switch on" : "Switch off"}</button>`}
       ${c.owner ? '' : '<button class="danger del">Delete</button>'}
     </div>
@@ -142,6 +152,14 @@ function card(c) {
     try { await navigator.clipboard.writeText(link); msg.textContent = "Copied: " + link; }
     catch { msg.textContent = link; }
   });
+  const from = el.querySelector(".from");
+  if (from) from.addEventListener("change", async () => {
+    if (!from.value) return;
+    const src = allCodes.find(o => o.code === from.value);
+    await api("POST", { action: "copy", code: c.code, from: from.value });
+    msg.textContent = "Copied the modules of " + (src ? src.name : "that profile");
+    load();
+  });
   const t = el.querySelector(".toggle");
   if (t) t.addEventListener("click", async () => { await api("POST", { action: "set", code: c.code, disabled: !c.disabled }); load(); });
   const del = el.querySelector(".del");
@@ -163,7 +181,7 @@ document.getElementById("pw").addEventListener("keydown", e => { if (e.key === "
 document.getElementById("add").addEventListener("click", async () => {
   const name = document.getElementById("newName").value.trim();
   if (!name) return;
-  const d = await api("POST", { action: "create", name });
+  const d = await api("POST", { action: "create", name, from: document.getElementById("newFrom").value || undefined });
   document.getElementById("addMsg").textContent = "Added. Their link: mystio://access?code=" + d.code;
   document.getElementById("newName").value = "";
   load();

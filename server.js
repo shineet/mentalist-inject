@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v292-remotes-india-modules";
+const REVISION = "v293-custom-urls-profiles";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1968,6 +1968,7 @@ const MYSTIO_MODULES = [
   ["routinemaker", "Routine Maker"], ["inject", "Inject"], ["injectprint", "Print Inject photos"], ["instagram", "Instagram"],
   ["wififlood", "Wi-Fi Flood"], ["timehacker", "Time Hacker"], ["mentalvoice", "Mental Voice"],
   ["letterbook", "Letter Mode & Book Test"], ["acrostic", "Acrostic Names"], ["india", "Indian options"],
+  ["customurl", "Custom URLs"], ["url_unifi", "Unifi"], ["url_motherboard", "Motherboard (URL)"], ["url_dfbx", "DFB X"],
   ["remote_mb", "MB Remote"], ["remote_wilson", "Wilson"], ["remote_thumper", "Thumper"],
   ["remote_synaptic", "Synaptic"], ["remote_clicker", "Bluetooth clicker"],
   ["app_chatgpt", "ChatGPT app"], ["app_notes", "Notes app"], ["app_calculator", "Calculator app"],
@@ -2034,7 +2035,9 @@ app.post("/api/mystio/admin", express.json({ limit: "16kb" }), (req, res) => {
   const b = req.body || {};
   if (b.action === "create") {
     const code = mystioNewCode();
-    mystioAccess.codes[code] = { name: String(b.name || "Tester").slice(0, 60), modules: [],
+    const from = b.from ? mystioCodeRecord(b.from) : null;
+    mystioAccess.codes[code] = { name: String(b.name || "Tester").slice(0, 60),
+                                 modules: from && !from.owner ? [...from.modules] : [],
                                  owner: !!b.owner, created: Date.now() };
     saveMystioAccess();
     return res.json({ ok: true, code });
@@ -2045,6 +2048,11 @@ app.post("/api/mystio/admin", express.json({ limit: "16kb" }), (req, res) => {
     if (Array.isArray(b.modules)) rec.modules = b.modules.filter(m => MYSTIO_IDS.has(m));
     if (typeof b.name === "string") rec.name = b.name.slice(0, 60);
     if (typeof b.disabled === "boolean") rec.disabled = b.disabled;
+  } else if (b.action === "copy") {
+    // Copy another profile's modules onto this one (a one-time copy).
+    const from = mystioCodeRecord(b.from);
+    if (!from) return res.status(404).json({ ok: false });
+    rec.modules = from.owner ? MYSTIO_MODULES.map(m => m[0]) : [...from.modules];
   } else if (b.action === "delete") {
     delete mystioAccess.codes[String(b.code).toUpperCase()];
   } else return res.status(400).json({ ok: false });
