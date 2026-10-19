@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v294-access-profiles";
+const REVISION = "v295-access-fixes";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1961,7 +1961,8 @@ let mystioMigrated = false;
 // one, so changing a profile changes everyone on it. Codes made before
 // profiles existed each become a profile of their own, so nothing changes.
 for (const [code, r] of Object.entries(mystioAccess.codes)) {
-  if (r.owner || r.profileId) continue;
+  // Only codes from before profiles, which still carry their own modules.
+  if (r.owner || r.profileId || !Array.isArray(r.modules)) continue;
   const id = "p" + crypto.randomBytes(4).toString("hex");
   mystioAccess.profiles[id] = { name: r.name + "'s profile", modules: r.modules || [], created: Date.now() };
   r.profileId = id;
@@ -2097,7 +2098,7 @@ app.post("/api/mystio/admin", express.json({ limit: "16kb" }), (req, res) => {
     case "deleteUser": {
       const rec = mystioCodeRecord(b.code);
       if (!rec || rec.owner) return res.status(400).json({ ok: false });
-      delete mystioAccess.codes[String(b.code).toUpperCase()];
+      delete mystioAccess.codes[String(b.code).toUpperCase().replace(/[^A-Z0-9]/g, "")];
       break;
     }
     default:
