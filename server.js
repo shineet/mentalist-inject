@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v289-mystio-access";
+const REVISION = "v290-mystio-labels";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1964,12 +1964,12 @@ const MYSTIO_MODULES = [
   ["audience", "Audience Page"], ["voice", "Voice & Conversation"], ["chatgpt", "ChatGPT"],
   ["notes", "Notes"], ["calculator", "Calculator"], ["stopwatch", "Stopwatch"], ["phone", "Phone"],
   ["readers", "Camera Readers"], ["cardphoto", "Card in a Photo"], ["video", "Video Recorder"],
-  ["photostudio", "Photo Studio"], ["song", "Song, Spotify & YouTube"], ["lookups", "AI Lookups"],
+  ["photostudio", "Photo Studio"], ["song", "Song, Spotify & YouTube"], ["lookups", "AI Lookups (Famous for, Movie, T9 name)"],
   ["routinemaker", "Routine Maker"], ["inject", "Inject"], ["instagram", "Instagram"],
   ["wififlood", "Wi-Fi Flood"], ["timehacker", "Time Hacker"], ["mentalvoice", "Mental Voice"],
   ["letterbook", "Letter Mode & Book Test"], ["acrostic", "Acrostic Names"],
   ["app_chatgpt", "ChatGPT app"], ["app_notes", "Notes app"], ["app_calculator", "Calculator app"],
-  ["app_clock", "Clock app"], ["app_phone", "Phone app"],
+  ["app_clock", "Clock app (Stopwatch)"], ["app_phone", "Phone app"],
   ["motherboard", "Motherboard"], ["duo", "Duo"], ["secondsight", "Second Sight"],
   ["ultrasharpie", "Ultra Sharpie"], ["novasharpie", "Nova Sharpie"], ["pad", "Impression Pad"],
   ["kronaby", "Kronaby"], ["lumenspectra", "Lumen Spectra"], ["lumenprism", "Lumen Prism"],
