@@ -138,6 +138,7 @@ function userCard(u) {
               : `<div class="row" style="margin-top:12px"><span>Profile</span><select class="prof">${profileOptions(u.profileId, "Core only")}</select></div>`}
     <div class="actions">
       <button class="ghost copy">Copy their link</button>
+      <button class="ghost rekey">New code</button>
       ${u.owner ? '' : `<button class="ghost toggle">${u.disabled ? "Switch on" : "Switch off"}</button>`}
       ${u.owner ? '' : '<button class="danger del">Delete</button>'}
     </div>
@@ -151,6 +152,13 @@ function userCard(u) {
   });
   const t = el.querySelector(".toggle");
   if (t) t.addEventListener("click", async () => { await save({ action: "setUser", code: u.code, disabled: !u.disabled }, msg); load(); });
+  const rk = el.querySelector(".rekey");
+  rk.addEventListener("click", async () => {
+    if (!rk.dataset.sure) { rk.dataset.sure = "1"; rk.textContent = "Tap again: the old code stops working"; return; }
+    const r = await api("POST", { action: "rekey", code: u.code });
+    await load();
+    document.getElementById("userMsg").textContent = "New link for " + u.name + ": mystio://access?code=" + r.code;
+  });
   const del = el.querySelector(".del");
   if (del) del.addEventListener("click", async () => {
     if (del.dataset.sure) { await save({ action: "deleteUser", code: u.code }, msg); load(); }

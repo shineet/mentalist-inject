@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v295-access-fixes";
+const REVISION = "v296-access-rekey";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2094,6 +2094,18 @@ app.post("/api/mystio/admin", express.json({ limit: "16kb" }), (req, res) => {
       if (b.profileId !== undefined && !rec.owner) rec.profileId = P[b.profileId] ? b.profileId : null;
       if (typeof b.disabled === "boolean" && !rec.owner) rec.disabled = b.disabled;
       break;
+    }
+    case "rekey": {
+      // A new code for the same person and profile: the old one stops
+      // working everywhere at once (a leaked code, Shine 2026-10-19).
+      const oldKey = String(b.code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+      const rec = mystioAccess.codes[oldKey];
+      if (!rec) return res.status(404).json({ ok: false });
+      const code = mystioNewCode();
+      mystioAccess.codes[code] = { ...rec, seenAt: undefined, rekeyedAt: Date.now() };
+      delete mystioAccess.codes[oldKey];
+      saveMystioAccess();
+      return res.json({ ok: true, code });
     }
     case "deleteUser": {
       const rec = mystioCodeRecord(b.code);
