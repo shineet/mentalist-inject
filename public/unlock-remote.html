@@ -68,6 +68,8 @@
   <div class="seg" id="digits"></div>
   <div class="lbl">Unlock method</div>
   <div class="seg" id="bio"></div>
+  <div class="lbl">Pause before it unlocks</div>
+  <div class="seg" id="pause"></div>
   <div class="lbl">Background tint</div>
   <div class="seg" id="tint"></div>
 </div>
@@ -85,7 +87,7 @@
   var room = (location.pathname.match(/^\/u\/([A-Za-z0-9_-]+)\/remote/) || [])[1];
   $("url").textContent = location.host + "/u/" + room;
   var TINTS = { black: "#000000", dark: "#2a2c31", blue: "#24466e", purple: "#45305f", warm: "#6b4a35", green: "#2f5143", light: "#9aa3ad" };
-  var cfg = { fails: 2, digits: 6, tint: "black", bio: "face" };
+  var cfg = { fails: 2, digits: 6, tint: "black", bio: "face", pause: 0 };
 
   function send(body) {
     return fetch("/api/unlock/" + room + "/control", {
@@ -111,6 +113,7 @@
     seg("fails", [0, 1, 2, 3, 4], ["0", "1", "2", "3", "4"], "fails");
     seg("digits", [4, 6], ["4 digits", "6 digits"], "digits");
     seg("bio", ["face", "touch"], ["Face ID", "Touch ID"], "bio");
+    seg("pause", [0, 0.5, 1, 1.5, 2], ["Off", "0.5 s", "1 s", "1.5 s", "2 s"], "pause");
     seg("tint", Object.keys(TINTS), null, "tint", true);
   }
 

@@ -104,7 +104,9 @@
     fails: clampInt(q.get("f"), 0, 4, 2),
     digits: q.get("d") === "4" ? 4 : 6,
     tint: TINTS[q.get("t")] ? q.get("t") : "black",
-    bio: q.get("b") === "touch" ? "touch" : "face"
+    bio: q.get("b") === "touch" ? "touch" : "face",
+    // Seconds before a winning code unlocks (p=0.5 etc.).
+    pause: [0, 0.5, 1, 1.5, 2].indexOf(parseFloat(q.get("p"))) >= 0 ? parseFloat(q.get("p")) : 0
   };
   var cfg = Object.assign({}, base);
 
@@ -198,7 +200,7 @@
     var win = override === "unlock" ? true : override === "fail" ? false : attempts > cfg.fails;
     override = null;
     setTimeout(function () {
-      if (win) { unlockNow(); return; }
+      if (win) { setTimeout(unlockNow, (cfg.pause || 0) * 1000); return; }
       haptic();
       var d = $("dots"); d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake");
       setTimeout(function () { typed = 0; drawDots(); busy = false; report(); }, 520);

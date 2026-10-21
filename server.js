@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v296-access-rekey";
+const REVISION = "v297-unlock-pause";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1835,12 +1835,16 @@ const UNLOCK_TINTS = ["black", "dark", "blue", "purple", "warm", "green", "light
 const UNLOCK_CMDS = ["lock", "wake", "unlock", "nextUnlock", "nextFail", "reset"];
 const UNLOCK_STAGES = ["cover", "black", "passcode", "unlocked"];
 
+const UNLOCK_PAUSES = [0, 0.5, 1, 1.5, 2];
 function cleanUnlockConfig(c) {
   const out = {};
   if (c.fails !== undefined) out.fails = Math.max(0, Math.min(4, Math.round(Number(c.fails) || 0)));
   if (c.digits !== undefined) out.digits = Number(c.digits) === 4 ? 4 : 6;
   if (UNLOCK_TINTS.includes(c.tint)) out.tint = c.tint;
   if (c.bio === "face" || c.bio === "touch") out.bio = c.bio;
+  // Seconds between the last digit and the unlock, so the phone can be
+  // turned to the room first (Shine, 2026-10-20).
+  if (UNLOCK_PAUSES.includes(Number(c.pause))) out.pause = Number(c.pause);
   return out;
 }
 
