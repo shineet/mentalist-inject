@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v298-notifier-module";
+const REVISION = "v299-peeksmith-module";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1994,7 +1994,7 @@ const MYSTIO_MODULES = [
   ["motherboard", "Motherboard"], ["duo", "Duo"], ["secondsight", "Second Sight"],
   ["ultrasharpie", "Ultra Sharpie"], ["novasharpie", "Nova Sharpie"], ["pad", "Impression Pad"],
   ["kronaby", "Kronaby"], ["lumenspectra", "Lumen Spectra"], ["lumenprism", "Lumen Prism"],
-  ["notifier", "Notifier"],
+  ["notifier", "Notifier"], ["peeksmith", "PeekSmith"],
   ["missingtape", "Missing Tape"], ["inception", "Inception"], ["thermal", "Thermal Printers"],
   ["pitata", "Pitata"], ["sprocket", "Sprocket"], ["legacywallet", "Legacy Wallet"],
 ];
