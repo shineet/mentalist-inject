@@ -339,12 +339,18 @@
   html.duo #incoming .answerRow, html.duo #incoming.hasCam .answerRow { position: static; padding: 0; margin: 0; }
   html.duo .answer { position: absolute; width: 140px; margin-left: -70px; gap: 9px; }
   html.duo .answer .circ { width: 93px; height: 93px; }
-  html.duo .answer .lab { font-size: 15px; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+  html.duo .answer .lab { font-size: 14px; text-shadow: 0 1px 6px rgba(0,0,0,0.4); }
+  html.duo .answer .circ svg { width: 44px; height: 44px; }
+  html.duo .answer.no .circ { background: #c0322b; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25); }
+  html.duo .answer.yes .circ { background: #3d9b46; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.25); }
   html.duo #declineBtn, html.duo #acceptBtn { top: calc(100% - 153.5px); }
   html.duo #declineBtn, html.duo #inMsg { left: calc(50% - 139.5px); }
   html.duo #acceptBtn, html.duo #inRemind { left: calc(50% + 139.5px); }
   html.duo .answer.yes .circ { animation: none; }
-  html.duo .answer.small { top: calc(100% - 250.5px); gap: 13px; }
+  html.duo .answer.small { top: calc(100% - 250.5px); gap: 8px; }
+  html.duo .answer.small .lab { font-size: 13px; }
+  html.duo .answer { gap: 5px; }
+  html.duo .answer.small .circ svg { width: 22px; height: 22px; }
   html.duo .answer.small .circ { width: 45px; height: 45px; background: rgba(70,70,74,0.55);
                                  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.4);
                                  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
