@@ -337,6 +337,10 @@
     stopRinging();
   };
 
+  // Inside Ringer's Assistant mode (v301): FaceTime on the app's call screen
+  // opens this page with ring=1, so that one tap is the whole callback.
+  if (params.get("ring") === "1") window.ringSpectator();
+
   // ── The call ──────────────────────────────────────────────────────────
   async function join() {
     say("Connecting…");
@@ -362,6 +366,9 @@
       vroom.on("participantDisconnected", leave);
       vroom.on("disconnected", leave);
       redraw();
+      // Ringer holds the voice call natively in Assistant mode; it ends it now,
+      // as this page ends its own when it holds the call.
+      try { window.webkit.messageHandlers.assistantapp.postMessage({ tag: "joined" }); } catch (e) {}
     } catch (e) {
       fail("Could not connect: " + ((e && e.message) || e));
       stopRinging();

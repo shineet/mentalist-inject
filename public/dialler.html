@@ -926,6 +926,8 @@
   document.getElementById("acceptBtn").addEventListener("click", async function () {
     // Drop the voice leg first. Two live audio paths at once would echo.
     try { if (conn) { conn.disconnect(); conn = null; } } catch (e) {}
+    // The full Ringer app holds its voice call natively and ends it on this.
+    toClip("accepted");
     clearInterval(tick);
     clearRing();
     // Released before Twilio takes the camera for itself: two claims on the
