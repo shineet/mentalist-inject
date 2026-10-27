@@ -603,6 +603,10 @@
   // lit while she waits.
   async function arm() {
     if (!room) { show("warn", "No room in this link"); return; }
+    // Inside Ringer's Assistant mode the APP takes the call, natively; this
+    // page is only there for the video. Registering here as well would make
+    // the same identity ring twice.
+    if (params.get("novoice") === "1") { show("ready", "Calls ring in the app"); return; }
     if (!window.Twilio || !Twilio.Device) { show("warn", "Call support did not load"); return; }
     show("", "Getting ready…");
     try {
