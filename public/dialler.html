@@ -294,6 +294,9 @@
                          border: 3px solid rgba(214,206,196,0.95); box-shadow: none; }
   /* Outer screen sideways: no room at mid-height, so it goes to the top. */
   @media (max-height: 520px) { html.duo #vidShutter { top: 24px; margin-top: 0; } }
+  /* ...and the name pill starts past the island, which sits on whichever
+     side is up (IMG_9290: island at the left, pill 84pt in). */
+  @media (max-height: 520px) { html.duo #vidPill { left: max(24px, calc(env(safe-area-inset-left) + 18px)); } }
   html.duo #pipWrap { right: 84px; top: 24px; width: 105px; height: 228px; }
   /* Inner screen upright: the status bar runs across the top right. */
   @media (orientation: portrait) and (min-width: 560px) { html.duo #pipWrap { top: 94px; } }
@@ -335,6 +338,16 @@
   @media (orientation: landscape) {
     html.duo #incoming #inKind, html.duo #incoming.hasCam #inKind { top: 63px; }
     html.duo #incoming #inNum, html.duo #incoming.hasCam #inNum { top: 90px; }
+  }
+  /* The outer screen keeps its island in a corner, so the title rides
+     higher there (IMG_9287/9288, 2026-10-27). */
+  @media (orientation: portrait) and (max-width: 559px) {
+    html.duo #incoming #inKind, html.duo #incoming.hasCam #inKind { top: 63px; }
+    html.duo #incoming #inNum, html.duo #incoming.hasCam #inNum { top: 89px; }
+  }
+  @media (orientation: landscape) and (max-height: 520px) {
+    html.duo #incoming #inKind, html.duo #incoming.hasCam #inKind { top: 43px; }
+    html.duo #incoming #inNum, html.duo #incoming.hasCam #inNum { top: 70px; }
   }
   html.duo #incoming .answerRow, html.duo #incoming.hasCam .answerRow { position: static; padding: 0; margin: 0; }
   html.duo .answer { position: absolute; width: 140px; margin-left: -70px; gap: 9px; }
