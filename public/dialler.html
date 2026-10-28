@@ -349,10 +349,34 @@
     html.duo #incoming #inKind, html.duo #incoming.hasCam #inKind { top: 43px; }
     html.duo #incoming #inNum, html.duo #incoming.hasCam #inNum { top: 70px; }
   }
-  /* Our own outgoing FaceTime: only End, centred. */
-  #incoming.out #inMsg, #incoming.out #inRemind, #incoming.out #acceptBtn { display: none; }
-  #incoming.out .answerRow { justify-content: center; }
-  html.duo #incoming.out #declineBtn { left: 50%; }
+  /* Our own outgoing FaceTime (Shine's Duo screenshots, 2026-10-28,
+     DuoReference/facetime-outgoing-*). Not a "Calling..." screen: it is the
+     call layout with this phone's own camera full screen and no self tile.
+     Same pill, same column. The shutter goes; two glass buttons (effects,
+     framing) sit under the status bar and a round flip at bottom left. */
+  .vglass { display: none; position: absolute; width: 48px; height: 48px; border-radius: 50%;
+            align-items: center; justify-content: center; color: #fff;
+            background: rgba(150,150,156,0.5);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .vglass svg { width: 29px; height: 29px; }
+  #vidFx { font: italic 400 30px/1 Georgia, "Times New Roman", serif; }
+  #video.out .vglass { display: flex; }
+  #video.out #vidShutter, #video.out #pipWrap { display: none; }
+  #vidFx { right: 16px; top: calc(env(safe-area-inset-top) + 16px); }
+  #vidFrame { right: 16px; top: calc(env(safe-area-inset-top) + 76px); }
+  #vidRound { left: 16px; bottom: calc(env(safe-area-inset-bottom) + 18px); }
+  html.duo #vidRound { left: 24px; bottom: 24px; }
+  /* Under the status bar, which is stacked on the right of the outer screen. */
+  html.duo #vidFx { right: 24px; top: 195px; }
+  html.duo #vidFrame { right: 24px; top: 255px; }
+  @media (orientation: portrait) and (min-width: 560px) {
+    html.duo #vidFx { top: 98px; } html.duo #vidFrame { top: 158px; } }
+  @media (orientation: landscape) and (min-height: 521px) {
+    html.duo #vidFx { top: 123px; } html.duo #vidFrame { top: 183px; } }
+  /* Outer screen sideways: a row along the top, left of the status bar. */
+  @media (max-height: 520px) {
+    html.duo #vidFx { top: 24px; right: 129px; } html.duo #vidFrame { top: 24px; right: 69px; } }
   html.duo #incoming .answerRow, html.duo #incoming.hasCam .answerRow { position: static; padding: 0; margin: 0; }
   html.duo .answer { position: absolute; width: 140px; margin-left: -70px; gap: 9px; }
   html.duo .answer .circ { width: 93px; height: 93px; }
@@ -474,6 +498,9 @@
       <div class="vdot" id="vidMore" data-ic="ellipsis"></div>
       <div id="vidEnd" data-ic="xmark"></div>
     </div>
+    <div class="vglass" id="vidFx">&#402;</div>
+    <div class="vglass" id="vidFrame" data-ic="framing"></div>
+    <div class="vglass" id="vidRound" data-ic="rotate"></div>
   </div>
 </div>
 
@@ -516,6 +543,8 @@
     mic: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm7 9a7 7 0 0 1-6 6.9V21h-2v-3.1A7 7 0 0 1 5 11h1.8a5.2 5.2 0 0 0 10.4 0H19z"/></svg>',
     videoslash: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M3.3 2 2 3.3l3 3A2.5 2.5 0 0 0 1.5 8v8A2.5 2.5 0 0 0 4 18.5h9c.5 0 1-.2 1.4-.4l6.3 6.3 1.3-1.3L3.3 2zM22 7.6v8.8c0 .8-.9 1.3-1.6.8L17 14.7V9.3l3.4-2.5c.7-.5 1.6 0 1.6.8z"/></svg>',
     xmark: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7l1.4-1.4L10.6 10.6l6.3-6.3z" transform="translate(1.4 0)"/></svg>',
+    framing: '<svg viewBox="0 0 24 24" width="W" height="W" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><circle cx="12" cy="9.4" r="2.7" fill="currentColor" stroke="none"/><path d="M6.8 17.6c.6-2.3 2.7-3.7 5.2-3.7s4.6 1.4 5.2 3.7z" fill="currentColor" stroke="none"/></svg>',
+    rotate: '<svg viewBox="0 0 24 24" width="W" height="W" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.3 11.2A7.8 7.8 0 0 1 18.7 7.6"/><path d="M19.7 12.8A7.8 7.8 0 0 1 5.3 16.4"/><path d="M19.2 4.2l-.4 3.6-3.5-.6"/><path d="M4.8 19.8l.4-3.6 3.5.6"/></svg>',
     personfill: '<svg viewBox="0 0 24 24" width="W" height="W"><circle cx="12" cy="9" r="4.6"/><path d="M12 15.2c-4.6 0-8.4 2.6-8.9 7.3h17.8c-.5-4.7-4.3-7.3-8.9-7.3z"/></svg>',
     bubble: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M12 3.5c5 0 9 3.3 9 7.5s-4 7.5-9 7.5c-.9 0-1.8-.1-2.6-.3L5 20.3l1-3.6C4.2 15.3 3 13.3 3 11c0-4.2 4-7.5 9-7.5z"/></svg>',
     alarm: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M12 5a8 8 0 1 1 0 16 8 8 0 0 1 0-16zm-.9 3.5v5.3l4 2.4.9-1.4-3.2-1.9V8.5h-1.7zM5.2 2.6l1.3 1.5-3.4 3-1.3-1.5 3.4-3zm13.6 0 3.4 3-1.3 1.5-3.4-3 1.3-1.5z"/></svg>',
@@ -643,6 +672,9 @@
   });
   document.querySelectorAll("#vidEnd[data-ic], #vidFlip[data-ic], #vidMic[data-ic], #vidCam[data-ic], #vidMore[data-ic], #vidShutter[data-ic]").forEach(function (c) {
     c.innerHTML = ic(c.getAttribute("data-ic"), 26);
+  });
+  document.querySelectorAll(".vglass[data-ic]").forEach(function (c) {
+    c.innerHTML = ic(c.getAttribute("data-ic"), 29);
   });
   document.querySelectorAll("#inAvatar[data-ic]").forEach(function (c) {
     c.innerHTML = ic(c.getAttribute("data-ic"), 76);
@@ -1114,13 +1146,13 @@
     if (!r || !r.ok) { toClip("done"); return false; }
     outgoing = true;
     duoCheck();
-    var inc = document.getElementById("incoming");
-    inc.classList.add("out");
-    document.getElementById("inKind").textContent = "Calling\u2026";
-    document.querySelector("#declineBtn .lab").textContent = "End";
-    document.getElementById("inNum").textContent = lastDialled ? fmt(lastDialled) : "Unknown";
-    show("incoming");
-    startSelfView();
+    var vs = document.getElementById("video");
+    vs.classList.add("out");
+    document.getElementById("vidLabel").textContent = lastDialled ? fmt(lastDialled) : "Unknown";
+    clearTimeout(chromeTimer);
+    document.getElementById("vidChrome").classList.remove("hid");
+    show("video");
+    startOutPreview();
     clearInterval(outPoll);
     outPoll = setInterval(function () {
       fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", { cache: "no-store" })
@@ -1130,11 +1162,12 @@
           clearInterval(outPoll); outPoll = null;
           if (d.ended === "answered") {
             outgoing = false;
-            inc.classList.remove("out");
-            stopSelfView();
+            stopOutPreview();
+            vs.classList.remove("out");
             joinVideo();
+            showChrome();
           } else {
-            document.getElementById("inKind").textContent =
+            document.getElementById("vidLabel").textContent =
               d.ended === "declined" ? "Declined" : "No Answer";
             setTimeout(endOutgoing, 1600);
           }
@@ -1144,14 +1177,46 @@
     return true;
   };
 
+  // This phone's camera, full screen, while it rings out.
+  var outStream = null;
+
+  async function startOutPreview() {
+    stopOutPreview();
+    try {
+      outStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: vidFacing }, audio: false,
+      });
+      if (!outgoing) { stopOutPreview(); return; }
+      var v = document.createElement("video");
+      v.autoplay = true; v.muted = true;
+      v.setAttribute("playsinline", "");
+      v.srcObject = outStream;
+      var w = document.getElementById("remoteWrap");
+      w.classList.toggle("mirror", vidFacing === "user");
+      w.replaceChildren(v);
+    } catch (e) { /* black, as FaceTime is with no camera */ }
+  }
+
+  function stopOutPreview() {
+    try { if (outStream) outStream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+    outStream = null;
+    var w = document.getElementById("remoteWrap");
+    w.replaceChildren();
+    w.classList.remove("mirror");
+  }
+
+  document.getElementById("vidRound").addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (!outgoing) return;
+    vidFacing = (vidFacing === "user") ? "environment" : "user";
+    startOutPreview();
+  });
+
   function endOutgoing() {
     outgoing = false;
     clearInterval(outPoll); outPoll = null;
-    var inc = document.getElementById("incoming");
-    inc.classList.remove("out");
-    document.getElementById("inKind").textContent = "FaceTime Video";
-    document.querySelector("#declineBtn .lab").textContent = "Decline";
-    stopSelfView();
+    stopOutPreview();
+    document.getElementById("video").classList.remove("out");
     if (VIDEO_ONLY) { toClip("done"); show("blank"); return; }
     show("keypad");
   }
@@ -1262,6 +1327,8 @@
     if (!c) return;
     c.classList.remove("hid");
     clearTimeout(chromeTimer);
+    // Ringing out, FaceTime keeps everything up.
+    if (outgoing) return;
     chromeTimer = setTimeout(function () { c.classList.add("hid"); }, 4000);
   }
 
@@ -1288,6 +1355,7 @@
   document.getElementById("vidCam").addEventListener("click", function () {
     var off = !this.classList.contains("off");
     localTracks("video").forEach(function (t) { off ? t.disable() : t.enable(); });
+    if (outStream) outStream.getVideoTracks().forEach(function (t) { t.enabled = !off; });
     this.classList.toggle("off", off);
     this.innerHTML = ic(off ? "videoslash" : "video", 23);
   });
@@ -1302,7 +1370,10 @@
     show("keypad");
   }
 
-  document.getElementById("vidEnd").addEventListener("click", endVideo);
+  document.getElementById("vidEnd").addEventListener("click", function () {
+    if (outgoing) { clearRing("cancelled"); endOutgoing(); return; }
+    endVideo();
+  });
 
   // ── Leaving nothing behind ────────────────────────────────────────────
   //
