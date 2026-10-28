@@ -51,7 +51,13 @@
   #vidChrome { position: absolute; inset: 0; pointer-events: none;
                transition: opacity .25s ease; z-index: 2; }
   #vidChrome > * { pointer-events: auto; }
-  #vidChrome.hid { opacity: 0; }
+  /* Faded, FaceTime keeps the self-view: it moves up into the corner and
+     only the controls go. It used to vanish with them, and Greg saw his own
+     picture come and go (2026-10-28). */
+  #vidChrome.hid > *:not(#pipWrap) { opacity: 0; pointer-events: none; }
+  #vidChrome > * { transition: opacity .25s ease, top .25s ease; }
+  #vidChrome.hid #pipWrap { top: calc(env(safe-area-inset-top) + 16px); }
+  #vidChrome.hid #flipBtn { opacity: 0; pointer-events: none; }
 
   #vidPill { position: absolute; left: 16px; top: calc(env(safe-area-inset-top) + 16px);
              height: 36px; max-width: 60%; border-radius: 18px; padding: 0 12px 0 5px;

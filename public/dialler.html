@@ -217,7 +217,11 @@
   #vidChrome { position: absolute; inset: 0; pointer-events: none;
                transition: opacity .25s ease; }
   #vidChrome > * { pointer-events: auto; }
-  #vidChrome.hid { opacity: 0; }
+  /* Faded, FaceTime keeps the self-view in the corner; only the controls go
+     (the Duo rules below size it). Off-Duo it used to vanish too. */
+  #vidChrome.hid > *:not(#pipWrap) { opacity: 0; pointer-events: none; }
+  #vidChrome.hid #pipWrap { top: calc(env(safe-area-inset-top) + 16px); }
+  #vidChrome.hid #vidFlip { opacity: 0; pointer-events: none; }
 
   /* Name pill, top left: avatar, name, chevron. Not centred text. */
   #vidPill { position: absolute; left: 16px; top: calc(env(safe-area-inset-top) + 16px);
@@ -322,7 +326,14 @@
   html.duo #vidChrome.hid { opacity: 1; }
   html.duo #vidChrome.hid > *:not(#pipWrap) { opacity: 0; pointer-events: none; }
   html.duo #vidChrome.hid #pipWrap { width: 78px; height: 170px; right: 24px; top: 24px; }
-  html.duo #vidChrome.hid #vidFlip { opacity: 0; }
+  /* Upright on the open Duo the clock sits top right, so a faded self-view
+     at top 24 was half under it and too small to hit (Shine's screenshot,
+     2026-10-28). The real call upright keeps it full size below the clock;
+     faded it stays there. The 78 x 170 corner is the sideways reference. */
+  @media (orientation: portrait) and (min-width: 560px) {
+    html.duo #vidChrome.hid #pipWrap { width: 105px; height: 228px; right: 84px; top: 94px; }
+  }
+  html.duo #vidChrome.hid #vidFlip { opacity: 0; pointer-events: none; }
 
   /* The incoming FaceTime on the Duo: "FaceTime Video" ABOVE the number,
      Message and Remind Me over Decline (an X) and Accept, all on their own
