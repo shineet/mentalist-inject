@@ -349,6 +349,10 @@
     html.duo #incoming #inKind, html.duo #incoming.hasCam #inKind { top: 43px; }
     html.duo #incoming #inNum, html.duo #incoming.hasCam #inNum { top: 70px; }
   }
+  /* Our own outgoing FaceTime: only End, centred. */
+  #incoming.out #inMsg, #incoming.out #inRemind, #incoming.out #acceptBtn { display: none; }
+  #incoming.out .answerRow { justify-content: center; }
+  html.duo #incoming.out #declineBtn { left: 50%; }
   html.duo #incoming .answerRow, html.duo #incoming.hasCam .answerRow { position: static; padding: 0; margin: 0; }
   html.duo .answer { position: absolute; width: 140px; margin-left: -70px; gap: 9px; }
   html.duo .answer .circ { width: 93px; height: 93px; }
@@ -931,11 +935,13 @@
     clearInterval(ringPoll);
     if (!room) return;
     ringPoll = setInterval(function () {
-      if (vroom || document.getElementById("incoming").classList.contains("on")) return;
+      if (vroom || outgoing || document.getElementById("incoming").classList.contains("on")) return;
       fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", { cache: "no-store" })
         .then(function (r) { return r.json(); })
         .then(function (d) {
-          if (d && d.ringing) { toClip("ring"); showIncoming(); }
+          // A ring this phone started (FaceTime on Ringer's call screen) is
+          // for the assistant, not for us.
+          if (d && d.ringing && d.from !== "spectator") { toClip("ring"); showIncoming(); }
         })
         .catch(function () {});
     }, 1800);
@@ -1030,28 +1036,38 @@
 
   // Clearing the ring is how the assistant learns it was answered -- one flag
   // both sides read, rather than a second channel to keep in sync.
-  function clearRing() {
+  function clearRing(how) {
+    var body = { on: false };
+    if (how) body[how] = true;
     return fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ on: false }),
+      body: JSON.stringify(body),
     }).catch(function () {});
   }
 
   document.getElementById("declineBtn").addEventListener("click", function () {
-    clearRing();
+    // On our own outgoing FaceTime this button is End.
+    if (outgoing) { clearRing("cancelled"); endOutgoing(); return; }
+    // "declined", or the assistant reads the ring stopping as an answer and
+    // sits in an empty video call (Shine, 2026-10-27).
+    clearRing("declined");
     stopSelfView();
     // Inside an app there is no keypad here to go back to.
     if (VIDEO_ONLY) { toClip("done"); show("blank"); return; }
     show("keypad");
   });
 
-  document.getElementById("acceptBtn").addEventListener("click", async function () {
+  document.getElementById("acceptBtn").addEventListener("click", function () {
+    clearRing();
+    joinVideo();
+  });
+
+  async function joinVideo() {
     // Drop the voice leg first. Two live audio paths at once would echo.
     try { if (conn) { conn.disconnect(); conn = null; } } catch (e) {}
     // The full Ringer app holds its voice call natively and ends it on this.
     toClip("accepted");
     clearInterval(tick);
-    clearRing();
     // Released before Twilio takes the camera for itself: two claims on the
     // same device is how a black self-view happens.
     stopSelfView();
@@ -1077,7 +1093,68 @@
       document.getElementById("vidLabel").textContent =
         "Could not connect: " + ((e && e.message) || e);
     }
-  });
+  }
+
+  // ── FaceTime FROM this phone ──────────────────────────────────────────
+  //
+  // FaceTime on Ringer's call screen, mid-call, on the performer's phone
+  // (Shine, 2026-10-27): it used to try a real FaceTime to the assistant's
+  // number, which on "VoIP all the way" goes nowhere. Now it rings the
+  // assistant's Ringer the way the assistant rings this page, the same flag
+  // with from: "spectator". Their Accept clears it ("answered") and both join;
+  // their Decline says "declined" and this screen says so.
+  var outgoing = false, outPoll = null;
+
+  window.ringAssistant = async function () {
+    if (!room || vroom || outgoing) return false;
+    var r = await fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ on: true, from: "spectator" }),
+    }).catch(function () { return null; });
+    if (!r || !r.ok) { toClip("done"); return false; }
+    outgoing = true;
+    duoCheck();
+    var inc = document.getElementById("incoming");
+    inc.classList.add("out");
+    document.getElementById("inKind").textContent = "Calling\u2026";
+    document.querySelector("#declineBtn .lab").textContent = "End";
+    document.getElementById("inNum").textContent = lastDialled ? fmt(lastDialled) : "Unknown";
+    show("incoming");
+    startSelfView();
+    clearInterval(outPoll);
+    outPoll = setInterval(function () {
+      fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", { cache: "no-store" })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!outgoing || !d || !d.ok || d.ringing) return;
+          clearInterval(outPoll); outPoll = null;
+          if (d.ended === "answered") {
+            outgoing = false;
+            inc.classList.remove("out");
+            stopSelfView();
+            joinVideo();
+          } else {
+            document.getElementById("inKind").textContent =
+              d.ended === "declined" ? "Declined" : "No Answer";
+            setTimeout(endOutgoing, 1600);
+          }
+        })
+        .catch(function () {});
+    }, 1200);
+    return true;
+  };
+
+  function endOutgoing() {
+    outgoing = false;
+    clearInterval(outPoll); outPoll = null;
+    var inc = document.getElementById("incoming");
+    inc.classList.remove("out");
+    document.getElementById("inKind").textContent = "FaceTime Video";
+    document.querySelector("#declineBtn .lab").textContent = "Decline";
+    stopSelfView();
+    if (VIDEO_ONLY) { toClip("done"); show("blank"); return; }
+    show("keypad");
+  }
 
   // One place decides what goes where, so swapping, flipping and someone
   // joining all end up consistent instead of each patching the DOM its own way.

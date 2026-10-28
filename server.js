@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v303-duo-outer-screen";
+const REVISION = "v304-facetime-decline-and-from-performer";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1652,8 +1652,19 @@ app.post("/api/ringer/:room/ring", express.json({ limit: "2kb" }), (req, res) =>
   const key = normalizeRoom(req.params.room);
   const rec = ringerRooms[key];
   if (!rec) return res.status(403).json({ ok: false, error: "room is not set up" });
-  const on = Boolean(req.body && req.body.on);
+  const body = req.body || {};
+  const on = Boolean(body.on);
+  // Who rang ("spectator" when FaceTime is tapped on the performer's call
+  // screen, else the assistant), and how a ring ended. Without `ended` the only
+  // signal was the flag dropping, which the ringer read as "answered" -- so a
+  // Decline put the assistant into an empty video call (Shine, 2026-10-27).
   rec.ringing = on ? Date.now() : 0;
+  if (on) {
+    rec.ringFrom = body.from === "spectator" ? "spectator" : "assistant";
+    rec.ringEnd = "";
+  } else {
+    rec.ringEnd = body.declined ? "declined" : body.cancelled ? "cancelled" : "answered";
+  }
   saveRingerRooms();
   res.json({ ok: true, ringing: on });
 });
@@ -1668,7 +1679,8 @@ app.get("/api/ringer/:room/ring", (req, res) => {
   // Rings expire. A ring left on by a page closed mid-rehearsal would have the
   // next spectator's phone light up before anything had happened.
   const live = Boolean(rec && rec.ringing && Date.now() - rec.ringing < 120000);
-  res.json({ ok: true, ringing: live });
+  const ended = !rec || live ? "" : rec.ringing ? "missed" : (rec.ringEnd || "answered");
+  res.json({ ok: true, ringing: live, from: (rec && rec.ringFrom) || "assistant", ended });
 });
 
 // ── The calculator on a borrowed phone ───────────────────────────────────────

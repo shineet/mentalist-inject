@@ -300,17 +300,85 @@
     if (!vroom) say("");
   }
 
-  // The ring going away IS the answer: one flag both sides read.
+  function toApp(msg) {
+    try { window.webkit.messageHandlers.assistantapp.postMessage(msg); } catch (e) {}
+  }
+
+  // The ring going away is the answer -- unless the server says it was
+  // declined or rang out. Before `ended` existed a Decline read as an answer
+  // and put her into a video call with nobody in it (Shine, 2026-10-27).
   async function joinIfAnswered() {
     try {
       var r = await fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", { cache: "no-store" });
       var d = await r.json();
       if (d && d.ok && d.ringing === false) {
         clearInterval(watcher); watcher = null;
+        if (d.ended === "declined" || d.ended === "missed" || d.ended === "cancelled") {
+          stopRinging();
+          say(d.ended === "declined" ? "They declined. Ring again when ready." : "No answer.");
+          if (window.onRingEnded) window.onRingEnded(d.ended);
+          toApp({ tag: d.ended });
+          return;
+        }
         await join();
       }
     } catch (e) {}
   }
+
+  // ── They rang US: FaceTime on the performer's call screen ─────────────
+  //
+  // Ringer opens this page with answer=1 when its poll sees a ring from the
+  // performer's phone. The incoming screen is the voice block's (#vc), with
+  // FaceTime's buttons. Accept clears the ring, which is how their phone
+  // learns to join; Decline says "declined", so it shows that instead.
+  var answering = false, answerPoll = null;
+  function answerSpectator() {
+    if (!room || answering) return;
+    answering = true;
+    var vc = document.getElementById("vc");
+    document.getElementById("vcSub").textContent = "FaceTime Video";
+    document.getElementById("vcWho").textContent = params.get("name") || "Unknown";
+    function b(kind, label, icon, act) {
+      var el = document.createElement("div");
+      el.className = "vb " + kind;
+      el.innerHTML = '<div>' + icon + '</div><span>' + label + '</span>';
+      el.addEventListener("click", act);
+      return el;
+    }
+    function finish(tag) {
+      answering = false;
+      clearInterval(answerPoll); answerPoll = null;
+      vc.classList.remove("on");
+      toApp({ tag: tag });
+    }
+    // Also what Ringer's close button runs, so dismissing is a Decline.
+    window.declineSpectator = function () {
+      if (!answering) return;
+      fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ on: false, declined: true }),
+      }).catch(function () {}).then(function () { finish("closed"); });
+    };
+    document.getElementById("vcRow").replaceChildren(
+      b("red", "Decline", ICONS.xmark, window.declineSpectator),
+      b("green", "Accept", ICONS.cam, async function () {
+        clearInterval(answerPoll); answerPoll = null;
+        answering = false;
+        if (!(await setRing(false))) return;
+        await join();
+      })
+    );
+    vc.classList.add("on");
+    // They gave up (End on their side, or it rang out): put the screen away.
+    answerPoll = setInterval(async function () {
+      try {
+        var r = await fetch("/api/ringer/" + encodeURIComponent(room) + "/ring", { cache: "no-store" });
+        var d = await r.json();
+        if (answering && d && d.ok && !d.ringing) finish("closed");
+      } catch (e) {}
+    }, 1200);
+  }
+  if (params.get("answer") === "1") answerSpectator();
 
   // ── The bridge to the voice block ─────────────────────────────────────
   //
@@ -368,7 +436,7 @@
       redraw();
       // Ringer holds the voice call natively in Assistant mode; it ends it now,
       // as this page ends its own when it holds the call.
-      try { window.webkit.messageHandlers.assistantapp.postMessage({ tag: "joined" }); } catch (e) {}
+      toApp({ tag: "joined" });
     } catch (e) {
       fail("Could not connect: " + ((e && e.message) || e));
       stopRinging();
@@ -706,6 +774,12 @@
         sub.textContent = ok ? "Ringing them on video\u2026" : "On the call";
       });
     });
+
+    window.onRingEnded = function (how) {
+      ringing = false;
+      v.classList.remove("waiting");
+      sub.textContent = how === "declined" ? "They declined video" : "On the call";
+    };
 
     row.replaceChildren(
       m,
