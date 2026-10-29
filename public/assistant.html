@@ -86,6 +86,16 @@
              -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
   #flipBtn svg { width: 17px; height: 17px; fill: currentColor; }
 
+  /* Held sideways with rotation lock on: the tile moves to the corner that is
+     now top right and lies on its side (redraw's applyTilt turns the picture;
+     dialler.html has the reasoning). tiltR: phone's top points right. */
+  #call.tiltR #vidChrome #pipWrap { left: 16px; right: auto; bottom: auto;
+    top: calc(env(safe-area-inset-top) + 62px); width: 180px; height: 84px; }
+  #call.tiltR #vidChrome.hid #pipWrap { top: calc(env(safe-area-inset-top) + 16px); }
+  #call.tiltL #vidChrome #pipWrap { left: auto; right: 76px; top: auto;
+    bottom: calc(env(safe-area-inset-bottom) + 18px); width: 180px; height: 84px; }
+  #call.tiltL #vidChrome.hid #pipWrap { right: 16px; }
+
   #ctlRow { position: absolute; right: 16px;
             bottom: calc(env(safe-area-inset-bottom) + 18px);
             display: flex; flex-direction: column; gap: 13px; }
@@ -574,6 +584,7 @@
     if (theirs) {
       var them = theirs.attach();
       them.setAttribute("playsinline", "");
+      them.classList.add("them");
       themBox().appendChild(them);
     }
     // Their audio, always, and hidden.
@@ -585,7 +596,32 @@
         big.appendChild(a);
       });
     });
+    applyTilt();
   }
+
+  // Sideways with rotation lock on: this page stays upright, WebKit turns
+  // our own camera, and the other side's picture is turned here. Ringer
+  // reports the tilt (90 top left, -90 top right, 0 upright). Same as
+  // dialler.html's, which explains it.
+  var tiltDeg = 0;
+  window.ringerTilt = function (deg) { tiltDeg = deg; applyTilt(); };
+  function applyTilt() {
+    var c = document.getElementById("call");
+    var on = innerHeight > innerWidth ? tiltDeg : 0;
+    c.classList.toggle("tiltL", on === 90);
+    c.classList.toggle("tiltR", on === -90);
+    var them = c.querySelector("video.them");
+    if (!them) return;
+    var st = them.style;
+    if (!on) { st.position = st.width = st.height = st.left = st.top = st.transform = ""; return; }
+    var box = them.parentElement, w = box.clientWidth, h = box.clientHeight;
+    st.position = "absolute";
+    st.width = h + "px"; st.height = w + "px";
+    st.left = (w - h) / 2 + "px"; st.top = (h - w) / 2 + "px";
+    st.transform = "rotate(" + on + "deg)";
+  }
+  addEventListener("resize", applyTilt);
+  if (window.ResizeObserver) new ResizeObserver(applyTilt).observe(document.getElementById("pipWrap"));
 
   // Tap the small window to swap, the way FaceTime does.
   document.getElementById("small").addEventListener("click", function (e) {

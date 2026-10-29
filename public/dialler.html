@@ -395,6 +395,23 @@
      in that view the same button, in glass, brings the split back. Two
      cameras at once are native only (a page gets one), so the pane shows
      whichever camera Flip picked, without FaceTime's second inset. */
+  /* Held sideways with rotation lock on (Shine's Duo screenshots, 2026-10-29,
+     IMG_9330/9331): the page stays upright, so the tile moves to whichever
+     corner is now top right for him and lies on its side, tall to him. The
+     picture inside is turned by applyTilt(). tiltR: the phone's top points
+     right, his top-right is the screen's top left. tiltL: top points left,
+     his top-right is the screen's bottom right, beside the control column. */
+  #video.tiltR #vidChrome #pipWrap { left: 16px; right: auto; bottom: auto;
+    top: calc(env(safe-area-inset-top) + 62px); width: 180px; height: 84px; }
+  #video.tiltR #vidChrome.hid #pipWrap { top: calc(env(safe-area-inset-top) + 16px); }
+  #video.tiltL #vidChrome #pipWrap { left: auto; right: 76px; top: auto;
+    bottom: calc(env(safe-area-inset-bottom) + 18px); width: 180px; height: 84px; }
+  #video.tiltL #vidChrome.hid #pipWrap { right: 16px; }
+  html.duo #video.tiltR #vidChrome #pipWrap { left: 24px; top: 94px; width: 228px; height: 105px; }
+  html.duo #video.tiltR #vidChrome.hid #pipWrap { top: 24px; }
+  /* Clear of the Flip pill at the bottom centre while the controls show. */
+  html.duo #video.tiltL #vidChrome #pipWrap { right: 84px; bottom: 64px; width: 228px; height: 105px; }
+  html.duo #video.tiltL #vidChrome.hid #pipWrap { right: 24px; bottom: 24px; }
   #vidSplit, #vidSplitFlip, #vidZoom { display: none; }
   #video.out #vidSplit, #video.out #vidSplitFlip, #video.out #vidZoom { display: none; }
   #video.wide:not(.out) #vidSplit { display: flex; left: 24px; bottom: 24px; }
@@ -1343,6 +1360,7 @@
     if (theirs) {
       var them = theirs.attach();
       them.setAttribute("playsinline", "");
+      them.classList.add("them");
       themBox().appendChild(them);
     }
     vroom.participants.forEach(function (p) {
@@ -1353,7 +1371,37 @@
         big.appendChild(a);
       });
     });
+    applyTilt();
   }
+
+  // Held sideways with rotation lock on, this page stays upright. WebKit
+  // turns this phone's own camera to match the phone, so that picture looked
+  // right, but the other side's stayed on its side in a tall tile at the old
+  // corner (Shine's Duo, 2026-10-29). FaceTime turns their picture and moves
+  // the tile to the corner that is now top right (CSS tiltL/tiltR). Ringer
+  // reports the tilt: 90 when the phone's top points left, -90 right, 0
+  // upright. Unlocked, the app turns instead and the page is wider than
+  // tall, so nothing here applies.
+  var tiltDeg = 0;
+  window.ringerTilt = function (deg) { tiltDeg = deg; applyTilt(); };
+  function applyTilt() {
+    var v = document.getElementById("video");
+    var on = innerHeight > innerWidth ? tiltDeg : 0;
+    v.classList.toggle("tiltL", on === 90);
+    v.classList.toggle("tiltR", on === -90);
+    var them = v.querySelector("video.them");
+    if (!them) return;
+    var st = them.style;
+    if (!on) { st.position = st.width = st.height = st.left = st.top = st.transform = ""; return; }
+    var box = them.parentElement, w = box.clientWidth, h = box.clientHeight;
+    st.position = "absolute";
+    st.width = h + "px"; st.height = w + "px";
+    st.left = (w - h) / 2 + "px"; st.top = (h - w) / 2 + "px";
+    st.transform = "rotate(" + on + "deg)";
+  }
+  addEventListener("resize", applyTilt);
+  // The tile's size eases between faded and shown; the picture follows it.
+  if (window.ResizeObserver) new ResizeObserver(applyTilt).observe(document.getElementById("pipWrap"));
 
   // Tap the small window to swap, the way FaceTime does.
   document.getElementById("selfWrap").addEventListener("click", function (e) {
