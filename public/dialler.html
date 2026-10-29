@@ -333,6 +333,12 @@
   @media (orientation: portrait) and (min-width: 560px) {
     html.duo #vidChrome.hid #pipWrap { width: 105px; height: 228px; right: 84px; top: 94px; }
   }
+  /* Closed and upright the island, clock and wifi stack down the top right,
+     and a faded tile at right 24 sat behind them (Shine's screenshot,
+     2026-10-29). It keeps the column clear, as the shown tile does. */
+  @media (orientation: portrait) and (max-width: 559px) {
+    html.duo #vidChrome.hid #pipWrap { right: 84px; }
+  }
   html.duo #vidChrome.hid #vidFlip { opacity: 0; pointer-events: none; }
 
   /* The incoming FaceTime on the Duo: "FaceTime Video" ABOVE the number,
