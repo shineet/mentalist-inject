@@ -101,6 +101,26 @@
   .cbtn.end { background: #ff3b30; color: #fff; }
   .cbtn.end svg { width: 21px; height: 21px; }
 
+  /* ── Ringing them, inside Ringer: a real outgoing FaceTime ─────────── */
+  /* Shine, 2026-10-28: the text page ("Call back", "Ringing... tap to stop")
+     read as a setup screen. In the app it is now the call layout FaceTime
+     shows while it rings out, as the dialler draws it (v305): this phone's
+     camera full screen, the name pill, the control column, two glass buttons
+     top right and a round flip bottom left, nothing fading. The setup page
+     stays for the browser, where the Ring button is still needed. */
+  .vglass { display: none; position: absolute; width: 47px; height: 47px; border-radius: 50%;
+            align-items: center; justify-content: center; color: #fff;
+            background: rgba(150,150,156,0.5);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.35);
+            -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .vglass svg { width: 27px; height: 27px; }
+  #outFx { font: italic 400 28px/1 Georgia, "Times New Roman", serif;
+           right: 16px; top: calc(env(safe-area-inset-top) + 16px); }
+  #outFrame { right: 16px; top: calc(env(safe-area-inset-top) + 76px); }
+  #outFlip { left: 16px; bottom: calc(env(safe-area-inset-bottom) + 18px); }
+  #call.out .vglass { display: flex; }
+  #call.out #vidShutter, #call.out #pipWrap { display: none; }
+
   /* ── Taking the VOICE call here instead of on her mobile ─────────────── */
   /* One line on the idle screen, so she can see at a glance whether this page
      is actually ready to be rung. Grey is "not yet", green is "it will ring
@@ -186,6 +206,9 @@
       <div class="cbtn" id="moreBtn"></div>
       <div class="cbtn end" id="hangBtn"></div>
     </div>
+    <div class="vglass" id="outFx">&#402;</div>
+    <div class="vglass" id="outFrame"></div>
+    <div class="vglass" id="outFlip"></div>
   </div>
 </div>
 
@@ -222,6 +245,8 @@
   document.getElementById("moreBtn").innerHTML = ICONS.ellipsis;
   document.getElementById("flipBtn").innerHTML = ICONS.flip;
   document.getElementById("hangBtn").innerHTML = ICONS.xmark;
+  document.getElementById("outFrame").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><circle cx="12" cy="9.4" r="2.7" fill="currentColor" stroke="none"/><path d="M6.8 17.6c.6-2.3 2.7-3.7 5.2-3.7s4.6 1.4 5.2 3.7z" fill="currentColor" stroke="none"/></svg>';
+  document.getElementById("outFlip").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.3 11.2A7.8 7.8 0 0 1 18.7 7.6"/><path d="M19.7 12.8A7.8 7.8 0 0 1 5.3 16.4"/><path d="M19.2 4.2l-.4 3.6-3.5-.6"/><path d="M4.8 19.8l.4-3.6 3.5.6"/></svg>';
 
   var params = new URLSearchParams(location.search);
   var room = params.get("r") || params.get("room") || "";
@@ -322,6 +347,7 @@
         if (d.ended === "declined" || d.ended === "missed" || d.ended === "cancelled") {
           stopRinging();
           say(d.ended === "declined" ? "They declined. Ring again when ready." : "No answer.");
+          endOut(d.ended === "declined" ? "Declined" : "No Answer");
           if (window.onRingEnded) window.onRingEnded(d.ended);
           toApp({ tag: d.ended });
           return;
@@ -403,6 +429,7 @@
     ringBtn.textContent = "Ringing\u2026 tap to stop";
     say("Waiting for them to accept");
     watcher = setInterval(joinIfAnswered, 1200);
+    if (IN_APP) startOut();
     return true;
   };
   window.stopRingSpectator = async function () {
@@ -411,12 +438,61 @@
     stopRinging();
   };
 
+  // ── Ringing out, drawn as FaceTime (in the app only) ──────────────────
+  var IN_APP = params.get("novoice") === "1";
+  var outStream = null, outing = false;
+  async function startOut() {
+    outing = true;
+    document.getElementById("setup").classList.add("off");
+    var c = document.getElementById("call");
+    c.classList.add("on", "out");
+    document.getElementById("vidName").textContent = params.get("name") || "FaceTime";
+    clearTimeout(chromeTimer);
+    document.getElementById("vidChrome").classList.remove("hid");
+    toApp({ tag: "chrome" });
+    await outPreview();
+  }
+  async function outPreview() {
+    stopOutPreview();
+    try {
+      outStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
+      if (!outing) { stopOutPreview(); return; }
+      var v = document.createElement("video");
+      v.autoplay = true; v.muted = true; v.setAttribute("playsinline", "");
+      v.srcObject = outStream;
+      var big = document.getElementById("big");
+      big.classList.toggle("mirror", facing === "user");
+      big.replaceChildren(v);
+    } catch (e) { /* black, as FaceTime is with no camera */ }
+  }
+  function stopOutPreview() {
+    try { if (outStream) outStream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+    outStream = null;
+    if (!vroom) { var big = document.getElementById("big"); big.replaceChildren(); big.classList.remove("mirror"); }
+  }
+  // Leaving the ring-out look: the camera goes back before Twilio takes it,
+  // or the self-view comes up black.
+  function endOut(text) {
+    if (!outing) return;
+    outing = false;
+    stopOutPreview();
+    document.getElementById("call").classList.remove("out");
+    if (text) document.getElementById("vidName").textContent = text;
+  }
+  document.getElementById("outFlip").addEventListener("click", function (e) {
+    e.stopPropagation();
+    if (!outing) return;
+    facing = (facing === "user") ? "environment" : "user";
+    outPreview();
+  });
+
   // Inside Ringer's Assistant mode (v301): FaceTime on the app's call screen
   // opens this page with ring=1, so that one tap is the whole callback.
   if (params.get("ring") === "1") window.ringSpectator();
 
   // ── The call ──────────────────────────────────────────────────────────
   async function join() {
+    endOut();
     say("Connecting…");
     try {
       var t = await fetch("/api/ringer/token?kind=video&who=assistant&room="
@@ -538,7 +614,14 @@
     } catch (e) { /* stay on the camera we had */ }
   });
 
-  document.getElementById("hangBtn").addEventListener("click", function () {
+  document.getElementById("hangBtn").addEventListener("click", async function (e) {
+    if (outing) {
+      e.stopPropagation();
+      endOut();
+      await window.stopRingSpectator();
+      toApp({ tag: "closed" });
+      return;
+    }
     if (vroom) vroom.disconnect();
   });
 
@@ -558,6 +641,7 @@
     if (!c) return;
     c.classList.remove("hid");
     clearTimeout(chromeTimer);
+    if (outing) return;
     chromeTimer = setTimeout(function () { c.classList.add("hid"); }, 4000);
   }
   document.getElementById("call").addEventListener("click", showChrome);
