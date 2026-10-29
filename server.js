@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v322-ringer-double-tap-fit";
+const REVISION = "v323-unlock-effect";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1891,6 +1891,8 @@ function cleanUnlockConfig(c) {
   if (UNLOCK_PAUSES.includes(Number(c.pause))) out.pause = Number(c.pause);
   // The page it opens to (Mind Unlock 1.1): any short https address.
   if (typeof c.page === "string" && c.page.length <= 300 && /^https:\/\/[^\s/]+/.test(c.page)) out.page = c.page;
+  // Which effect a /u link opens (Mind Unlock 1.2): the passcode or the calculator.
+  if (c.effect === "passcode" || c.effect === "calculator") out.effect = c.effect;
   return out;
 }
 
