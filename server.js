@@ -1540,7 +1540,11 @@ app.post("/api/ringer/:room/config", express.json({ limit: "4kb" }), (req, res) 
     // web dialler say exactly what the app says. {NUMBER} and {CITY} are filled
     // in by /notify.
     const smsTemplate = String((req.body && req.body.smsTemplate) || "").slice(0, 300);
-    ringerRooms[key] = { assistant: raw, vm, vmvoice, via, smsTemplate, at: Date.now() };
+    // A recorded greeting uploaded from Ringer (/api/ringer/vm-upload) plays
+    // instead of the spoken text. Only ever one of our own files.
+    const rawUrl = String((req.body && req.body.vmurl) || "");
+    const vmurl = /^https:\/\/mindgames\.fly\.dev\/media\/vm-[a-z0-9]+\.wav$/.test(rawUrl) ? rawUrl : "";
+    ringerRooms[key] = { assistant: raw, vm, vmvoice, vmurl, via, smsTemplate, at: Date.now() };
   } else {
     delete ringerRooms[key];
   }
@@ -1573,8 +1577,29 @@ app.get("/api/ringer/:room/assistant", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   if (!rec) return res.status(404).json({ ok: false, error: "nothing set for this room" });
   res.json({ ok: true, assistant: rec.assistant, vm: rec.vm || "", vmvoice: rec.vmvoice || "",
-             via: rec.via || "" });
+             vmurl: rec.vmurl || "", via: rec.via || "" });
 });
+
+// ── The voicemail greeting as a recording ────────────────────────────────────
+//
+// Shine, 2026-10-29: the spoken greeting sounded computer-made, and he wants
+// to use a clip made elsewhere. Ringer converts whatever he picks to a small
+// mono WAV (Twilio's <Play> takes WAV and MP3, not the M4A a voice memo is)
+// and sends it here. Same volume and /media path as the host app's clips, but
+// gated on Ringer's own token rather than the host's upload token, which
+// Ringer does not carry.
+app.post("/api/ringer/vm-upload",
+  express.raw({ type: ["audio/wav", "audio/x-wav"], limit: "8mb" }),
+  (req, res) => {
+    if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+    if (!req.body || req.body.length < 44 || req.body.toString("ascii", 0, 4) !== "RIFF") {
+      return res.status(400).json({ ok: false, error: "not a WAV file" });
+    }
+    const name = `vm-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}.wav`;
+    try { fs.writeFileSync(path.join(MEDIA_DIR, name), req.body); }
+    catch (e) { return res.status(500).json({ ok: false, error: "write failed" }); }
+    res.json({ ok: true, url: `https://mindgames.fly.dev/media/${name}`, bytes: req.body.length });
+  });
 
 // ── Telling the assistant where the caller is, BEFORE his phone rings ────────
 //
