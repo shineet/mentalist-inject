@@ -388,6 +388,29 @@
   /* Outer screen sideways: a row along the top, left of the status bar. */
   @media (max-height: 520px) {
     html.duo #vidFx { top: 24px; right: 129px; } html.duo #vidFrame { top: 24px; right: 69px; } }
+  /* Open Duo sideways: FaceTime splits the screen, this phone's camera in a
+     rounded pane on the left, the other side on the right, equal sizes
+     (Shine's screenshots, 2026-10-28, IMG_9319-9325). The white button at the
+     bottom left of the pane goes back to one big picture and a corner tile;
+     in that view the same button, in glass, brings the split back. Two
+     cameras at once are native only (a page gets one), so the pane shows
+     whichever camera Flip picked, without FaceTime's second inset. */
+  #vidSplit, #vidSplitFlip, #vidZoom { display: none; }
+  #video.out #vidSplit, #video.out #vidSplitFlip, #video.out #vidZoom { display: none; }
+  #video.wide:not(.out) #vidSplit { display: flex; left: 24px; bottom: 24px; }
+  #video.wide:not(.out) #vidSplit.on { background: #fff; color: #1c1c1e; box-shadow: none; }
+  #video.split #remoteWrap { left: calc(50% + 5px); }
+  html.duo #video.split #pipWrap, html.duo #video.split #vidChrome.hid #pipWrap {
+    left: 0; top: 0; bottom: 0; right: auto; width: calc(50% - 5px); height: auto; }
+  #video.split #selfWrap { border-radius: 24px; box-shadow: none; }
+  #video.split #vidFlip { display: none; }
+  html.duo #video.split #vidPill { left: calc(50% + 30px); max-width: calc(50% - 150px); }
+  #video.split #vidSplitFlip { display: flex; left: 24px; bottom: 24px; }
+  #video.wide.split #vidSplit { bottom: 84px; }
+  #vidSplit svg { fill: none; }
+  #video.split.back #vidZoom { display: flex; left: calc(50% - 5px - 72px); top: 24px;
+    width: 38px; height: 38px; font: 500 15px/1 -apple-system, system-ui, sans-serif;
+    background: rgba(40,40,42,0.6); box-shadow: none; }
   html.duo #incoming .answerRow, html.duo #incoming.hasCam .answerRow { position: static; padding: 0; margin: 0; }
   html.duo .answer { position: absolute; width: 140px; margin-left: -70px; gap: 9px; }
   html.duo .answer .circ { width: 93px; height: 93px; }
@@ -512,6 +535,9 @@
     <div class="vglass" id="vidFx">&#402;</div>
     <div class="vglass" id="vidFrame" data-ic="framing"></div>
     <div class="vglass" id="vidRound" data-ic="rotate"></div>
+    <div class="vglass" id="vidSplit" data-ic="split"></div>
+    <div class="vglass" id="vidSplitFlip" data-ic="rotate"></div>
+    <div class="vglass" id="vidZoom">1&times;</div>
   </div>
 </div>
 
@@ -554,6 +580,7 @@
     mic: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3zm7 9a7 7 0 0 1-6 6.9V21h-2v-3.1A7 7 0 0 1 5 11h1.8a5.2 5.2 0 0 0 10.4 0H19z"/></svg>',
     videoslash: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M3.3 2 2 3.3l3 3A2.5 2.5 0 0 0 1.5 8v8A2.5 2.5 0 0 0 4 18.5h9c.5 0 1-.2 1.4-.4l6.3 6.3 1.3-1.3L3.3 2zM22 7.6v8.8c0 .8-.9 1.3-1.6.8L17 14.7V9.3l3.4-2.5c.7-.5 1.6 0 1.6.8z"/></svg>',
     xmark: '<svg viewBox="0 0 24 24" width="W" height="W"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7l1.4-1.4L10.6 10.6l6.3-6.3z" transform="translate(1.4 0)"/></svg>',
+    split: '<svg viewBox="0 0 24 24" width="W" height="W" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="2.5" y="4.5" width="19" height="15" rx="2.6"/><path d="M9.5 4.5v15"/><circle cx="5.2" cy="7.4" r=".9" fill="currentColor" stroke="none"/><circle cx="7.4" cy="7.4" r=".9" fill="currentColor" stroke="none"/></svg>',
     framing: '<svg viewBox="0 0 24 24" width="W" height="W" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16"/><circle cx="12" cy="9.4" r="2.7" fill="currentColor" stroke="none"/><path d="M6.8 17.6c.6-2.3 2.7-3.7 5.2-3.7s4.6 1.4 5.2 3.7z" fill="currentColor" stroke="none"/></svg>',
     rotate: '<svg viewBox="0 0 24 24" width="W" height="W" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4.3 11.2A7.8 7.8 0 0 1 18.7 7.6"/><path d="M19.7 12.8A7.8 7.8 0 0 1 5.3 16.4"/><path d="M19.2 4.2l-.4 3.6-3.5-.6"/><path d="M4.8 19.8l.4-3.6 3.5.6"/></svg>',
     personfill: '<svg viewBox="0 0 24 24" width="W" height="W"><circle cx="12" cy="9" r="4.6"/><path d="M12 15.2c-4.6 0-8.4 2.6-8.9 7.3h17.8c-.5-4.7-4.3-7.3-8.9-7.3z"/></svg>',
@@ -1159,6 +1186,7 @@
     duoCheck();
     var vs = document.getElementById("video");
     vs.classList.add("out");
+    applySplit();
     document.getElementById("vidLabel").textContent = lastDialled ? fmt(lastDialled) : "Unknown";
     clearTimeout(chromeTimer);
     document.getElementById("vidChrome").classList.remove("hid");
@@ -1228,6 +1256,7 @@
     clearInterval(outPoll); outPoll = null;
     stopOutPreview();
     document.getElementById("video").classList.remove("out");
+    applySplit();
     if (VIDEO_ONLY) { toClip("done"); show("blank"); return; }
     show("keypad");
   }
@@ -1237,8 +1266,39 @@
   var vidFacing = "user";   // which camera this phone is sending
   var selfBig = false;      // which window this phone's own picture is in
 
-  function selfBox() { return document.getElementById(selfBig ? "remoteWrap" : "selfWrap"); }
-  function themBox() { return document.getElementById(selfBig ? "selfWrap" : "remoteWrap"); }
+  function selfBox() { return document.getElementById(selfBig && !splitOn() ? "remoteWrap" : "selfWrap"); }
+  function themBox() { return document.getElementById(selfBig && !splitOn() ? "selfWrap" : "remoteWrap"); }
+
+  // The split view (CSS above). Wanted unless turned off, remembered on this
+  // phone; drawn only where FaceTime draws it, the open Duo held sideways.
+  var wideMQ = window.matchMedia("(orientation: landscape) and (min-width: 800px) and (min-height: 521px)");
+  var splitWanted = true;
+  try { splitWanted = localStorage.getItem("ringerSplit") !== "0"; } catch (e) {}
+  function splitOn() { return document.getElementById("video").classList.contains("split"); }
+  function applySplit() {
+    var v = document.getElementById("video");
+    var wide = document.documentElement.classList.contains("duo") && wideMQ.matches;
+    var was = splitOn();
+    v.classList.toggle("wide", wide);
+    v.classList.toggle("split", wide && splitWanted && !v.classList.contains("out"));
+    v.classList.toggle("back", vidFacing === "environment");
+    document.getElementById("vidSplit").classList.toggle("on", splitOn());
+    if (was !== splitOn()) redrawVideo();
+  }
+  if (wideMQ.addEventListener) wideMQ.addEventListener("change", applySplit);
+  else if (wideMQ.addListener) wideMQ.addListener(applySplit);
+  document.getElementById("vidSplit").addEventListener("click", function (e) {
+    e.stopPropagation();
+    splitWanted = !splitWanted;
+    try { localStorage.setItem("ringerSplit", splitWanted ? "1" : "0"); } catch (err) {}
+    applySplit();
+    showChrome();
+  });
+  document.getElementById("vidSplitFlip").addEventListener("click", function (e) {
+    e.stopPropagation();
+    document.getElementById("vidFlip").click();
+    showChrome();
+  });
 
   function myVideoTrack() {
     var found = null;
@@ -1264,6 +1324,7 @@
 
   function redrawVideo() {
     if (!vroom) return;
+    applySplit();
     var big = document.getElementById("remoteWrap");
     var small = document.getElementById("selfWrap");
     big.replaceChildren(); small.replaceChildren();
@@ -1297,7 +1358,7 @@
   // Tap the small window to swap, the way FaceTime does.
   document.getElementById("selfWrap").addEventListener("click", function (e) {
     e.stopPropagation();
-    if (!vroom) return;
+    if (!vroom || splitOn()) return;
     selfBig = !selfBig;
     redrawVideo();
   });
