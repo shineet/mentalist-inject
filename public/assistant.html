@@ -623,13 +623,9 @@
     if (!them) return;
     var st = them.style;
     var box = them.parentElement, w = box.clientWidth, h = box.clientHeight;
-    // A sideways picture on an upright screen, cropped to fill it, showed
-    // the middle third of a face: Greg saw Shine "completely zoomed in"
-    // (2026-10-29). FaceTime fits a picture whose shape is the other way
-    // round whole, with bars, and fills only when the shapes agree. The
-    // small tile always fills, as FaceTime's does.
-    var tall = on ? w > h : h > w, theyTall = them.videoHeight > them.videoWidth;
-    st.objectFit = them.videoWidth && tall !== theyTall && !them.closest("#pipWrap") ? "contain" : "";
+    // Their picture always fills, as FaceTime's does. Fitting it whole
+    // when the shapes disagreed (v318) left wide black bars on the open
+    // Duo, which FaceTime never shows (Shine, 2026-10-29).
     if (!on) { st.position = st.width = st.height = st.left = st.top = st.transform = ""; return; }
     st.position = "absolute";
     st.width = h + "px"; st.height = w + "px";
