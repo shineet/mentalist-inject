@@ -628,7 +628,7 @@
   // our own camera, and the other side's picture is turned here. Ringer
   // reports the tilt (90 top left, -90 top right, 0 upright). Same as
   // dialler.html's, which explains it.
-  var tiltDeg = 0;
+  var tiltDeg = 0, fitChoice = null;
   window.ringerTilt = function (deg) { tiltDeg = deg; applyTilt(); };
   function applyTilt() {
     var c = document.getElementById("call");
@@ -639,9 +639,15 @@
     if (!them) return;
     var st = them.style;
     var box = them.parentElement, w = box.clientWidth, h = box.clientHeight;
-    // Their picture always fills, as FaceTime's does. Fitting it whole
-    // when the shapes disagreed (v318) left wide black bars on the open
-    // Duo, which FaceTime never shows (Shine, 2026-10-29).
+    // The open Duo's camera sends a wide picture even held upright, and an
+    // upright phone filled with it keeps a third of it: Greg saw Shine
+    // "completely zoomed in". Here, unlike on the Duo, a picture the other
+    // shape from the screen shows whole, bars above and below, until a
+    // double-tap says otherwise (Shine, 2026-10-29).
+    if (fitChoice === null && box.id === "big") {
+      var tall = on ? w > h : h > w, theyTall = them.videoHeight > them.videoWidth;
+      box.classList.toggle("fit", !!them.videoWidth && tall !== theyTall);
+    }
     if (!on) { st.position = st.width = st.height = st.left = st.top = st.transform = ""; return; }
     st.position = "absolute";
     st.width = h + "px"; st.height = w + "px";
@@ -728,7 +734,7 @@
     if (e.target.closest("#vidChrome > *")) return;
     var now = Date.now();
     if (now - lastTap < 350) {
-      document.getElementById("big").classList.toggle("fit");
+      fitChoice = document.getElementById("big").classList.toggle("fit");
       lastTap = 0;
     } else lastTap = now;
   });
