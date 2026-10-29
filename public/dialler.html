@@ -339,6 +339,11 @@
   @media (orientation: portrait) and (max-width: 559px) {
     html.duo #vidChrome.hid #pipWrap { right: 84px; }
   }
+  /* Open and sideways the clock and wifi sit in the top right corner too,
+     over the faded tile (IMG 10:46, 2026-10-29). */
+  @media (orientation: landscape) and (min-height: 521px) {
+    html.duo #vidChrome.hid #pipWrap { right: 84px; }
+  }
   html.duo #vidChrome.hid #vidFlip { opacity: 0; pointer-events: none; }
 
   /* The incoming FaceTime on the Duo: "FaceTime Video" ABOVE the number,
