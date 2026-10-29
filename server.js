@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v315-performer-auto-accept";
+const REVISION = "v316-unlock-opens-to";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1857,6 +1857,8 @@ function cleanUnlockConfig(c) {
   // Seconds between the last digit and the unlock, so the phone can be
   // turned to the room first (Shine, 2026-10-20).
   if (UNLOCK_PAUSES.includes(Number(c.pause))) out.pause = Number(c.pause);
+  // The page it opens to (Mind Unlock 1.1): any short https address.
+  if (typeof c.page === "string" && c.page.length <= 300 && /^https:\/\/[^\s/]+/.test(c.page)) out.page = c.page;
   return out;
 }
 

@@ -106,7 +106,9 @@
     tint: TINTS[q.get("t")] ? q.get("t") : "black",
     bio: q.get("b") === "touch" ? "touch" : "face",
     // Seconds before a winning code unlocks (p=0.5 etc.).
-    pause: [0, 0.5, 1, 1.5, 2].indexOf(parseFloat(q.get("p"))) >= 0 ? parseFloat(q.get("p")) : 0
+    pause: [0, 0.5, 1, 1.5, 2].indexOf(parseFloat(q.get("p"))) >= 0 ? parseFloat(q.get("p")) : 0,
+    // The page it opens to (g=https://...); Google unless set.
+    page: /^https:\/\/[^\s/]+/.test(q.get("g") || "") ? q.get("g") : "https://www.google.com/"
   };
   var cfg = Object.assign({}, base);
 
@@ -185,7 +187,7 @@
     if (stage === "unlocked") return;
     stage = "unlocked"; report();
     var p = $("pass"); p.classList.remove("in"); p.classList.add("out");
-    setTimeout(function () { location.replace("https://www.google.com/"); }, 360);
+    setTimeout(function () { location.replace(/^https:\/\/[^\s/]+/.test(cfg.page || "") ? cfg.page : "https://www.google.com/"); }, 360);
   }
 
   function press(k) {
