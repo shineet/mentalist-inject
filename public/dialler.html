@@ -1201,6 +1201,7 @@
       vroom.on("participantDisconnected", endVideo);
       vroom.on("disconnected", endVideo);
       redrawVideo();
+      camLog("performer"); setTimeout(function () { camLog("performer+3s"); }, 3000);
       showChrome();
     } catch (e) {
       document.getElementById("vidLabel").textContent =
@@ -1342,6 +1343,20 @@
     document.getElementById("vidFlip").click();
     showChrome();
   });
+
+  // What the camera is actually giving us, to the server log (fly logs,
+  // "[camlog]"): Greg saw Shine zoomed in, and the capture size and the
+  // range the camera offers decide whether a wider picture is possible
+  // (2026-10-29).
+  function camLog(who) {
+    var t = myVideoTrack(), m = t && t.mediaStreamTrack;
+    if (!m) return;
+    var caps = {};
+    try { caps = m.getCapabilities ? m.getCapabilities() : {}; } catch (e) {}
+    fetch("/api/ringer/camlog", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ who: who, settings: m.getSettings(), caps: caps,
+        screen: innerWidth + "x" + innerHeight, ua: navigator.userAgent }) }).catch(function () {});
+  }
 
   function myVideoTrack() {
     var found = null;

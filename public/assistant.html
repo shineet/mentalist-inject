@@ -533,6 +533,7 @@
       vroom.on("participantDisconnected", leave);
       vroom.on("disconnected", leave);
       redraw();
+      camLog("assistant"); setTimeout(function () { camLog("assistant+3s"); }, 3000);
       // Ringer holds the voice call natively in Assistant mode; it ends it now,
       // as this page ends its own when it holds the call.
       toApp({ tag: "joined" });
@@ -560,6 +561,20 @@
       p.videoTracks.forEach(function (pub) { if (pub.track) found = pub.track; });
     });
     return found;
+  }
+
+  // What the camera is actually giving us, to the server log (fly logs,
+  // "[camlog]"): Greg saw Shine zoomed in, and the capture size and the
+  // range the camera offers decide whether a wider picture is possible
+  // (2026-10-29).
+  function camLog(who) {
+    var t = myVideoTrack(), m = t && t.mediaStreamTrack;
+    if (!m) return;
+    var caps = {};
+    try { caps = m.getCapabilities ? m.getCapabilities() : {}; } catch (e) {}
+    fetch("/api/ringer/camlog", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ who: who, settings: m.getSettings(), caps: caps,
+        screen: innerWidth + "x" + innerHeight, ua: navigator.userAgent }) }).catch(function () {});
   }
 
   function myVideoTrack() {
