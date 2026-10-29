@@ -1128,9 +1128,24 @@
     // The number they dialled, which is the point: it reads as the person they
     // called ringing back.
     document.getElementById("inNum").textContent = lastDialled ? fmt(lastDialled) : "Unknown";
+    // Already answered on the iPhone's own incoming FaceTime screen (the
+    // assistant rang from Recents and this phone was locked): straight in.
+    if (autoAccept) { autoAccept = false; clearRing(); joinVideo(); return; }
     show("incoming");
     startSelfView();
   }
+
+  // Ringer calls this once its incoming FaceTime is answered. The ring may
+  // not have been seen yet; the next poll then takes it straight in.
+  var autoAccept = false;
+  window.ringerAutoAccept = function () {
+    if (document.getElementById("incoming").classList.contains("on")) {
+      document.getElementById("acceptBtn").click();
+    } else {
+      autoAccept = true;
+      setTimeout(function () { autoAccept = false; }, 30000);
+    }
+  };
 
   // Clearing the ring is how the assistant learns it was answered -- one flag
   // both sides read, rather than a second channel to keep in sync.
