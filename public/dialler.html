@@ -212,6 +212,7 @@
   #video { background: #000; }
   #remoteWrap { position: absolute; inset: 0; }
   #remoteWrap video { width: 100%; height: 100%; object-fit: cover; }
+  #remoteWrap.fit video { object-fit: contain; }
 
   /* Everything that fades, in one layer. */
   #vidChrome { position: absolute; inset: 0; pointer-events: none;
@@ -1510,6 +1511,21 @@
     // A tap on a control works it AND keeps everything up; a tap anywhere else
     // just brings it back.
     showChrome();
+  });
+
+  // Double-tap their picture to see the whole of it, again to fill. The
+  // camera already sends its widest picture (4:3 at zoom 1, the least WebKit
+  // allows); a tall phone filled with it crops the sides, which Greg read as
+  // "zoomed in" (2026-10-29). Timed by hand: iOS does not always send
+  // dblclick.
+  var lastTap = 0;
+  document.getElementById("video").addEventListener("click", function (e) {
+    if (e.target.closest("#vidChrome > *")) return;
+    var now = Date.now();
+    if (now - lastTap < 350) {
+      document.getElementById("remoteWrap").classList.toggle("fit");
+      lastTap = 0;
+    } else lastTap = now;
   });
 
   function localTracks(kind) {

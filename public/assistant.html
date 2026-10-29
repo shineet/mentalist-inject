@@ -47,6 +47,7 @@
   #call.on { display: block; }
   #big { position: absolute; inset: 0; }
   #big video { width: 100%; height: 100%; object-fit: cover; }
+  #big.fit video { object-fit: contain; }
 
   #vidChrome { position: absolute; inset: 0; pointer-events: none;
                transition: opacity .25s ease; z-index: 2; }
@@ -716,6 +717,21 @@
     chromeTimer = setTimeout(function () { c.classList.add("hid"); }, 4000);
   }
   document.getElementById("call").addEventListener("click", showChrome);
+
+  // Double-tap their picture to see the whole of it, again to fill. The
+  // camera already sends its widest picture (4:3 at zoom 1, the least WebKit
+  // allows); a tall phone filled with it crops the sides, which Greg read as
+  // "zoomed in" (2026-10-29). Timed by hand: iOS does not always send
+  // dblclick.
+  var lastTap = 0;
+  document.getElementById("call").addEventListener("click", function (e) {
+    if (e.target.closest("#vidChrome > *")) return;
+    var now = Date.now();
+    if (now - lastTap < 350) {
+      document.getElementById("big").classList.toggle("fit");
+      lastTap = 0;
+    } else lastTap = now;
+  });
 
   function localTracks(kind) {
     if (!vroom) return [];
