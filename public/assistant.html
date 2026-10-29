@@ -592,6 +592,8 @@
       var them = theirs.attach();
       them.setAttribute("playsinline", "");
       them.classList.add("them");
+      // Their phone turning changes the picture's shape mid-call.
+      them.addEventListener("resize", applyTilt);
       themBox().appendChild(them);
     }
     // Their audio, always, and hidden.
@@ -620,8 +622,15 @@
     var them = c.querySelector("video.them");
     if (!them) return;
     var st = them.style;
-    if (!on) { st.position = st.width = st.height = st.left = st.top = st.transform = ""; return; }
     var box = them.parentElement, w = box.clientWidth, h = box.clientHeight;
+    // A sideways picture on an upright screen, cropped to fill it, showed
+    // the middle third of a face: Greg saw Shine "completely zoomed in"
+    // (2026-10-29). FaceTime fits a picture whose shape is the other way
+    // round whole, with bars, and fills only when the shapes agree. The
+    // small tile always fills, as FaceTime's does.
+    var tall = on ? w > h : h > w, theyTall = them.videoHeight > them.videoWidth;
+    st.objectFit = them.videoWidth && tall !== theyTall && !them.closest("#pipWrap") ? "contain" : "";
+    if (!on) { st.position = st.width = st.height = st.left = st.top = st.transform = ""; return; }
     st.position = "absolute";
     st.width = h + "px"; st.height = w + "px";
     st.left = (w - h) / 2 + "px"; st.top = (h - w) / 2 + "px";
