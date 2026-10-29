@@ -620,7 +620,15 @@
     st.left = (w - h) / 2 + "px"; st.top = (h - w) / 2 + "px";
     st.transform = "rotate(" + on + "deg)";
   }
-  addEventListener("resize", applyTilt);
+  // The page turning upright is iOS saying the phone is upright: a tilt
+  // left over from sideways must not survive it (Shine's Duo, 2026-10-29).
+  var wasWide = innerWidth > innerHeight;
+  addEventListener("resize", function () {
+    var wide = innerWidth > innerHeight;
+    if (wasWide && !wide) tiltDeg = 0;
+    wasWide = wide;
+    applyTilt();
+  });
   if (window.ResizeObserver) new ResizeObserver(applyTilt).observe(document.getElementById("pipWrap"));
 
   // Tap the small window to swap, the way FaceTime does.
