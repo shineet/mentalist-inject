@@ -711,6 +711,7 @@
   });
 
   function leave() {
+    var wasUp = Boolean(vroom);
     clearTimeout(chromeTimer); chromeTimer = null;
     try { if (vroom) vroom.disconnect(); } catch (e) {}
     vroom = null;
@@ -720,6 +721,10 @@
     document.getElementById("setup").classList.remove("off");
     stopRinging();
     say("Call ended");
+    // In Ringer this setup screen is a browser's, and with the app's close
+    // arrow gone (v308) it stayed over the call screen: the next call came
+    // in under it (Shine, 2026-10-29). Back to the app's own screens.
+    if (IN_APP && wasUp) toApp({ tag: "closed" });
   }
 
   // Leaving should not leave their phone ringing for ever.
