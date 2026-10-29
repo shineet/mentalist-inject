@@ -376,6 +376,13 @@
   var answering = false, answerPoll = null;
   function answerSpectator() {
     if (!room || answering) return;
+    // Already answered on the iPhone's own incoming FaceTime screen (the
+    // performer rang from Recents and this phone was locked): straight in,
+    // no second Accept.
+    if (params.get("accepted") === "1") {
+      setRing(false).then(function (ok) { if (ok) join(); });
+      return;
+    }
     answering = true;
     var vc = document.getElementById("vc");
     document.getElementById("vcSub").textContent = "FaceTime Video";
