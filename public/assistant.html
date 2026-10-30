@@ -243,6 +243,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/twilio-video@2/dist/twilio-video.min.js"></script>
+<script src="/native-video.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
 <script>
 (function () {
@@ -488,7 +489,12 @@
   }
   async function outPreview() {
     stopOutPreview();
-    if (params.get("native") === "1") return;
+    if (window.NativeVideo) {
+      var nb = document.getElementById("big");
+      nb.classList.toggle("mirror", facing === "user");
+      nb.replaceChildren(NativeVideo.preview(facing));
+      return;
+    }
     try {
       outStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
       if (!outing) { stopOutPreview(); return; }
@@ -501,6 +507,7 @@
     } catch (e) { /* black, as FaceTime is with no camera */ }
   }
   function stopOutPreview() {
+    if (window.NativeVideo && !vroom && document.querySelector("#big video.nv")) NativeVideo.stopPreview();
     try { if (outStream) outStream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
     outStream = null;
     if (!vroom) { var big = document.getElementById("big"); big.replaceChildren(); big.classList.remove("mirror"); }
@@ -528,11 +535,6 @@
   // ── The call ──────────────────────────────────────────────────────────
   async function join() {
     endOut();
-    // Ringer's native camera build (?native=1): the app runs the call itself.
-    if (params.get("native") === "1") {
-      toApp({ tag: "native-join", room: room, name: params.get("name") || "Unknown" });
-      return;
-    }
     say("Connecting…");
     try {
       var t = await fetch("/api/ringer/token?kind=video&who=assistant&room="
@@ -630,6 +632,7 @@
     toApp({ tag: on ? "rim-on" : "rim-off" });
   }
   function startRim() {
+    if (window.NativeVideo) return;
     clearInterval(rimTimer); rimDark = 0; setRim(false);
     rimTimer = setInterval(function () {
       if (rimOn) return;
