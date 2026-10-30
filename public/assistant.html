@@ -575,6 +575,7 @@
     try { caps = m.getCapabilities ? m.getCapabilities() : {}; } catch (e) {}
     fetch("/api/ringer/camlog", { method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ who: who, tilt: tiltDeg, settings: m.getSettings(), caps: caps,
+        theirs: (function (v) { return v ? v.videoWidth + "x" + v.videoHeight : ""; })(document.querySelector("video.them")),
         screen: innerWidth + "x" + innerHeight, ua: navigator.userAgent }) }).catch(function () {});
   }
 
