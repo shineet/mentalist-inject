@@ -45,9 +45,13 @@
      flip inside the self-view, and the whole lot fades after four seconds. */
   #call { position: fixed; inset: 0; display: none; background: #000; }
   #call.on { display: block; }
-  #big { position: absolute; inset: 0; }
+  #big { position: absolute; inset: 0; overflow: hidden; }
   #big video { width: 100%; height: 100%; object-fit: cover; }
   #big.fit video { object-fit: contain; }
+  /* Balanced: behind their picture, a blurred copy fills what it leaves. */
+  #big video.themBg { display: none; position: absolute; inset: 0;
+                      filter: blur(28px) brightness(0.7); }
+  #big.fit video.themBg { display: block; object-fit: cover; }
 
   #vidChrome { position: absolute; inset: 0; pointer-events: none;
                transition: opacity .25s ease; z-index: 2; }
@@ -611,6 +615,12 @@
       them.classList.add("them");
       // Their phone turning changes the picture's shape mid-call.
       them.addEventListener("resize", applyTilt);
+      if (themBox().id === "big") {
+        var bg = theirs.attach();
+        bg.setAttribute("playsinline", ""); bg.muted = true;
+        bg.classList.add("themBg");
+        themBox().appendChild(bg);
+      }
       themBox().appendChild(them);
     }
     // Their audio, always, and hidden.
@@ -643,22 +653,35 @@
     c.classList.toggle("tiltR", on === -90);
     var them = c.querySelector("video.them");
     if (!them) return;
-    var st = them.style;
     var box = them.parentElement, w = box.clientWidth, h = box.clientHeight;
     // The open Duo's camera sends a wide picture even held upright, and an
     // upright phone filled with it keeps a third of it: Greg saw Shine
     // "completely zoomed in". Here, unlike on the Duo, a picture the other
-    // shape from the screen shows whole, bars above and below, until a
-    // double-tap says otherwise (Shine, 2026-10-29).
+    // shape from the screen is shown Balanced, keeping 60% of its width
+    // with a blurred copy behind instead of bars, until a double-tap says
+    // otherwise (Shine chose it from mockups, 2026-10-29).
     if (fitChoice === null && box.id === "big") {
       var tall = on ? w > h : h > w, theyTall = them.videoHeight > them.videoWidth;
       box.classList.toggle("fit", !!them.videoWidth && tall !== theyTall);
     }
-    if (!on) { st.position = st.width = st.height = st.left = st.top = st.transform = ""; return; }
-    st.position = "absolute";
-    st.width = h + "px"; st.height = w + "px";
-    st.left = (w - h) / 2 + "px"; st.top = (h - w) / 2 + "px";
-    st.transform = "rotate(" + on + "deg)";
+    var bg = box.querySelector("video.themBg");
+    var ew = on ? h : w, eh = on ? w : h, vw = them.videoWidth, vh = them.videoHeight, k = 1;
+    if (box.id === "big" && box.classList.contains("fit") && vw) {
+      var c = Math.min(ew / vw, eh / vh), C = Math.max(ew / vw, eh / vh);
+      k = Math.min(C, c / 0.6) / c;
+    }
+    var turn = on ? "rotate(" + on + "deg) " : "";
+    [them, bg].forEach(function (v) {
+      if (!v) return;
+      var s = v.style;
+      if (on) {
+        s.position = "absolute";
+        s.width = h + "px"; s.height = w + "px";
+        s.left = (w - h) / 2 + "px"; s.top = (h - w) / 2 + "px";
+      } else s.position = s.width = s.height = s.left = s.top = "";
+      // The blurred copy a little larger, so its soft edge stays off screen.
+      s.transform = turn + "scale(" + (v === bg ? 1.15 : k) + ")";
+    });
   }
   // The page turning upright is iOS saying the phone is upright: a tilt
   // left over from sideways must not survive it (Shine's Duo, 2026-10-29).
@@ -741,6 +764,7 @@
     var now = Date.now();
     if (now - lastTap < 350) {
       fitChoice = document.getElementById("big").classList.toggle("fit");
+      applyTilt();
       lastTap = 0;
     } else lastTap = now;
   });
