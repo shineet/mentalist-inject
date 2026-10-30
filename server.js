@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v334-ringer-native-under-page";
+const REVISION = "v335-ringer-store-token";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1506,11 +1506,29 @@ function ringerAuthorised(req) {
   return Boolean(expected) && req.get("x-sms-token") === expected;
 }
 
+// The App Store build (CallFriend) carries RINGER_PUBLIC_TOKEN instead: a
+// store binary is readable by anyone who downloads it, so its token may set up
+// a room of its own and nothing more. Rooms it sets up are marked owner:false,
+// and voice-twiml then holds their calls to US/Canada numbers, the Twilio
+// number as caller ID and a daily limit (/api/ringer/quota). Rooms set up with
+// the owner token, and every room from before this, keep everything.
+function ringerLevel(req) {
+  if (ringerAuthorised(req)) return "owner";
+  const pub = process.env.RINGER_PUBLIC_TOKEN || "";
+  return pub && req.get("x-sms-token") === pub ? "public" : "";
+}
+const ringerIsOwnerRoom = (rec) => Boolean(rec) && rec.owner !== false;
+
 // Set by the performer's own app, which is the only thing that knows which
 // assistant is working tonight.
 app.post("/api/ringer/:room/config", express.json({ limit: "4kb" }), (req, res) => {
-  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const level = ringerLevel(req);
+  if (!level) return res.status(401).json({ ok: false, error: "unauthorized" });
   const key = normalizeRoom(req.params.room);
+  // A store copy can never take over (or clear) one of Shine's rooms.
+  if (level === "public" && ringerIsOwnerRoom(ringerRooms[key])) {
+    return res.status(409).json({ ok: false, error: "that room name is taken, choose another" });
+  }
   // Normalised here as well as by the caller. A number arriving as
   // "(512) 555-1234" straight off a Contacts card is the ordinary case, not a
   // malformed one, and refusing it produced a failure that said only "could
@@ -1544,7 +1562,8 @@ app.post("/api/ringer/:room/config", express.json({ limit: "4kb" }), (req, res) 
     // instead of the spoken text. Only ever one of our own files.
     const rawUrl = String((req.body && req.body.vmurl) || "");
     const vmurl = /^https:\/\/mindgames\.fly\.dev\/media\/vm-[a-z0-9]+\.wav$/.test(rawUrl) ? rawUrl : "";
-    ringerRooms[key] = { assistant: raw, vm, vmvoice, vmurl, via, smsTemplate, at: Date.now() };
+    ringerRooms[key] = { assistant: raw, vm, vmvoice, vmurl, via, smsTemplate, at: Date.now(),
+                         owner: level === "owner" };
   } else {
     delete ringerRooms[key];
   }
@@ -1556,7 +1575,7 @@ app.post("/api/ringer/:room/config", express.json({ limit: "4kb" }), (req, res) 
 
 // Read back, for the app to show what is currently set. Last four only.
 app.get("/api/ringer/:room/config", (req, res) => {
-  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  if (!ringerLevel(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   const key = normalizeRoom(req.params.room);
   const rec = ringerRooms[key];
   res.setHeader("Cache-Control", "no-store");
@@ -1577,7 +1596,28 @@ app.get("/api/ringer/:room/assistant", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   if (!rec) return res.status(404).json({ ok: false, error: "nothing set for this room" });
   res.json({ ok: true, assistant: rec.assistant, vm: rec.vm || "", vmvoice: rec.vmvoice || "",
-             vmurl: rec.vmurl || "", via: rec.via || "" });
+             vmurl: rec.vmurl || "", via: rec.via || "", owner: ringerIsOwnerRoom(rec) });
+});
+
+// Asked by voice-twiml (owner token) before each call from a store copy's
+// room. In memory and per UTC day: a restart forgets the counts, which only
+// ever errs towards letting a performer's call through.
+const RINGER_ROOM_DAILY = 30;
+const RINGER_PUBLIC_DAILY = 300;
+const ringerQuota = { day: "", rooms: {}, total: 0 };
+app.post("/api/ringer/quota", express.json({ limit: "1kb" }), (req, res) => {
+  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const day = new Date().toISOString().slice(0, 10);
+  if (ringerQuota.day !== day) Object.assign(ringerQuota, { day, rooms: {}, total: 0 });
+  const key = normalizeRoom(String((req.body && req.body.room) || "")) || "-";
+  const used = ringerQuota.rooms[key] || 0;
+  if (used >= RINGER_ROOM_DAILY || ringerQuota.total >= RINGER_PUBLIC_DAILY) {
+    console.log("[ringer quota] refused room=" + key + " used=" + used + " total=" + ringerQuota.total);
+    return res.json({ ok: false, used, total: ringerQuota.total });
+  }
+  ringerQuota.rooms[key] = used + 1;
+  ringerQuota.total += 1;
+  res.json({ ok: true, used: used + 1, total: ringerQuota.total });
 });
 
 // ── The voicemail greeting as a recording ────────────────────────────────────
@@ -1598,7 +1638,12 @@ app.post("/api/ringer/camlog", express.json({ limit: "8kb" }), (req, res) => {
 app.post("/api/ringer/vm-upload",
   express.raw({ type: ["audio/wav", "audio/x-wav"], limit: "8mb" }),
   (req, res) => {
-    if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+    const level = ringerLevel(req);
+    if (!level) return res.status(401).json({ ok: false, error: "unauthorized" });
+    // A greeting is seconds long; a store copy gets far less room than 8 MB.
+    if (level === "public" && req.body && req.body.length > 2 * 1024 * 1024) {
+      return res.status(413).json({ ok: false, error: "that recording is too long" });
+    }
     if (!req.body || req.body.length < 44 || req.body.toString("ascii", 0, 4) !== "RIFF") {
       return res.status(400).json({ ok: false, error: "not a WAV file" });
     }
@@ -1626,6 +1671,8 @@ app.post("/api/ringer/:room/notify", express.json({ limit: "2kb" }), async (req,
   const key = normalizeRoom(req.params.room);
   const rec = ringerRooms[key];
   if (!rec) return res.status(403).json({ ok: false, error: "room is not set up" });
+  // Texts bill Shine's account to any number a room names; store rooms do not get them.
+  if (!ringerIsOwnerRoom(rec)) return res.status(403).json({ ok: false, error: "texts are not available" });
 
   const digits = String((req.body && req.body.number) || "").replace(/[^0-9]/g, "");
   if (digits.length < 10) return res.status(400).json({ ok: false, error: "not a number" });
