@@ -545,7 +545,6 @@
       vroom.on("participantDisconnected", leave);
       vroom.on("disconnected", leave);
       redraw();
-      camLog("assistant"); setTimeout(function () { camLog("assistant+3s"); }, 3000);
       startRim();
       // Ringer holds the voice call natively in Assistant mode; it ends it now,
       // as this page ends its own when it holds the call.
@@ -574,21 +573,6 @@
       p.videoTracks.forEach(function (pub) { if (pub.track) found = pub.track; });
     });
     return found;
-  }
-
-  // What the camera is actually giving us, to the server log (fly logs,
-  // "[camlog]"): Greg saw Shine zoomed in, and the capture size and the
-  // range the camera offers decide whether a wider picture is possible
-  // (2026-10-29).
-  function camLog(who) {
-    var t = myVideoTrack(), m = t && t.mediaStreamTrack;
-    if (!m) return;
-    var caps = {};
-    try { caps = m.getCapabilities ? m.getCapabilities() : {}; } catch (e) {}
-    fetch("/api/ringer/camlog", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ who: who, tilt: tiltDeg, settings: m.getSettings(), caps: caps,
-        theirs: (function (v) { return v ? v.videoWidth + "x" + v.videoHeight : ""; })(document.querySelector("video.them")),
-        screen: innerWidth + "x" + innerHeight, ua: navigator.userAgent }) }).catch(function () {});
   }
 
   // ── Rim light ─────────────────────────────────────────────────────────
@@ -625,9 +609,8 @@
       var l = rimLuma();
       if (l < 0) return;
       rimDark = l < RIM_DARK ? rimDark + 1 : 0;
-      if (rimDark >= 3) { setRim(true); camLog("rim on luma " + Math.round(l)); }
+      if (rimDark >= 3) setRim(true);
     }, 1000);
-    setTimeout(function () { var l = rimLuma(); if (l >= 0) camLog("luma " + Math.round(l)); }, 4000);
   }
   function stopRim() { clearInterval(rimTimer); rimTimer = null; if (rimOn) setRim(false); }
   // Average brightness (0-255) of the self-view below which the room is dark.
@@ -692,9 +675,6 @@
   // dialler.html's, which explains it.
   var tiltDeg = 0, fitChoice = null;
   window.ringerTilt = function (deg) {
-    // Each turn, what the camera sends then: is the open Duo's picture
-    // wide even held upright? (camLog, 2026-10-29)
-    if (deg !== tiltDeg && vroom) setTimeout(function () { camLog("turn"); }, 1500);
     tiltDeg = deg; applyTilt();
   };
   function applyTilt() {

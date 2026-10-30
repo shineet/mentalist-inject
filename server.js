@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v336-ringer-native-shim-removed";
+const REVISION = "v337-ringer-camlog-removed";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1628,13 +1628,6 @@ app.post("/api/ringer/quota", express.json({ limit: "1kb" }), (req, res) => {
 // and sends it here. Same volume and /media path as the host app's clips, but
 // gated on Ringer's own token rather than the host's upload token, which
 // Ringer does not carry.
-// The video pages report what their camera captures (Greg saw Shine zoomed
-// in, 2026-10-29). Log only; nothing is stored.
-app.post("/api/ringer/camlog", express.json({ limit: "8kb" }), (req, res) => {
-  console.log("[camlog]", JSON.stringify(req.body || {}).slice(0, 4000));
-  res.json({ ok: true });
-});
-
 app.post("/api/ringer/vm-upload",
   express.raw({ type: ["audio/wav", "audio/x-wav"], limit: "8mb" }),
   (req, res) => {
