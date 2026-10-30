@@ -579,7 +579,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/twilio-video@2/dist/twilio-video.min.js"></script>
-<script src="/native-video.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
 <script>
 (function () {
@@ -1033,10 +1032,6 @@
   // no keypad, no voice device, nothing on screen until the assistant rings.
   // Swift keeps it at 1x1 and brings it full-screen when told.
   var VIDEO_ONLY = params.get("videoonly") === "1";
-  // Ringer's native camera build (?native=1, Shine 2026-10-30): this page still
-  // rings, but at the join it hands the call to the app, which runs the video
-  // itself so iOS offers Edge Light.
-  var NATIVE = params.get("native") === "1";
 
   function toClip(tag) {
     try { window.webkit.messageHandlers.clipvideo.postMessage({ tag: tag }); } catch (e) {}
@@ -1071,11 +1066,6 @@
   var mediaReady = false;
 
   async function askForMedia() {
-    // Ringer's native camera build: this page must never open the camera.
-    // WebKit's capture is attributed to the app with no bundle, and iOS then
-    // marks the whole app ineligible for video effects (Edge Light, Center
-    // Stage) until it relaunches (the Duo's log, Shine 2026-10-30).
-    if (NATIVE) return true;
     if (mediaReady) return true;
     try {
       var st = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -1101,13 +1091,6 @@
   var selfStream = null;
 
   async function startSelfView() {
-    if (window.NativeVideo) {
-      // Ringer paints its own camera under this page (native-video.js).
-      document.getElementById("inSelf").replaceChildren(NativeVideo.preview("user"));
-      document.getElementById("inSelf").classList.add("on");
-      document.getElementById("incoming").classList.add("hasCam");
-      return;
-    }
     try {
       selfStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" }, audio: false,
@@ -1123,7 +1106,6 @@
   }
 
   function stopSelfView() {
-    if (window.NativeVideo && document.querySelector("#inSelf video.nv")) NativeVideo.stopPreview();
     try { if (selfStream) selfStream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
     selfStream = null;
     document.getElementById("inSelf").replaceChildren();
@@ -1292,12 +1274,6 @@
 
   async function startOutPreview() {
     stopOutPreview();
-    if (window.NativeVideo) {
-      var nw = document.getElementById("remoteWrap");
-      nw.classList.toggle("mirror", vidFacing === "user");
-      nw.replaceChildren(NativeVideo.preview(vidFacing));
-      return;
-    }
     try {
       outStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: vidFacing }, audio: false,
@@ -1314,7 +1290,6 @@
   }
 
   function stopOutPreview() {
-    if (window.NativeVideo && document.querySelector("#remoteWrap video.nv") && !vroom) NativeVideo.stopPreview();
     try { if (outStream) outStream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
     outStream = null;
     var w = document.getElementById("remoteWrap");
@@ -1421,9 +1396,6 @@
     try { window.webkit.messageHandlers.clipvideo.postMessage({ tag: on ? "rim-on" : "rim-off" }); } catch (e) {}
   }
   function startRim() {
-    // The app's camera has iOS's own Edge Light; this one would read the
-    // empty stand-in video as dark.
-    if (window.NativeVideo) return;
     clearInterval(rimTimer); rimDark = 0; setRim(false);
     rimTimer = setInterval(function () {
       if (rimOn) return;

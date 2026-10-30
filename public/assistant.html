@@ -243,7 +243,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/twilio-video@2/dist/twilio-video.min.js"></script>
-<script src="/native-video.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js"></script>
 <script>
 (function () {
@@ -299,11 +298,6 @@
   // moment nobody is waiting on her. Released immediately, so no recording dot
   // sits lit while she waits for her cue.
   async function askForMedia() {
-    // Ringer's native camera build: this page must never open the camera.
-    // WebKit's capture is attributed to the app with no bundle, and iOS then
-    // marks the whole app ineligible for video effects (Edge Light, Center
-    // Stage) until it relaunches (the Duo's log, Shine 2026-10-30).
-    if (params.get("native") === "1") { perm.className = "ok"; perm.textContent = ""; return true; }
     try {
       var st = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
       st.getTracks().forEach(function (t) { t.stop(); });
@@ -489,12 +483,6 @@
   }
   async function outPreview() {
     stopOutPreview();
-    if (window.NativeVideo) {
-      var nb = document.getElementById("big");
-      nb.classList.toggle("mirror", facing === "user");
-      nb.replaceChildren(NativeVideo.preview(facing));
-      return;
-    }
     try {
       outStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
       if (!outing) { stopOutPreview(); return; }
@@ -507,7 +495,6 @@
     } catch (e) { /* black, as FaceTime is with no camera */ }
   }
   function stopOutPreview() {
-    if (window.NativeVideo && !vroom && document.querySelector("#big video.nv")) NativeVideo.stopPreview();
     try { if (outStream) outStream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
     outStream = null;
     if (!vroom) { var big = document.getElementById("big"); big.replaceChildren(); big.classList.remove("mirror"); }
@@ -632,7 +619,6 @@
     toApp({ tag: on ? "rim-on" : "rim-off" });
   }
   function startRim() {
-    if (window.NativeVideo) return;
     clearInterval(rimTimer); rimDark = 0; setRim(false);
     rimTimer = setInterval(function () {
       if (rimOn) return;
