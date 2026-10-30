@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v330-ringer-rim-light";
+const REVISION = "v331-calc-live-duo";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1840,6 +1840,46 @@ app.get("/api/calc/:room/result", (req, res) => {
   const after = Number(req.query.after || 0);
   const events = (rec.events || []).filter((e) => e.seq > (Number.isFinite(after) ? after : 0));
   res.json({ ok: true, seq: rec.seq || 0, events });
+});
+
+// Mind Unlock 1.2: what the calculator on their phone shows right now, for the
+// performer's Duo. One value per room, in MEMORY ONLY: it is the spectator's
+// own arithmetic, useful for a second and worthless after, so it is never
+// written to disk and lapses after ten minutes. The clip posts it on every
+// change and every 5 s, so a quiet phone and a lost one can be told apart.
+const calcLive = new Map();
+const CALC_LIVE_TTL = 10 * 60 * 1000;
+
+app.post("/api/calc/:room/live", express.json({ limit: "1kb" }), (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  if (!key || !calcRooms[key]) return res.status(403).json({ ok: false, error: "room is not set up" });
+  const b = req.body || {};
+  const int = (v, lo, hi, dflt) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : dflt;
+  };
+  calcLive.set(key, {
+    line: String(b.line || "").slice(0, 24),
+    hint: b.hint === "+" || b.hint === "-" ? b.hint : "",
+    feed: int(b.feed, -1, 20, -1),
+    cd: int(b.cd, 0, 4e9, 0),
+    slot: int(b.slot, 1, 9, 1),
+    locked: Boolean(b.locked),
+    at: Date.now(),
+  });
+  res.json({ ok: true });
+});
+
+// Token-gated like /result: it carries the spectator's figures.
+app.get("/api/calc/:room/live", (req, res) => {
+  if (!calcAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  res.setHeader("Cache-Control", "no-store");
+  const rec = calcLive.get(key);
+  if (!rec) return res.json({ ok: true, live: null });
+  const age = Date.now() - rec.at;
+  if (age > CALC_LIVE_TTL) { calcLive.delete(key); return res.json({ ok: true, live: null }); }
+  res.json({ ok: true, live: { ...rec, ageSeconds: Math.floor(age / 1000) } });
 });
 
 // The clip's invocation path. Off /d and /a so the three links cannot be
