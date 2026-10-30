@@ -1203,7 +1203,6 @@
       vroom.on("disconnected", endVideo);
       redrawVideo();
       camLog("performer"); setTimeout(function () { camLog("performer+3s"); }, 3000);
-      setTimeout(tryTall, 10000);
       showChrome();
     } catch (e) {
       document.getElementById("vidLabel").textContent =
@@ -1359,21 +1358,6 @@
       body: JSON.stringify({ who: who, tilt: tiltDeg, settings: m.getSettings(), caps: caps,
         theirs: (function (v) { return v ? v.videoWidth + "x" + v.videoHeight : ""; })(document.querySelector("video.them")),
         screen: innerWidth + "x" + innerHeight, ua: navigator.userAgent }) }).catch(function () {});
-  }
-
-  // Test (2026-10-29): the open Duo's own Camera app takes a tall photo
-  // held upright, but the call sent a wide picture. Held upright with the
-  // picture wide, ask once for the tall shape and log what comes back.
-  async function tryTall() {
-    var t = myVideoTrack(), m = t && t.mediaStreamTrack;
-    if (!m || tiltDeg !== 0 || innerWidth > innerHeight) return;
-    var st = m.getSettings();
-    if (!(st.width > st.height)) return;
-    try {
-      await m.applyConstraints({ width: 960, height: 1280 });
-      camLog("tall-try"); setTimeout(function () { camLog("tall-try+3s"); }, 3000);
-    }
-    catch (e) { camLog("tall-fail " + ((e && e.message) || e)); }
   }
 
   function myVideoTrack() {
