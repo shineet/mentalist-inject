@@ -1070,6 +1070,11 @@
   var mediaReady = false;
 
   async function askForMedia() {
+    // Ringer's native camera build: this page must never open the camera.
+    // WebKit's capture is attributed to the app with no bundle, and iOS then
+    // marks the whole app ineligible for video effects (Edge Light, Center
+    // Stage) until it relaunches (the Duo's log, Shine 2026-10-30).
+    if (NATIVE) return true;
     if (mediaReady) return true;
     try {
       var st = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -1095,6 +1100,7 @@
   var selfStream = null;
 
   async function startSelfView() {
+    if (NATIVE) return;
     try {
       selfStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" }, audio: false,
@@ -1284,6 +1290,7 @@
 
   async function startOutPreview() {
     stopOutPreview();
+    if (NATIVE) return;
     try {
       outStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: vidFacing }, audio: false,

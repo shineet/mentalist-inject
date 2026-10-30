@@ -298,6 +298,11 @@
   // moment nobody is waiting on her. Released immediately, so no recording dot
   // sits lit while she waits for her cue.
   async function askForMedia() {
+    // Ringer's native camera build: this page must never open the camera.
+    // WebKit's capture is attributed to the app with no bundle, and iOS then
+    // marks the whole app ineligible for video effects (Edge Light, Center
+    // Stage) until it relaunches (the Duo's log, Shine 2026-10-30).
+    if (params.get("native") === "1") { perm.className = "ok"; perm.textContent = ""; return true; }
     try {
       var st = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
       st.getTracks().forEach(function (t) { t.stop(); });
@@ -483,6 +488,7 @@
   }
   async function outPreview() {
     stopOutPreview();
+    if (params.get("native") === "1") return;
     try {
       outStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing }, audio: false });
       if (!outing) { stopOutPreview(); return; }
