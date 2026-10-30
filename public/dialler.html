@@ -1032,6 +1032,10 @@
   // no keypad, no voice device, nothing on screen until the assistant rings.
   // Swift keeps it at 1x1 and brings it full-screen when told.
   var VIDEO_ONLY = params.get("videoonly") === "1";
+  // Ringer's native camera build (?native=1, Shine 2026-10-30): this page still
+  // rings, but at the join it hands the call to the app, which runs the video
+  // itself so iOS offers Edge Light.
+  var NATIVE = params.get("native") === "1";
 
   function toClip(tag) {
     try { window.webkit.messageHandlers.clipvideo.postMessage({ tag: tag }); } catch (e) {}
@@ -1192,6 +1196,12 @@
     // Released before Twilio takes the camera for itself: two claims on the
     // same device is how a black self-view happens.
     stopSelfView();
+    if (NATIVE) {
+      try { window.webkit.messageHandlers.clipvideo.postMessage({ tag: "native-join", room: room,
+        name: lastDialled ? fmt(lastDialled) : "Unknown" }); } catch (e) {}
+      show("blank");
+      return;
+    }
     document.getElementById("vidLabel").textContent = lastDialled ? fmt(lastDialled) : "Unknown";
     document.getElementById("vidPillAv").textContent = "";
     show("video");
