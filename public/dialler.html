@@ -1203,6 +1203,7 @@
       vroom.on("disconnected", endVideo);
       redrawVideo();
       camLog("performer"); setTimeout(function () { camLog("performer+3s"); }, 3000);
+      setTimeout(tryTall, 10000);
       showChrome();
     } catch (e) {
       document.getElementById("vidLabel").textContent =
@@ -1368,7 +1369,10 @@
     if (!m || tiltDeg !== 0 || innerWidth > innerHeight) return;
     var st = m.getSettings();
     if (!(st.width > st.height)) return;
-    try { await m.applyConstraints({ width: 960, height: 1280 }); camLog("tall-try"); }
+    try {
+      await m.applyConstraints({ width: 960, height: 1280 });
+      camLog("tall-try"); setTimeout(function () { camLog("tall-try+3s"); }, 3000);
+    }
     catch (e) { camLog("tall-fail " + ((e && e.message) || e)); }
   }
 
