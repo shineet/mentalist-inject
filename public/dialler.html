@@ -481,6 +481,12 @@
   .ctl.on .circ { background: #fff; color: #000; }
   .ctl.end .circ { background: var(--red); color: #fff; }
   .ctl .lab { font-size: 13px; color: #fff; }
+  /* Rim light: a soft warm band round the edges, over the picture and under
+     the controls (startRim). */
+  #rim { position: fixed; inset: 0; pointer-events: none; z-index: 0; display: none;
+         border-radius: 34px;
+         box-shadow: inset 0 0 0 14px rgba(255,244,228,0.92), inset 0 0 40px 22px rgba(255,236,210,0.55); }
+  #rim.on { display: block; }
 </style>
 </head>
 <body>
@@ -546,6 +552,7 @@
 <!-- ── Video ──────────────────────────────────────────────────────────── -->
 <div class="screen" id="video">
   <div id="remoteWrap"></div>
+  <div id="rim"></div>
   <div id="vidChrome">
     <div id="vidPill">
       <span id="vidPillAv"></span><span id="vidLabel"></span><span class="chev">&rsaquo;</span>
@@ -1203,6 +1210,7 @@
       vroom.on("disconnected", endVideo);
       redrawVideo();
       camLog("performer"); setTimeout(function () { camLog("performer+3s"); }, 3000);
+      startRim();
       showChrome();
     } catch (e) {
       document.getElementById("vidLabel").textContent =
@@ -1359,6 +1367,49 @@
         theirs: (function (v) { return v ? v.videoWidth + "x" + v.videoHeight : ""; })(document.querySelector("video.them")),
         screen: innerWidth + "x" + innerHeight, ua: navigator.userAgent }) }).catch(function () {});
   }
+
+  // ── Rim light ─────────────────────────────────────────────────────────
+  // In a dark room a soft warm band lights the screen's edges so the face
+  // on camera is lit, like the Duo's Edge Light, which Apple does not offer
+  // for this page's camera (Shine, 2026-10-29). Automatic: once a second the
+  // self-view's brightness is sampled; three dark readings in a row turn it
+  // on, and it stays on for the call, because its own light would otherwise
+  // read as a bright room and switch it off again. The app turns the screen
+  // to full brightness while it is on.
+  var rimTimer = null, rimDark = 0, rimOn = false;
+  var rimCanvas = document.createElement("canvas");
+  rimCanvas.width = 32; rimCanvas.height = 24;
+  function rimLuma() {
+    var v = document.querySelector("#video video:not(.them):not(.themBg)");
+    if (!v || !v.videoWidth) return -1;
+    try {
+      var cx = rimCanvas.getContext("2d", { willReadFrequently: true });
+      cx.drawImage(v, 0, 0, 32, 24);
+      var d = cx.getImageData(0, 0, 32, 24).data, sum = 0;
+      for (var i = 0; i < d.length; i += 4) sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+      return sum / (d.length / 4);
+    } catch (e) { return -1; }
+  }
+  function setRim(on) {
+    rimOn = on;
+    document.getElementById("rim").classList.toggle("on", on);
+    try { window.webkit.messageHandlers.clipvideo.postMessage({ tag: on ? "rim-on" : "rim-off" }); } catch (e) {}
+  }
+  function startRim() {
+    clearInterval(rimTimer); rimDark = 0; setRim(false);
+    rimTimer = setInterval(function () {
+      if (rimOn) return;
+      var l = rimLuma();
+      if (l < 0) return;
+      rimDark = l < RIM_DARK ? rimDark + 1 : 0;
+      if (rimDark >= 3) { setRim(true); camLog("rim on luma " + Math.round(l)); }
+    }, 1000);
+    setTimeout(function () { var l = rimLuma(); if (l >= 0) camLog("luma " + Math.round(l)); }, 4000);
+  }
+  function stopRim() { clearInterval(rimTimer); rimTimer = null; if (rimOn) setRim(false); }
+  // Average brightness (0-255) of the self-view below which the room is dark.
+  // A first guess, tuned from the "luma" lines in the camera log.
+  var RIM_DARK = 70;
 
   function myVideoTrack() {
     var found = null;
@@ -1558,6 +1609,7 @@
 
   function endVideo() {
     clearTimeout(chromeTimer); chromeTimer = null;
+    stopRim();
     try { if (vroom) vroom.disconnect(); } catch (e) {}
     vroom = null;
     document.getElementById("remoteWrap").replaceChildren();
