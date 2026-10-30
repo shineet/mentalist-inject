@@ -1195,14 +1195,14 @@
       if (!d || !d.token) throw new Error((d && d.error) || "no token");
       vroom = await Twilio.Video.connect(d.token, {
         name: "ringer-" + room, audio: true,
-        video: { facingMode: vidFacing, width: 640 },
+        video: { facingMode: vidFacing, width: 1280, height: 960 },
       });
       vroom.participants.forEach(attachRemote);
       vroom.on("participantConnected", attachRemote);
       vroom.on("participantDisconnected", endVideo);
       vroom.on("disconnected", endVideo);
       redrawVideo();
-      camLog("performer"); setTimeout(function () { camLog("performer+3s"); }, 3000);
+      camLog("performer"); setTimeout(function () { camLog("performer+3s"); tryTall(); }, 3000);
       showChrome();
     } catch (e) {
       document.getElementById("vidLabel").textContent =
@@ -1355,8 +1355,20 @@
     var caps = {};
     try { caps = m.getCapabilities ? m.getCapabilities() : {}; } catch (e) {}
     fetch("/api/ringer/camlog", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ who: who, settings: m.getSettings(), caps: caps,
+      body: JSON.stringify({ who: who, tilt: tiltDeg, settings: m.getSettings(), caps: caps,
         screen: innerWidth + "x" + innerHeight, ua: navigator.userAgent }) }).catch(function () {});
+  }
+
+  // Test (2026-10-29): the open Duo's own Camera app takes a tall photo
+  // held upright, but the call sent a wide picture. Held upright with the
+  // picture wide, ask once for the tall shape and log what comes back.
+  async function tryTall() {
+    var t = myVideoTrack(), m = t && t.mediaStreamTrack;
+    if (!m || tiltDeg !== 0 || innerWidth > innerHeight) return;
+    var st = m.getSettings();
+    if (!(st.width > st.height)) return;
+    try { await m.applyConstraints({ width: 960, height: 1280 }); camLog("tall-try"); }
+    catch (e) { camLog("tall-fail " + ((e && e.message) || e)); }
   }
 
   function myVideoTrack() {
@@ -1427,7 +1439,12 @@
   // upright. Unlocked, the app turns instead and the page is wider than
   // tall, so nothing here applies.
   var tiltDeg = 0;
-  window.ringerTilt = function (deg) { tiltDeg = deg; applyTilt(); };
+  window.ringerTilt = function (deg) {
+    // Each turn, what the camera sends then: is the open Duo's picture
+    // wide even held upright? (camLog, 2026-10-29)
+    if (deg !== tiltDeg && vroom) setTimeout(function () { camLog("turn"); }, 1500);
+    tiltDeg = deg; applyTilt();
+  };
   function applyTilt() {
     var v = document.getElementById("video");
     var on = innerHeight > innerWidth ? tiltDeg : 0;
@@ -1473,7 +1490,7 @@
     if (!vroom) return;
     var wanted = (vidFacing === "user") ? "environment" : "user";
     try {
-      var fresh = await Twilio.Video.createLocalVideoTrack({ facingMode: wanted, width: 640 });
+      var fresh = await Twilio.Video.createLocalVideoTrack({ facingMode: wanted, width: 1280, height: 960 });
       var old = myVideoTrack();
       if (old) {
         vroom.localParticipant.unpublishTrack(old);

@@ -518,7 +518,7 @@
       var d = await t.json();
       if (!d || !d.token) throw new Error((d && d.error) || "no token");
       vroom = await Twilio.Video.connect(d.token, {
-        name: "ringer-" + room, audio: true, video: { facingMode: facing, width: 640 },
+        name: "ringer-" + room, audio: true, video: { facingMode: facing, width: 1280, height: 960 },
       });
       document.getElementById("setup").classList.add("off");
       // The voice overlay sits above everything at z-index 30. It normally
@@ -574,7 +574,7 @@
     var caps = {};
     try { caps = m.getCapabilities ? m.getCapabilities() : {}; } catch (e) {}
     fetch("/api/ringer/camlog", { method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ who: who, settings: m.getSettings(), caps: caps,
+      body: JSON.stringify({ who: who, tilt: tiltDeg, settings: m.getSettings(), caps: caps,
         screen: innerWidth + "x" + innerHeight, ua: navigator.userAgent }) }).catch(function () {});
   }
 
@@ -629,7 +629,12 @@
   // reports the tilt (90 top left, -90 top right, 0 upright). Same as
   // dialler.html's, which explains it.
   var tiltDeg = 0, fitChoice = null;
-  window.ringerTilt = function (deg) { tiltDeg = deg; applyTilt(); };
+  window.ringerTilt = function (deg) {
+    // Each turn, what the camera sends then: is the open Duo's picture
+    // wide even held upright? (camLog, 2026-10-29)
+    if (deg !== tiltDeg && vroom) setTimeout(function () { camLog("turn"); }, 1500);
+    tiltDeg = deg; applyTilt();
+  };
   function applyTilt() {
     var c = document.getElementById("call");
     var on = innerHeight > innerWidth ? tiltDeg : 0;
@@ -679,7 +684,7 @@
     if (!vroom) return;
     var wanted = (facing === "user") ? "environment" : "user";
     try {
-      var fresh = await Twilio.Video.createLocalVideoTrack({ facingMode: wanted, width: 640 });
+      var fresh = await Twilio.Video.createLocalVideoTrack({ facingMode: wanted, width: 1280, height: 960 });
       var old = myVideoTrack();
       if (old) {
         vroom.localParticipant.unpublishTrack(old);
