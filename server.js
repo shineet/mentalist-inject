@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v337-ringer-camlog-removed";
+const REVISION = "v338-mystio-wordassoc-module";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2108,7 +2108,7 @@ function saveMystioAccess() {
 // The ids the app knows. Order is the admin page's order.
 const MYSTIO_MODULES = [
   ["audience", "Audience Page"], ["voice", "Voice & Conversation"], ["chatgpt", "ChatGPT"],
-  ["notes", "Notes"], ["calculator", "Calculator"], ["stopwatch", "Stopwatch"], ["phone", "Phone"],
+  ["notes", "Notes"], ["wordassoc", "Word Association (Notes last word)"], ["calculator", "Calculator"], ["stopwatch", "Stopwatch"], ["phone", "Phone"],
   ["readers", "Camera Readers"], ["cardphoto", "Card in a Photo"], ["video", "Video Recorder"],
   ["photostudio", "Photo Studio"], ["song", "Song, Spotify & YouTube"], ["lookups", "AI Lookups (Famous for, Movie, T9 name)"],
   ["routinemaker", "Routine Maker"], ["inject", "Inject"], ["injectprint", "Print Inject photos"], ["instagram", "Instagram"],
