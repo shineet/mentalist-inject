@@ -30,6 +30,10 @@
   .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:6px 12px; }
   label.mod { display:flex; gap:8px; align-items:center; padding:5px 0; cursor:pointer; }
   label.mod input { width:18px; height:18px; accent-color:var(--accent); flex:none; }
+  label.mod.parent, label.mod.child { grid-column:1 / -1; }
+  label.mod.child { padding-left:26px; }
+  label.mod.child small { color:var(--dim); }
+  label.mod.off { opacity:.45; cursor:default; }
   .core { color:var(--dim); font-size:13px; margin-top:8px; }
   .msg { color:var(--dim); font-size:13px; min-height:18px; margin-top:6px; }
   .actions { margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
@@ -75,8 +79,11 @@
   </div>
 </main>
 <script>
+// A sub-feature sits indented under its parent and only works with it.
+const SUBS = { notes_wordassoc: { parent: "notes", hint: "the last line, first and last, or the whole note goes to the outputs" } };
+const PARENTS = new Set(Object.values(SUBS).map(s => s.parent));
 const GROUPS = [
-  ["Features", ["audience","voice","chatgpt","notes","wordassoc","calculator","stopwatch","phone","readers","cardphoto","video","photostudio","song","lookups","routinemaker","inject","injectprint","instagram","wififlood","timehacker","mentalvoice","letterbook","acrostic","india"]],
+  ["Features", ["audience","voice","chatgpt","notes","notes_wordassoc","calculator","stopwatch","phone","readers","cardphoto","video","photostudio","song","lookups","routinemaker","inject","injectprint","instagram","wififlood","timehacker","mentalvoice","letterbook","acrostic","india"]],
   ["Remotes (the Remote input appears once any is ticked; Duo is under Props)", ["remote_mb","remote_wilson","remote_thumper","remote_synaptic","remote_clicker"]],
   ["Custom URLs (tick Custom URLs, then the ready-made ones they get)", ["customurl","url_unifi","url_motherboard","url_dfbx"]],
   ["Companion apps", ["app_chatgpt","app_notes","app_calculator","app_clock","app_phone"]],
@@ -193,15 +200,31 @@ function profileCard(p) {
   GROUPS.forEach(([title, ids]) => {
     const h = document.createElement("h3"); h.textContent = title; body.appendChild(h);
     const g = document.createElement("div"); g.className = "grid";
+    const subsOf = {};
     ids.forEach(id => {
-      const l = document.createElement("label"); l.className = "mod";
-      l.innerHTML = `<input type="checkbox" ${p.modules.includes(id) ? "checked" : ""}> <span>${esc(names[id] || id)}</span>`;
-      l.querySelector("input").addEventListener("change", e => {
+      const sub = SUBS[id];
+      const l = document.createElement("label");
+      l.className = "mod" + (sub ? " child" : PARENTS.has(id) ? " parent" : "");
+      l.innerHTML = `<input type="checkbox" ${p.modules.includes(id) ? "checked" : ""}> <span>${sub ? "&#8627; " : ""}${esc(names[id] || id)}${sub ? ` <small>(${esc(sub.hint)})</small>` : ""}</span>`;
+      const box = l.querySelector("input");
+      if (sub) {
+        (subsOf[sub.parent] = subsOf[sub.parent] || []).push(l);
+        const on = p.modules.includes(sub.parent);
+        box.disabled = !on; l.classList.toggle("off", !on);
+      }
+      box.addEventListener("change", e => {
         if (e.target.checked) p.modules.push(id); else p.modules = p.modules.filter(m => m !== id);
+        // Unticking a parent unticks its sub-features; ticking it frees them.
+        (subsOf[id] || []).forEach(sl => {
+          const sb = sl.querySelector("input"), sid = Object.keys(SUBS).find(k => sl.dataset.id === k);
+          sb.disabled = !e.target.checked; sl.classList.toggle("off", !e.target.checked);
+          if (!e.target.checked && sb.checked) { sb.checked = false; p.modules = p.modules.filter(m => m !== sid); }
+        });
         el.querySelector(".count").textContent = p.modules.length + " module" + (p.modules.length === 1 ? "" : "s");
         save({ action: "setProfile", id: p.id, modules: p.modules }, msg,
              who.length ? "Saved for " + who.join(", ") : "Saved");
       });
+      l.dataset.id = id;
       g.appendChild(l);
     });
     body.appendChild(g);

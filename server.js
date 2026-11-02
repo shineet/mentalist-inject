@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v338-mystio-wordassoc-module";
+const REVISION = "v339-mystio-notes-subfeature";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2108,7 +2108,7 @@ function saveMystioAccess() {
 // The ids the app knows. Order is the admin page's order.
 const MYSTIO_MODULES = [
   ["audience", "Audience Page"], ["voice", "Voice & Conversation"], ["chatgpt", "ChatGPT"],
-  ["notes", "Notes"], ["wordassoc", "Word Association (Notes last word)"], ["calculator", "Calculator"], ["stopwatch", "Stopwatch"], ["phone", "Phone"],
+  ["notes", "Notes"], ["notes_wordassoc", "Word association"], ["calculator", "Calculator"], ["stopwatch", "Stopwatch"], ["phone", "Phone"],
   ["readers", "Camera Readers"], ["cardphoto", "Card in a Photo"], ["video", "Video Recorder"],
   ["photostudio", "Photo Studio"], ["song", "Song, Spotify & YouTube"], ["lookups", "AI Lookups (Famous for, Movie, T9 name)"],
   ["routinemaker", "Routine Maker"], ["inject", "Inject"], ["injectprint", "Print Inject photos"], ["instagram", "Instagram"],
@@ -2127,13 +2127,24 @@ const MYSTIO_MODULES = [
   ["pitata", "Pitata"], ["sprocket", "Sprocket"], ["legacywallet", "Legacy Wallet"],
 ];
 const MYSTIO_IDS = new Set(MYSTIO_MODULES.map(m => m[0]));
+// Sub-features (Shine, 2026-11-01): each needs its parent module and is
+// dropped from anyone without it. The app applies the same rule.
+const MYSTIO_PARENT = { notes_wordassoc: "notes" };
+// v338 called it wordassoc for a few hours.
+for (const p of Object.values(mystioAccess.profiles)) {
+  if (Array.isArray(p.modules) && p.modules.includes("wordassoc")) {
+    p.modules = p.modules.map(m => m === "wordassoc" ? "notes_wordassoc" : m);
+    mystioMigrated = true;
+  }
+}
 if (mystioMigrated) saveMystioAccess();
 
 /// The modules a person has: everything for the owner, else their profile's.
 function mystioModulesOf(rec) {
   if (rec.owner) return MYSTIO_MODULES.map(m => m[0]);
   const p = mystioAccess.profiles[rec.profileId];
-  return p ? p.modules.filter(m => MYSTIO_IDS.has(m)) : [];
+  const mods = p ? p.modules.filter(m => MYSTIO_IDS.has(m)) : [];
+  return mods.filter(m => !MYSTIO_PARENT[m] || mods.includes(MYSTIO_PARENT[m]));
 }
 function mystioCodeRecord(code) {
   const c = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
