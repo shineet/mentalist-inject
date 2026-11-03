@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v339-mystio-notes-subfeature";
+const REVISION = "v340-calc-typed-force";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1807,6 +1807,24 @@ app.post("/api/calc/:room/config", express.json({ limit: "8kb" }), (req, res) =>
   calcRooms[key] = { ...prev, config: clean, at: Date.now() };
   saveCalcRooms();
   res.json({ ok: true, room: key, keys: Object.keys(clean).length });
+});
+
+// One number typed on any calculator and held on = (Shine, 2026-11-03): the
+// borrowed phone's clip, the Calculator app or MystIO. It rides inside the
+// room's config, so every clip opened afterwards forces it and an open one
+// picks it up on its next check, and the next push from MystIO, which replaces
+// the config, lets it go. An empty number clears it.
+app.post("/api/calc/:room/force", express.json({ limit: "1kb" }), (req, res) => {
+  if (!calcAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  if (!key) return res.status(400).json({ ok: false, error: "no room" });
+  const digits = String((req.body && req.body.force) || "").replace(/\D/g, "").slice(0, 15);
+  const prev = calcRooms[key] || {};
+  const config = { ...(prev.config || {}) };
+  if (digits) config.force = digits; else delete config.force;
+  calcRooms[key] = { ...prev, config, at: Date.now() };
+  saveCalcRooms();
+  res.json({ ok: true, room: key, force: digits || null });
 });
 
 // Read by the CLIP, on a stranger's phone, so it cannot carry a token.
