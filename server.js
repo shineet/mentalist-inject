@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v340-calc-typed-force";
+const REVISION = "v341-calc-mirror";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1938,6 +1938,58 @@ app.get("/api/calc/:room/live", (req, res) => {
   const age = Date.now() - rec.at;
   if (age > CALC_LIVE_TTL) { calcLive.delete(key); return res.json({ ok: true, live: null }); }
   res.json({ ok: true, live: { ...rec, ageSeconds: Math.floor(age / 1000) } });
+});
+
+// Mirror mode (Shine, 2026-11-03): what a spectator types on the borrowed
+// phone appears on Shine's calculator, and every sum they finish (or clear
+// unfinished) goes into a history he can read later -- which is the PIN
+// routine: "add a four digit number so you don't reveal it" still puts the PIN
+// itself in the log.
+//
+// `line` is the display right now, posted on every keypress and kept in
+// memory only. `entries` is the history, kept on disk with the room so a
+// restart does not lose a show's worth. Posting needs only an existing room,
+// like /result, because the clip carries no token; reading is token-gated
+// because it is the spectator's figures.
+const MIRROR_MAX = 200;
+const calcMirror = new Map();
+
+app.post("/api/calc/:room/mirror", express.json({ limit: "2kb" }), (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  if (!key || !calcRooms[key]) return res.status(403).json({ ok: false, error: "room is not set up" });
+  const b = req.body || {};
+  const str = (v, n) => String(v == null ? "" : v).slice(0, n);
+  if (b.line != null) {
+    calcMirror.set(key, { line: str(b.line, 80), expr: str(b.expr, 120), at: Date.now() });
+  }
+  if (b.entry && typeof b.entry === "object") {
+    const rec = calcRooms[key];
+    const log = Array.isArray(rec.mirrorLog) ? rec.mirrorLog : [];
+    const seq = (rec.mirrorSeq || 0) + 1;
+    log.push({
+      seq,
+      expr: str(b.entry.expr, 160),
+      result: str(b.entry.result, 40),
+      kind: b.entry.kind === "cleared" ? "cleared" : "equals",
+      at: Date.now(),
+    });
+    rec.mirrorLog = log.slice(-MIRROR_MAX);
+    rec.mirrorSeq = seq;
+    saveCalcRooms();
+  }
+  res.json({ ok: true });
+});
+
+app.get("/api/calc/:room/mirror", (req, res) => {
+  if (!calcAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  res.setHeader("Cache-Control", "no-store");
+  const rec = calcRooms[key] || {};
+  const after = Number(req.query.after) || 0;
+  const live = calcMirror.get(key) || null;
+  const fresh = live && Date.now() - live.at < CALC_LIVE_TTL ? live : null;
+  const entries = (rec.mirrorLog || []).filter((e) => e.seq > after);
+  res.json({ ok: true, live: fresh, entries, seq: rec.mirrorSeq || 0 });
 });
 
 // The clip's invocation path. Off /d and /a so the three links cannot be
