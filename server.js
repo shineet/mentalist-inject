@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v341-calc-mirror";
+const REVISION = "v342-calc-wallpaper";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1825,6 +1825,45 @@ app.post("/api/calc/:room/force", express.json({ limit: "1kb" }), (req, res) => 
   calcRooms[key] = { ...prev, config, at: Date.now() };
   saveCalcRooms();
   res.json({ ok: true, room: key, force: digits || null });
+});
+
+// The locked-phone wallpaper, pushed from Shine's phone and shown by the clips
+// behind their fake passcode screen. It is an image, so it lives in memory
+// (like the mirror) rather than in the 8kb config: the config only carries
+// wallpaperAt, the version the clips already poll. Lost on a restart and
+// re-pushed in a tap, which is why it is not written to disk.
+const calcWallpaper = new Map();
+
+app.post("/api/calc/:room/wallpaper", express.json({ limit: "3mb" }), (req, res) => {
+  if (!calcAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  if (!key) return res.status(400).json({ ok: false, error: "no room" });
+  const image = String((req.body && req.body.image) || "");
+  const prev = calcRooms[key] || {};
+  const config = { ...(prev.config || {}) };
+  if (image) {
+    const at = Date.now();
+    calcWallpaper.set(key, { image: image.slice(0, 4000000), at });
+    config.wallpaperAt = at;
+  } else {
+    calcWallpaper.delete(key);
+    delete config.wallpaperAt;
+  }
+  calcRooms[key] = { ...prev, config, at: Date.now() };
+  saveCalcRooms();
+  res.json({ ok: true, room: key, wallpaperAt: config.wallpaperAt || null });
+});
+
+// Read by the clip, by room name, no token: same reasoning as /config. The
+// image is a screenshot Shine chose to show, not personal data to gate, and the
+// room name is the secret. 404 when none (or after a restart) so the clip keeps
+// its blurred fallback.
+app.get("/api/calc/:room/wallpaper", (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const rec = calcWallpaper.get(key);
+  res.setHeader("Cache-Control", "no-store");
+  if (!rec) return res.status(404).json({ ok: false, error: "no wallpaper" });
+  res.json({ ok: true, image: rec.image, at: rec.at });
 });
 
 // Read by the CLIP, on a stranger's phone, so it cannot carry a token.
