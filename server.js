@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v342-calc-wallpaper";
+const REVISION = "v343-calc-face";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1863,6 +1863,53 @@ app.get("/api/calc/:room/wallpaper", (req, res) => {
   const rec = calcWallpaper.get(key);
   res.setHeader("Cache-Control", "no-store");
   if (!rec) return res.status(404).json({ ok: false, error: "no wallpaper" });
+  res.json({ ok: true, image: rec.image, at: rec.at });
+});
+
+// The real-calculator look ("Classic"), pushed from Shine's phone and shown by
+// the clip over its own black status bar and live number, so a borrowed phone's
+// clip reads as a real iPhone calculator. Same memory-only, re-pushed-in-a-tap
+// treatment as the wallpaper above: the image lives in memory, the config
+// carries only the version the clips poll (faceAt) and the two calibration
+// rectangles (faceDisp, faceKeys), which are small enough for the 8kb config.
+const calcFace = new Map();
+
+app.post("/api/calc/:room/face", express.json({ limit: "3mb" }), (req, res) => {
+  if (!calcAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  if (!key) return res.status(400).json({ ok: false, error: "no room" });
+  const image = String((req.body && req.body.image) || "");
+  const rect = (a) =>
+    Array.isArray(a) && a.length === 4 && a.every((n) => typeof n === "number" && Number.isFinite(n)) ? a : null;
+  const disp = rect(req.body && req.body.disp);
+  const keys = rect(req.body && req.body.keys);
+  const prev = calcRooms[key] || {};
+  const config = { ...(prev.config || {}) };
+  if (image && disp && keys) {
+    const at = Date.now();
+    calcFace.set(key, { image: image.slice(0, 4000000), at });
+    config.faceAt = at;
+    config.faceDisp = disp;
+    config.faceKeys = keys;
+  } else {
+    calcFace.delete(key);
+    delete config.faceAt;
+    delete config.faceDisp;
+    delete config.faceKeys;
+  }
+  calcRooms[key] = { ...prev, config, at: Date.now() };
+  saveCalcRooms();
+  res.json({ ok: true, room: key, faceAt: config.faceAt || null });
+});
+
+// Read by the CLIP, by room name, no token: same reasoning as /wallpaper. The
+// image is a calculator screenshot Shine chose to show, not personal data, and
+// the room name is the secret. 404 when none so the clip keeps the built-in look.
+app.get("/api/calc/:room/face", (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const rec = calcFace.get(key);
+  res.setHeader("Cache-Control", "no-store");
+  if (!rec) return res.status(404).json({ ok: false, error: "no face" });
   res.json({ ok: true, image: rec.image, at: rec.at });
 });
 
