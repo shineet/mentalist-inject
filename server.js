@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v343-calc-face";
+const REVISION = "v344-calc-faces-per-model";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1868,49 +1868,124 @@ app.get("/api/calc/:room/wallpaper", (req, res) => {
 
 // The real-calculator look ("Classic"), pushed from Shine's phone and shown by
 // the clip over its own black status bar and live number, so a borrowed phone's
-// clip reads as a real iPhone calculator. Same memory-only, re-pushed-in-a-tap
-// treatment as the wallpaper above: the image lives in memory, the config
-// carries only the version the clips poll (faceAt) and the two calibration
-// rectangles (faceDisp, faceKeys), which are small enough for the 8kb config.
-const calcFace = new Map();
+// clip reads as a real iPhone calculator.
+//
+// One look PER SPECTATOR iPHONE MODEL (Shine, 2026-11-11): the Calculator
+// companion renders the keypad at each model's size, saves them all here, and
+// one is live. Shine picks which one matches the phone in front of him, from
+// the Duo, without re-rendering. The config carries only the live one's version
+// (faceAt), rectangles (faceDisp, faceKeys) and model (faceModel), small enough
+// for the 8kb config; the images are written to the volume, so a restart or a
+// deploy no longer drops the look (it used to live in memory and had to be
+// re-sent before every show).
+const FACES_DIR = path.join(DATA_DIR, "calc-faces");
+const FACE_MAX = 4000000;
 
+function faceModel(m) {
+  const clean = String(m || "default").toLowerCase().replace(/[^a-z0-9_-]/g, "").slice(0, 40);
+  return clean || "default";
+}
+function faceFile(room, model) { return path.join(FACES_DIR, room, faceModel(model) + ".json"); }
+function readFace(room, model) {
+  try { return JSON.parse(fs.readFileSync(faceFile(room, model), "utf8")); } catch { return null; }
+}
+function writeFace(room, model, rec) {
+  try {
+    fs.mkdirSync(path.join(FACES_DIR, room), { recursive: true });
+    fs.writeFileSync(faceFile(room, model), JSON.stringify(rec));
+    return true;
+  } catch (e) { console.error("calc face save failed:", e.message); return false; }
+}
+function listFaces(room) {
+  try {
+    return fs.readdirSync(path.join(FACES_DIR, room)).filter((f) => f.endsWith(".json"))
+      .map((f) => {
+        const r = readFace(room, f.slice(0, -5));
+        return r ? { model: f.slice(0, -5), at: r.at } : null;
+      }).filter(Boolean);
+  } catch { return []; }
+}
+// Makes a saved look the live one: what the clips poll and fetch.
+function setLiveFace(room, model, rec) {
+  const prev = calcRooms[room] || {};
+  const config = { ...(prev.config || {}) };
+  if (rec) {
+    config.faceAt = Date.now();
+    config.faceDisp = rec.disp;
+    config.faceKeys = rec.keys;
+    config.faceModel = faceModel(model);
+  } else {
+    delete config.faceAt; delete config.faceDisp; delete config.faceKeys; delete config.faceModel;
+  }
+  calcRooms[room] = { ...prev, config, at: Date.now() };
+  saveCalcRooms();
+  return config;
+}
+
+// {image, disp, keys, model?, activate?}: saves that model's look (activate
+// defaults to true, so the old single-look companion still works unchanged).
+// No image: Classic off, the clip goes back to its own look; the saved looks
+// stay, ready to switch back on.
 app.post("/api/calc/:room/face", express.json({ limit: "3mb" }), (req, res) => {
   if (!calcAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
   const key = normalizeRoom(req.params.room);
   if (!key) return res.status(400).json({ ok: false, error: "no room" });
-  const image = String((req.body && req.body.image) || "");
+  const body = req.body || {};
+  const image = String(body.image || "");
   const rect = (a) =>
     Array.isArray(a) && a.length === 4 && a.every((n) => typeof n === "number" && Number.isFinite(n)) ? a : null;
-  const disp = rect(req.body && req.body.disp);
-  const keys = rect(req.body && req.body.keys);
-  const prev = calcRooms[key] || {};
-  const config = { ...(prev.config || {}) };
-  if (image && disp && keys) {
-    const at = Date.now();
-    calcFace.set(key, { image: image.slice(0, 4000000), at });
-    config.faceAt = at;
-    config.faceDisp = disp;
-    config.faceKeys = keys;
-  } else {
-    calcFace.delete(key);
-    delete config.faceAt;
-    delete config.faceDisp;
-    delete config.faceKeys;
+  const disp = rect(body.disp);
+  const keys = rect(body.keys);
+  const model = faceModel(body.model);
+  if (!(image && disp && keys)) {
+    const config = setLiveFace(key, null, null);
+    return res.json({ ok: true, room: key, faceAt: config.faceAt || null });
   }
-  calcRooms[key] = { ...prev, config, at: Date.now() };
-  saveCalcRooms();
-  res.json({ ok: true, room: key, faceAt: config.faceAt || null });
+  if (image.length > FACE_MAX) return res.status(413).json({ ok: false, error: "image too large" });
+  const rec = { image, disp, keys, at: Date.now() };
+  if (!writeFace(key, model, rec)) return res.status(500).json({ ok: false, error: "could not save" });
+  let config = (calcRooms[key] || {}).config || {};
+  if (body.activate !== false) config = setLiveFace(key, model, rec);
+  res.json({ ok: true, room: key, model, live: config.faceModel || null, faceAt: config.faceAt || null });
+});
+
+// {model}: switch the live look to one already saved, no upload.
+app.post("/api/calc/:room/face/live", express.json({ limit: "1kb" }), (req, res) => {
+  if (!calcAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  if (!key) return res.status(400).json({ ok: false, error: "no room" });
+  const model = faceModel(req.body && req.body.model);
+  const rec = readFace(key, model);
+  if (!rec) return res.status(404).json({ ok: false, error: "not saved", model });
+  const config = setLiveFace(key, model, rec);
+  res.json({ ok: true, room: key, live: config.faceModel, faceAt: config.faceAt });
+});
+
+// The saved models and which one is live, for the companion's list.
+app.get("/api/calc/:room/faces", (req, res) => {
+  if (!calcAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  if (!key) return res.status(400).json({ ok: false, error: "no room" });
+  const config = (calcRooms[key] || {}).config || {};
+  res.setHeader("Cache-Control", "no-store");
+  res.json({ ok: true, room: key, live: config.faceAt ? config.faceModel || "default" : null, faces: listFaces(key) });
 });
 
 // Read by the CLIP, by room name, no token: same reasoning as /wallpaper. The
 // image is a calculator screenshot Shine chose to show, not personal data, and
-// the room name is the secret. 404 when none so the clip keeps the built-in look.
+// the room name is the secret. The live model by default; ?model= asks for a
+// particular one (for a clip that picks by its own screen), falling back to the
+// live one. 404 when Classic is off, so the clip keeps the built-in look.
 app.get("/api/calc/:room/face", (req, res) => {
   const key = normalizeRoom(req.params.room);
-  const rec = calcFace.get(key);
   res.setHeader("Cache-Control", "no-store");
+  const config = (calcRooms[key] || {}).config || {};
+  if (!key || !config.faceAt) return res.status(404).json({ ok: false, error: "no face" });
+  const asked = req.query.model ? readFace(key, req.query.model) : null;
+  const rec = asked || readFace(key, config.faceModel || "default");
   if (!rec) return res.status(404).json({ ok: false, error: "no face" });
-  res.json({ ok: true, image: rec.image, at: rec.at });
+  res.json({ ok: true, image: rec.image, disp: rec.disp, keys: rec.keys,
+             model: asked ? faceModel(req.query.model) : (config.faceModel || "default"), at: rec.at });
 });
 
 // Read by the CLIP, on a stranger's phone, so it cannot carry a token.
