@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v348-three-letter-rooms";
+const REVISION = "v349-ringer-face";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1586,6 +1586,48 @@ app.get("/api/ringer/:room/config", (req, res) => {
     via: (rec && rec.via) || "",
     at: rec ? rec.at : null,
   });
+});
+
+// The real iOS dialler look for the performer's shows (CallFriend, 2026-11-12),
+// the same idea as Mind Unlock's Classic calculator: the App Store/clip binary
+// draws its OWN (Android) dialler and ships no Apple look, and the performer
+// pushes a rendered picture of the real iOS dialler to the room at show time.
+// A dialler picture with no number on it; the clip lays its live number and
+// invisible keys over it. Owner token only to set; room name is the secret to read.
+const RINGER_FACES_DIR = path.join(DATA_DIR, "ringer-faces");
+function ringerFaceFile(room) { return path.join(RINGER_FACES_DIR, room + ".json"); }
+function readRingerFace(room) {
+  try { return JSON.parse(fs.readFileSync(ringerFaceFile(room), "utf8")); } catch { return null; }
+}
+
+app.post("/api/ringer/:room/face", express.json({ limit: "3mb" }), (req, res) => {
+  if (!ringerAuthorised(req)) return res.status(401).json({ ok: false, error: "unauthorized" });
+  const key = normalizeRoom(req.params.room);
+  if (!key) return res.status(400).json({ ok: false, error: "no room" });
+  const b = req.body || {};
+  const image = String(b.image || "");
+  const rect = (a) => Array.isArray(a) && a.length === 4 && a.every((n) => typeof n === "number" && Number.isFinite(n)) ? a : null;
+  const keys = rect(b.keys), num = rect(b.num);
+  try { fs.mkdirSync(RINGER_FACES_DIR, { recursive: true }); } catch {}
+  if (!(image && keys && num)) {
+    try { fs.unlinkSync(ringerFaceFile(key)); } catch {}
+    return res.json({ ok: true, room: key, faceAt: null });
+  }
+  if (image.length > FACE_MAX) return res.status(413).json({ ok: false, error: "image too large" });
+  const rec = { image, keys, num, at: Date.now() };
+  try { fs.writeFileSync(ringerFaceFile(key), JSON.stringify(rec)); }
+  catch (e) { return res.status(500).json({ ok: false, error: "could not save" }); }
+  res.json({ ok: true, room: key, faceAt: rec.at });
+});
+
+// Read by the CLIP, by room name, no token: it is a dialler picture, not
+// personal, and the room name is the secret (like the calc face).
+app.get("/api/ringer/:room/face", (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  res.setHeader("Cache-Control", "no-store");
+  const rec = key ? readRingerFace(key) : null;
+  if (!rec) return res.status(404).json({ ok: false, error: "no face" });
+  res.json({ ok: true, image: rec.image, keys: rec.keys, num: rec.num, at: rec.at });
 });
 
 // The full record, for api/voice-twiml.js alone, at the moment of the call.
