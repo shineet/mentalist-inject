@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v349-ringer-face";
+const REVISION = "v350-ringer-face-call";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1607,14 +1607,14 @@ app.post("/api/ringer/:room/face", express.json({ limit: "3mb" }), (req, res) =>
   const b = req.body || {};
   const image = String(b.image || "");
   const rect = (a) => Array.isArray(a) && a.length === 4 && a.every((n) => typeof n === "number" && Number.isFinite(n)) ? a : null;
-  const keys = rect(b.keys), num = rect(b.num);
+  const keys = rect(b.keys), num = rect(b.num), call = rect(b.call);
   try { fs.mkdirSync(RINGER_FACES_DIR, { recursive: true }); } catch {}
-  if (!(image && keys && num)) {
+  if (!(image && keys && num && call)) {
     try { fs.unlinkSync(ringerFaceFile(key)); } catch {}
     return res.json({ ok: true, room: key, faceAt: null });
   }
   if (image.length > FACE_MAX) return res.status(413).json({ ok: false, error: "image too large" });
-  const rec = { image, keys, num, at: Date.now() };
+  const rec = { image, keys, num, call, at: Date.now() };
   try { fs.writeFileSync(ringerFaceFile(key), JSON.stringify(rec)); }
   catch (e) { return res.status(500).json({ ok: false, error: "could not save" }); }
   res.json({ ok: true, room: key, faceAt: rec.at });
@@ -1627,7 +1627,7 @@ app.get("/api/ringer/:room/face", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   const rec = key ? readRingerFace(key) : null;
   if (!rec) return res.status(404).json({ ok: false, error: "no face" });
-  res.json({ ok: true, image: rec.image, keys: rec.keys, num: rec.num, at: rec.at });
+  res.json({ ok: true, image: rec.image, keys: rec.keys, num: rec.num, call: rec.call, at: rec.at });
 });
 
 // The full record, for api/voice-twiml.js alone, at the moment of the call.
