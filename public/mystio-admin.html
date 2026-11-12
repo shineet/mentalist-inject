@@ -138,6 +138,7 @@ function userCard(u) {
       <div class="row">
         ${u.owner ? '<span class="tag owner">Owner: everything</span>' : ''}
         ${u.disabled ? '<span class="tag off">Switched off</span>' : ''}
+        ${u.room ? '<span class="tag">Room ' + esc(u.room) + ' · /u/' + esc(u.room) + '</span>' : ''}
         ${u.seenAt ? '<span class="tag">Last seen ' + new Date(u.seenAt).toLocaleString() + '</span>' : '<span class="tag">Never opened</span>'}
       </div>
     </div>

@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v346-spectator-phone-module";
+const REVISION = "v347-spectator-phone-rooms";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2407,13 +2407,32 @@ function mystioAdminOK(req) {
   return want && req.headers["x-admin-password"] === want;
 }
 
+// A performer's own room for the Mind Unlock clip (Shine, 2026-11-12): made
+// the first time their code is read with Spectator's phone, and theirs for
+// good, so nobody types a room and two performers can never share one. Six
+// characters with no look-alikes, unused by any calculator or unlock room.
+function mystioNewRoom() {
+  const abc = "abcdefghijkmnpqrstuvwxyz23456789";
+  const taken = new Set(Object.values(mystioAccess.codes).map(r => r.room).filter(Boolean));
+  let r;
+  do { r = Array.from(crypto.randomBytes(6)).map(b => abc[b % abc.length]).join(""); }
+  while (taken.has(r) || calcRooms[r] || unlockRooms[r]);
+  return r;
+}
+
 // The app: which modules this code has. Unknown code: 404, the app keeps Core.
 app.get("/api/mystio/access", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   const rec = mystioCodeRecord(req.query.code);
   if (!rec || rec.disabled) return res.status(404).json({ ok: false });
   rec.seenAt = Date.now();
-  res.json({ ok: true, name: rec.name, owner: !!rec.owner, modules: mystioModulesOf(rec) });
+  const modules = mystioModulesOf(rec);
+  // Not for the owner: Shine names his own room in the app.
+  if (!rec.owner && modules.includes("spectator_phone") && !rec.room) {
+    rec.room = mystioNewRoom();
+    saveMystioAccess();
+  }
+  res.json({ ok: true, name: rec.name, owner: !!rec.owner, modules, room: rec.owner ? null : rec.room || null });
 });
 
 // The backend, server to server: may this code use this module (any of a
