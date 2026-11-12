@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v347-spectator-phone-rooms";
+const REVISION = "v348-three-letter-rooms";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2409,13 +2409,15 @@ function mystioAdminOK(req) {
 
 // A performer's own room for the Mind Unlock clip (Shine, 2026-11-12): made
 // the first time their code is read with Spectator's phone, and theirs for
-// good, so nobody types a room and two performers can never share one. Six
-// characters with no look-alikes, unused by any calculator or unlock room.
+// good, so nobody types a room and two performers can never share one. Three
+// characters like Shine's own s7k (his choice, 2026-11-12: short to type and
+// read beats hard to guess; a guessed room shows a force, nothing personal),
+// with no look-alikes, unused by any calculator or unlock room.
 function mystioNewRoom() {
   const abc = "abcdefghijkmnpqrstuvwxyz23456789";
   const taken = new Set(Object.values(mystioAccess.codes).map(r => r.room).filter(Boolean));
   let r;
-  do { r = Array.from(crypto.randomBytes(6)).map(b => abc[b % abc.length]).join(""); }
+  do { r = Array.from(crypto.randomBytes(3)).map(b => abc[b % abc.length]).join(""); }
   while (taken.has(r) || calcRooms[r] || unlockRooms[r]);
   return r;
 }
