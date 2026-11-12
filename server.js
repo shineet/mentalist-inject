@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v345-calc-config-keeps-face";
+const REVISION = "v346-spectator-phone-module";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2360,6 +2360,9 @@ const MYSTIO_MODULES = [
   ["remote_synaptic", "Synaptic"], ["remote_clicker", "Bluetooth clicker"],
   ["app_chatgpt", "ChatGPT app"], ["app_notes", "Notes app"], ["app_calculator", "Calculator app"],
   ["app_clock", "Clock app (Stopwatch)"], ["app_phone", "Phone app"],
+  // MystIO arming a calculator routine readies the Mind Unlock clip on a
+  // spectator's phone too (Shine, 2026-11-12).
+  ["spectator_phone", "Spectator's phone"],
   ["motherboard", "Motherboard"], ["duo", "Duo"], ["secondsight", "Second Sight"],
   ["ultrasharpie", "Ultra Sharpie"], ["novasharpie", "Nova Sharpie"], ["pad", "Impression Pad"],
   ["kronaby", "Kronaby"], ["lumenspectra", "Lumen Spectra"], ["lumenprism", "Lumen Prism"],
