@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v344-calc-faces-per-model";
+const REVISION = "v345-calc-config-keeps-face";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1804,6 +1804,16 @@ app.post("/api/calc/:room/config", express.json({ limit: "8kb" }), (req, res) =>
     if (["string", "number", "boolean"].includes(typeof v) || Array.isArray(v)) clean[k] = v;
   }
   const prev = calcRooms[key] || {};
+  // The pictures are owned by their own endpoints (/face, /wallpaper), not by
+  // whoever saves the force: Mind Unlock saving its calculator settings
+  // replaced the whole config and dropped the Classic look the companion had
+  // just made live (Shine, 2026-11-11). So these always carry over, and a
+  // client echoing an old copy cannot switch the look back either.
+  const prevConfig = prev.config || {};
+  for (const k of ["faceAt", "faceDisp", "faceKeys", "faceModel", "wallpaperAt"]) {
+    delete clean[k];
+    if (prevConfig[k] !== undefined) clean[k] = prevConfig[k];
+  }
   calcRooms[key] = { ...prev, config: clean, at: Date.now() };
   saveCalcRooms();
   res.json({ ok: true, room: key, keys: Object.keys(clean).length });
