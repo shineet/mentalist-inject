@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v351-callfriend-legal";
+const REVISION = "v352-unlock-share-tries";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2256,6 +2256,10 @@ function cleanUnlockConfig(c) {
   if (typeof c.page === "string" && c.page.length <= 300 && /^https:\/\/[^\s/]+/.test(c.page)) out.page = c.page;
   // Which effect a /u link opens (Mind Unlock 1.2): the passcode or the calculator.
   if (c.effect === "passcode" || c.effect === "calculator") out.effect = c.effect;
+  // Opt-in (Shine, 2026-11-13): the spectator's finished tries are relayed to
+  // the performer, who prints one as the convincer. Off unless the performer's
+  // app switches it on for the room.
+  if (typeof c.share === "boolean") out.share = c.share;
   return out;
 }
 
@@ -2291,7 +2295,7 @@ app.get("/api/unlock/:room", (req, res) => {
   const rec = unlockRooms[key];
   if (!rec) return res.json({ ok: true, exists: false });
   res.json({ ok: true, exists: true, config: rec.config, seq: rec.seq, cmd: rec.cmd,
-             status: rec.status, swap: freshSwap(key), now: Date.now() });
+             status: rec.status, swap: freshSwap(key), entries: freshEntries(key), now: Date.now() });
 });
 
 // Mind Unlock 1.1 "Swap": what the participant types on the PERFORMER's phone,
@@ -2327,6 +2331,31 @@ app.post("/api/unlock/:room/swap", express.json({ limit: "1kb" }), (req, res) =>
   res.json({ ok: true });
 });
 
+// The spectator's own finished tries, only while the performer has switched
+// "share" on for the room. Memory only, ten minutes, never logged, keyed by try
+// number so a repeated post is harmless. Cleared by "reset".
+const unlockEntries = new Map();
+function freshEntries(key) {
+  const e = unlockEntries.get(key);
+  if (!e) return [];
+  if (Date.now() - e.at > 10 * 60 * 1000) { unlockEntries.delete(key); return []; }
+  return Object.entries(e.tries).map(([n, code]) => ({ n: Number(n), code })).sort((a, b) => a.n - b.n);
+}
+app.post("/api/unlock/:room/entry", express.json({ limit: "1kb" }), (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const rec = unlockRooms[key];
+  if (!rec) return res.status(404).json({ ok: false });
+  if (rec.config.share !== true) return res.json({ ok: true, ignored: true });
+  const b = req.body || {};
+  const n = Math.round(Number(b.n) || 0);
+  const code = String(b.code || "").replace(/[^0-9]/g, "").slice(0, 6);
+  if (n < 1 || n > 20 || !code) return res.status(400).json({ ok: false });
+  const e = unlockEntries.get(key) || { tries: {}, at: 0 };
+  e.tries[n] = code; e.at = Date.now();
+  unlockEntries.set(key, e);
+  res.json({ ok: true });
+});
+
 // From the remote: settings and/or one command.
 app.post("/api/unlock/:room/control", express.json({ limit: "2kb" }), (req, res) => {
   const rec = unlockRoom(normalizeRoom(req.params.room), true);
@@ -2338,7 +2367,7 @@ app.post("/api/unlock/:room/control", express.json({ limit: "2kb" }), (req, res)
     if (!UNLOCK_CMDS.includes(body.cmd)) return res.status(400).json({ ok: false, error: "unknown command" });
     rec.seq += 1;
     rec.cmd = { seq: rec.seq, name: body.cmd, at: Date.now() };
-    if (body.cmd === "reset") unlockSwaps.delete(normalizeRoom(req.params.room));
+    if (body.cmd === "reset") { unlockSwaps.delete(normalizeRoom(req.params.room)); unlockEntries.delete(normalizeRoom(req.params.room)); }
   }
   rec.at = Date.now();
   saveUnlockRooms();
