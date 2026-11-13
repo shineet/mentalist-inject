@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v355-unlock-share-token";
+const REVISION = "v356-unlock-stopwatch-effect";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2255,7 +2255,7 @@ function cleanUnlockConfig(c) {
   // The page it opens to (Mind Unlock 1.1): any short https address.
   if (typeof c.page === "string" && c.page.length <= 300 && /^https:\/\/[^\s/]+/.test(c.page)) out.page = c.page;
   // Which effect a /u link opens (Mind Unlock 1.2): the passcode or the calculator.
-  if (c.effect === "passcode" || c.effect === "calculator") out.effect = c.effect;
+  if (c.effect === "passcode" || c.effect === "calculator" || c.effect === "stopwatch") out.effect = c.effect;
   // Opt-in (Shine, 2026-11-13): the spectator's finished tries are relayed to
   // the performer, who prints one as the convincer. Off unless the performer's
   // app switches it on for the room.
