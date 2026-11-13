@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v352-unlock-share-tries";
+const REVISION = "v353-unlock-web-link";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2276,6 +2276,14 @@ function unlockRoom(key, create) {
   }
   return unlockRooms[key];
 }
+
+// /w is the same page but NOT in the App Clip experience, so it always opens
+// in Safari and runs this page's code, never the App Store clip's. It carries
+// features that must not wait on Apple review (the relayed tries).
+app.get(["/w", "/w/:room"], (req, res) => {
+  res.setHeader("Cache-Control", "no-store, must-revalidate");
+  res.sendFile(path.resolve("public", "unlock.html"));
+});
 
 app.get(["/u", "/u/:room"], (req, res) => {
   res.setHeader("Cache-Control", "no-store, must-revalidate");

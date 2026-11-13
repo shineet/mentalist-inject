@@ -93,7 +93,7 @@
 (function () {
   var $ = function (id) { return document.getElementById(id); };
   var q = new URLSearchParams(location.search);
-  var m = location.pathname.match(/^\/u\/([A-Za-z0-9_-]+)\/?$/);
+  var m = location.pathname.match(/^\/[uw]\/([A-Za-z0-9_-]+)\/?$/);
   var room = m ? m[1] : null;
 
   var TINTS = {
