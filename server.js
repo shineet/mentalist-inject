@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v360-chat-data";
+const REVISION = "v361-chat-data-parse";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2429,8 +2429,10 @@ app.get("/api/chat/:room/list/:name", (req, res) => {
   try {
     const text = fs.readFileSync(path.join(CHAT_DIR, "lists", name + ".txt"), "utf8");
     const items = text.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
-      const i = l.indexOf("|");
-      return i < 0 ? { name: l, note: "" } : { name: l.slice(0, i), note: l.slice(i + 1) };
+      // As ChatLibrary.parse: Name|Note, else Name: note, else a bare name.
+      let i = l.indexOf("|");
+      if (i < 0) i = l.indexOf(":");
+      return i < 0 ? { name: l, note: "" } : { name: l.slice(0, i).trim(), note: l.slice(i + 1).trim() };
     });
     res.setHeader("Cache-Control", "private, max-age=600");
     res.json({ ok: true, name, items });
