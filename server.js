@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v356-unlock-stopwatch-effect";
+const REVISION = "v357-face-layout";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1974,6 +1974,20 @@ function setLiveFace(room, model, rec) {
   return config;
 }
 
+// An optional "layout" rides with a face (the Stopwatch's real look needs more
+// rectangles than the calculator's two): a small flat object of numbers and
+// number lists, nothing else, so it cannot become a place to park data.
+function cleanLayout(l) {
+  if (!l || typeof l !== "object" || Array.isArray(l)) return null;
+  const out = {};
+  for (const [k, v] of Object.entries(l).slice(0, 40)) {
+    if (typeof k !== "string" || k.length > 30) continue;
+    if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
+    else if (Array.isArray(v) && v.length <= 8 && v.every((n) => typeof n === "number" && Number.isFinite(n))) out[k] = v;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 // {image, disp, keys, model?, activate?}: saves that model's look (activate
 // defaults to true, so the old single-look companion still works unchanged).
 // No image: Classic off, the clip goes back to its own look; the saved looks
@@ -1995,6 +2009,8 @@ app.post("/api/calc/:room/face", express.json({ limit: "3mb" }), (req, res) => {
   }
   if (image.length > FACE_MAX) return res.status(413).json({ ok: false, error: "image too large" });
   const rec = { image, disp, keys, at: Date.now() };
+  const layout = cleanLayout(body.layout);
+  if (layout) rec.layout = layout;
   if (!writeFace(key, model, rec)) return res.status(500).json({ ok: false, error: "could not save" });
   let config = (calcRooms[key] || {}).config || {};
   if (body.activate !== false) config = setLiveFace(key, model, rec);
@@ -2036,7 +2052,7 @@ app.get("/api/calc/:room/face", (req, res) => {
   const asked = req.query.model ? readFace(key, req.query.model) : null;
   const rec = asked || readFace(key, config.faceModel || "default");
   if (!rec) return res.status(404).json({ ok: false, error: "no face" });
-  res.json({ ok: true, image: rec.image, disp: rec.disp, keys: rec.keys,
+  res.json({ ok: true, image: rec.image, disp: rec.disp, keys: rec.keys, layout: rec.layout || null,
              model: asked ? faceModel(req.query.model) : (config.faceModel || "default"), at: rec.at });
 });
 
