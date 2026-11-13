@@ -1,0 +1,247 @@
+Leonardo DiCaprio|Oscar-winning actor known for Titanic, Inception and The Revenant.
+Tom Hanks|Beloved actor famous for Forrest Gump, Cast Away and Toy Story.
+Meryl Streep|Acclaimed actress with a record number of Academy Award nominations.
+Brad Pitt|Hollywood star known for Fight Club, Moneyball and Ocean's Eleven.
+Angelina Jolie|Oscar-winning actress known for Maleficent and humanitarian work.
+Denzel Washington|Two-time Oscar winner known for Training Day and Glory.
+Morgan Freeman|Actor famed for his voice and roles in The Shawshank Redemption.
+Scarlett Johansson|Actress known for Black Widow, Lost in Translation and Her.
+Robert Downey Jr.|Actor best known for playing Iron Man in the Marvel films.
+Tom Cruise|Action star famous for the Mission Impossible and Top Gun films.
+Will Smith|Actor and rapper known for Men in Black and The Fresh Prince.
+Johnny Depp|Actor famous for playing Captain Jack Sparrow in Pirates of the Caribbean.
+Julia Roberts|Actress known for Pretty Woman, Notting Hill and Erin Brockovich.
+Jennifer Lawrence|Oscar-winning actress known for The Hunger Games and Silver Linings Playbook.
+Keanu Reeves|Actor beloved for The Matrix and the John Wick action series.
+Harrison Ford|Actor famous for playing Han Solo and Indiana Jones.
+Samuel L. Jackson|Prolific actor known for Pulp Fiction and playing Nick Fury.
+Nicole Kidman|Oscar-winning actress known for Moulin Rouge and Big Little Lies.
+Matt Damon|Actor known for the Bourne films, Good Will Hunting and The Martian.
+George Clooney|Actor and director known for ER, Ocean's Eleven and Syriana.
+Natalie Portman|Oscar-winning actress known for Black Swan and the Star Wars prequels.
+Hugh Jackman|Actor famous for playing Wolverine and starring in The Greatest Showman.
+Chris Hemsworth|Australian actor best known for playing Thor in the Marvel films.
+Chris Evans|Actor best known for playing Captain America in the Marvel films.
+Dwayne Johnson|Former wrestler turned blockbuster star of Jumanji and Fast and Furious.
+Ryan Reynolds|Actor and producer known for his comedic turn as Deadpool.
+Ryan Gosling|Actor known for La La Land, Drive and playing Ken in Barbie.
+Margot Robbie|Australian actress known for Barbie, I, Tonya and Harley Quinn.
+Emma Stone|Oscar-winning actress known for La La Land and Poor Things.
+Anne Hathaway|Oscar-winning actress known for Les Miserables and The Devil Wears Prada.
+Sandra Bullock|Oscar-winning actress known for Speed, Gravity and The Blind Side.
+Cate Blanchett|Two-time Oscar winner known for Elizabeth and Blue Jasmine.
+Christian Bale|Actor known for playing Batman and for dramatic physical transformations.
+Joaquin Phoenix|Oscar-winning actor known for Joker, Walk the Line and Gladiator.
+Heath Ledger|Actor remembered for his Oscar-winning performance as the Joker.
+Al Pacino|Legendary actor known for The Godfather and Scarface.
+Robert De Niro|Legendary actor known for Taxi Driver, Raging Bull and Goodfellas.
+Jack Nicholson|Three-time Oscar winner known for The Shining and Chinatown.
+Anthony Hopkins|Welsh actor famous for playing Hannibal Lecter on screen.
+Daniel Day-Lewis|Three-time Best Actor winner known for There Will Be Blood and Lincoln.
+Gary Oldman|Actor known for Darkest Hour and playing Commissioner Gordon.
+Kate Winslet|Oscar-winning actress known for Titanic and The Reader.
+Emma Watson|Actress best known for playing Hermione Granger in Harry Potter.
+Daniel Radcliffe|Actor best known for playing Harry Potter in the film series.
+Zendaya|Actress and singer known for Euphoria, Dune and Spider-Man.
+Timothee Chalamet|Actor known for Dune, Call Me by Your Name and Wonka.
+Tom Holland|British actor best known for playing Spider-Man in the Marvel films.
+Benedict Cumberbatch|British actor known for Sherlock and playing Doctor Strange.
+Idris Elba|British actor known for Luther, The Wire and Beasts of No Nation.
+Viola Davis|Acclaimed actress who has won an Oscar, Emmy, Tony and Grammy.
+Halle Berry|Oscar-winning actress known for Monster's Ball and the X-Men films.
+Charlize Theron|Oscar-winning actress known for Monster and Mad Max: Fury Road.
+Jennifer Aniston|Actress best known for playing Rachel Green on Friends.
+Reese Witherspoon|Oscar-winning actress known for Legally Blonde and Walk the Line.
+Jim Carrey|Comedic actor known for The Mask, Ace Ventura and The Truman Show.
+Robin Williams|Beloved comedian and actor known for Mrs. Doubtfire and Aladdin.
+Adam Sandler|Comedic actor known for Happy Gilmore, Grown Ups and Uncut Gems.
+Eddie Murphy|Comedy legend known for Beverly Hills Cop and Coming to America.
+Jackie Chan|Martial arts star known for daring stunts and action comedies.
+Bruce Lee|Martial arts icon known for Enter the Dragon and Fist of Fury.
+Arnold Schwarzenegger|Bodybuilder turned action star known for The Terminator films.
+Sylvester Stallone|Action star who created and played Rocky and Rambo.
+Clint Eastwood|Actor and director known for Westerns and Unforgiven.
+Marilyn Monroe|Classic Hollywood icon known for Some Like It Hot.
+Audrey Hepburn|Classic film star remembered for Breakfast at Tiffany's and Roman Holiday.
+Charlie Chaplin|Silent film legend famous for his Little Tramp character.
+Pedro Pascal|Actor known for The Mandalorian, The Last of Us and Narcos.
+Jason Momoa|Actor known for playing Aquaman and Khal Drogo in Game of Thrones.
+Gal Gadot|Israeli actress best known for playing Wonder Woman.
+Mark Ruffalo|Actor known for playing the Hulk and for Spotlight.
+Jake Gyllenhaal|Actor known for Brokeback Mountain, Nightcrawler and Donnie Darko.
+Cillian Murphy|Irish actor who won an Oscar for playing Oppenheimer.
+Florence Pugh|British actress known for Little Women, Midsommar and Oppenheimer.
+Michelle Yeoh|Malaysian actress who won an Oscar for Everything Everywhere All at Once.
+Penelope Cruz|Spanish Oscar-winning actress known for Vicky Cristina Barcelona.
+Salma Hayek|Mexican actress and producer known for Frida and Desperado.
+Antonio Banderas|Spanish actor known for The Mask of Zorro and Puss in Boots.
+Shah Rukh Khan|Bollywood superstar known as King Khan, famous for romantic dramas.
+Amitabh Bachchan|Legendary Bollywood actor and host of Kaun Banega Crorepati.
+Aamir Khan|Bollywood star known for Lagaan, 3 Idiots and Dangal.
+Salman Khan|Bollywood action star known for the Dabangg and Tiger films.
+Priyanka Chopra|Former Miss World and actress in Bollywood and Hollywood.
+Deepika Padukone|Bollywood star known for Padmaavat, Pathaan and Om Shanti Om.
+Aishwarya Rai|Former Miss World and Bollywood star known for Devdas.
+Hrithik Roshan|Bollywood actor celebrated for his dancing and the Krrish films.
+Ranveer Singh|Energetic Bollywood star known for Padmaavat and Gully Boy.
+Alia Bhatt|Bollywood actress known for Gangubai Kathiawadi and RRR.
+Akshay Kumar|Prolific Bollywood actor known for action and comedy films.
+Kareena Kapoor|Bollywood actress known for Jab We Met and 3 Idiots.
+Ranbir Kapoor|Bollywood actor known for Barfi, Sanju and Animal.
+Madhuri Dixit|Bollywood icon celebrated for her dancing and classic hits.
+Rajinikanth|Tamil cinema superstar famous for his signature on-screen style.
+Prabhas|Telugu star best known for the Baahubali films.
+Irrfan Khan|Indian actor admired for Life of Pi and The Lunchbox.
+Dev Patel|British actor known for Slumdog Millionaire, Lion and Monkey Man.
+Taylor Swift|Pop superstar known for record-breaking albums and the Eras Tour.
+Beyonce|Singer and performer known for Lemonade and record Grammy wins.
+Rihanna|Barbadian singer and entrepreneur known for Umbrella and Fenty Beauty.
+Adele|British singer known for powerful ballads like Hello and Someone Like You.
+Ed Sheeran|British singer-songwriter known for Shape of You and Perfect.
+Lady Gaga|Singer and actress known for Bad Romance and A Star Is Born.
+Bruno Mars|Singer and performer known for Uptown Funk and Grenade.
+Justin Bieber|Canadian pop star known for Baby, Sorry and Peaches.
+Ariana Grande|Pop singer known for her vocal range and the film Wicked.
+Billie Eilish|Singer known for Bad Guy and Oscar-winning movie songs.
+Drake|Canadian rapper and singer known for Hotline Bling and God's Plan.
+Kendrick Lamar|Pulitzer Prize-winning rapper known for DAMN. and Not Like Us.
+Eminem|Rapper known for Lose Yourself and The Marshall Mathers LP.
+Jay-Z|Rapper and businessman known for Empire State of Mind.
+Usher|R&B star known for Yeah! and a Super Bowl halftime show.
+Snoop Dogg|Laid-back rapper known for Gin and Juice and his humor.
+Michael Jackson|The King of Pop, famous for Thriller and the moonwalk.
+Madonna|The Queen of Pop, known for Like a Virgin and Vogue.
+Elvis Presley|The King of Rock and Roll, famous for Hound Dog.
+Freddie Mercury|Queen's legendary frontman known for Bohemian Rhapsody.
+Elton John|British singer and pianist known for Rocket Man and Your Song.
+Paul McCartney|Beatles legend and songwriter behind Hey Jude and Yesterday.
+John Lennon|Beatles co-founder remembered for the song Imagine.
+Mick Jagger|Rolling Stones frontman known for his energetic stage presence.
+Bob Dylan|Nobel Prize-winning songwriter known for Blowin' in the Wind.
+Bob Marley|Reggae legend known for One Love and Redemption Song.
+David Bowie|Shape-shifting rock icon known for Space Oddity and Heroes.
+Prince|Virtuoso musician famous for Purple Rain and Little Red Corvette.
+Whitney Houston|Powerhouse singer known for I Will Always Love You.
+Celine Dion|Canadian singer famous for My Heart Will Go On.
+Mariah Carey|Singer famed for her five-octave range and holiday classics.
+Dolly Parton|Country legend known for Jolene and 9 to 5.
+Shakira|Colombian singer known for Hips Don't Lie and Waka Waka.
+Jennifer Lopez|Singer and actress known for On the Floor and Hustlers.
+Katy Perry|Pop star known for Roar, Firework and Teenage Dream.
+Miley Cyrus|Singer and actress known for Hannah Montana and Flowers.
+Harry Styles|British singer known for One Direction and As It Was.
+The Weeknd|Canadian singer known for Blinding Lights and a Super Bowl halftime show.
+Dua Lipa|British pop singer known for Levitating and Don't Start Now.
+Olivia Rodrigo|Pop singer known for Drivers License and Good 4 U.
+Post Malone|Genre-blending artist known for Circles and Sunflower.
+Bad Bunny|Puerto Rican star who brought Latin trap to global charts.
+Sabrina Carpenter|Pop singer known for Espresso and Please Please Please.
+Lana Del Rey|Singer-songwriter known for cinematic songs like Video Games.
+Frank Sinatra|Legendary crooner known for My Way and New York, New York.
+Stevie Wonder|Musical genius known for Superstition and Isn't She Lovely.
+Bruce Springsteen|The Boss, known for Born to Run and Born in the U.S.A.
+Bono|U2 frontman known for With or Without You.
+Chris Martin|Coldplay frontman known for Yellow, Fix You and Viva la Vida.
+Sting|British musician known for The Police and Every Breath You Take.
+A. R. Rahman|Oscar-winning Indian composer known for Slumdog Millionaire.
+Lata Mangeshkar|Legendary Indian singer known as the Nightingale of India.
+Arijit Singh|Hugely popular Indian playback singer known for romantic ballads.
+BTS|South Korean boy band that became a global pop phenomenon.
+Blackpink|South Korean girl group known for How You Like That.
+Michael Jordan|Basketball legend and six-time NBA champion with the Bulls.
+LeBron James|NBA superstar and the league's all-time leading scorer.
+Kobe Bryant|Lakers legend and five-time NBA champion known for his work ethic.
+Stephen Curry|Warriors star who revolutionized basketball with his three-point shooting.
+Shaquille O'Neal|Dominant NBA center and four-time champion turned TV analyst.
+Magic Johnson|Lakers point guard and five-time NBA champion.
+Lionel Messi|Argentine footballer and World Cup winner with eight Ballon d'Or awards.
+Cristiano Ronaldo|Portuguese footballer famous for goals at Manchester United and Real Madrid.
+David Beckham|English footballer known for his free kicks and global style.
+Pele|Brazilian football legend and three-time World Cup winner.
+Diego Maradona|Argentine football icon who led his country to the 1986 World Cup.
+Neymar|Brazilian forward known for his flair and dribbling skills.
+Kylian Mbappe|French striker and World Cup winner known for blistering speed.
+Zinedine Zidane|French midfield maestro and World Cup winner turned coach.
+Serena Williams|Tennis champion with 23 Grand Slam singles titles.
+Venus Williams|Tennis star and seven-time Grand Slam singles champion.
+Roger Federer|Swiss tennis great known for his elegant style and 20 majors.
+Rafael Nadal|Spanish tennis legend and record 14-time French Open champion.
+Novak Djokovic|Serbian tennis champion with a record number of Grand Slam titles.
+Usain Bolt|Jamaican sprinter and fastest man in recorded history.
+Michael Phelps|Swimmer with the most Olympic gold medals of all time.
+Simone Biles|Gymnast with the most World and Olympic medals in the sport.
+Muhammad Ali|Boxing legend who called himself The Greatest.
+Mike Tyson|Heavyweight boxing champion known for his ferocious punching power.
+Tiger Woods|Golf legend with 15 major championships.
+Tom Brady|Quarterback with a record seven Super Bowl championships.
+Patrick Mahomes|Chiefs quarterback and multiple Super Bowl champion.
+Wayne Gretzky|Hockey's Great One and the NHL's career scoring leader.
+Babe Ruth|Baseball legend famous for his home runs with the Yankees.
+Derek Jeter|Yankees shortstop and five-time World Series champion.
+Shohei Ohtani|Japanese baseball star who excels as both pitcher and hitter.
+Sachin Tendulkar|Indian cricket legend with 100 international centuries.
+Virat Kohli|Indian cricket star and former captain known for prolific batting.
+MS Dhoni|Former Indian cricket captain known for calm leadership.
+Lewis Hamilton|British racing driver with seven Formula One world titles.
+Michael Schumacher|German Formula One legend and seven-time world champion.
+Max Verstappen|Dutch Formula One driver and multiple world champion.
+Conor McGregor|Irish mixed martial artist and former two-division UFC champion.
+Oprah Winfrey|Talk show host and media mogul behind The Oprah Winfrey Show.
+Ellen DeGeneres|Comedian and host of the long-running Ellen talk show.
+Jimmy Fallon|Comedian and host of The Tonight Show.
+Jimmy Kimmel|Comedian and host of Jimmy Kimmel Live.
+Stephen Colbert|Comedian and host of The Late Show.
+Conan O'Brien|Comedian and talk show host known for his offbeat humor.
+David Letterman|Late night legend who hosted the Late Show for decades.
+Trevor Noah|South African comedian and former host of The Daily Show.
+Gordon Ramsay|Celebrity chef known for Hell's Kitchen and fiery kitchens.
+Simon Cowell|Music executive and famously blunt talent show judge.
+Ryan Seacrest|Radio and TV host best known for American Idol.
+Steve Harvey|Comedian and longtime host of Family Feud.
+Kim Kardashian|Reality TV star and businesswoman from Keeping Up with the Kardashians.
+Kylie Jenner|Media personality and founder of Kylie Cosmetics.
+Martha Stewart|Lifestyle expert known for cooking, crafts and entertaining.
+Bear Grylls|Adventurer and host of the survival show Man vs. Wild.
+David Attenborough|Broadcaster famous for nature documentaries like Planet Earth.
+Steve Irwin|The Crocodile Hunter, beloved Australian wildlife expert.
+Jerry Seinfeld|Comedian and co-creator of the sitcom Seinfeld.
+Kevin Hart|Comedian and actor known for stand-up specials and Jumanji.
+Dave Chappelle|Comedian known for Chappelle's Show and stand-up specials.
+Tina Fey|Comedian and writer known for 30 Rock and Mean Girls.
+Amy Poehler|Comedian known for Parks and Recreation and Saturday Night Live.
+Steve Carell|Actor famous for playing Michael Scott in The Office.
+Matthew Perry|Actor beloved for playing Chandler Bing on Friends.
+Bryan Cranston|Actor famous for playing Walter White in Breaking Bad.
+Sofia Vergara|Colombian actress known for playing Gloria in Modern Family.
+Jennifer Garner|Actress known for Alias and 13 Going on 30.
+Mila Kunis|Actress known for That '70s Show and Black Swan.
+Ashton Kutcher|Actor known for That '70s Show and Punk'd.
+Neil Patrick Harris|Actor known for How I Met Your Mother and Doogie Howser.
+Sarah Jessica Parker|Actress and producer famous for a hit New York TV series.
+Kristen Stewart|Actress known for the Twilight saga and Spencer.
+Robert Pattinson|Actor known for Twilight and playing Batman.
+Henry Cavill|British actor known for playing Superman and The Witcher.
+Jamie Foxx|Oscar-winning actor and singer known for Ray.
+Octavia Spencer|Oscar-winning actress known for The Help and Hidden Figures.
+Lupita Nyong'o|Oscar-winning actress known for 12 Years a Slave and Black Panther.
+Chadwick Boseman|Actor remembered for playing Black Panther and Jackie Robinson.
+Michael B. Jordan|Actor known for Creed, Black Panther and Sinners.
+Paul Rudd|Actor known for Ant-Man, Clueless and Anchorman.
+Owen Wilson|Actor known for Wedding Crashers and his famous wow.
+Ben Stiller|Comedic actor known for Zoolander and Meet the Parents.
+Will Ferrell|Comedian known for Elf, Anchorman and Saturday Night Live.
+Jack Black|Comedic actor and musician known for School of Rock.
+Vin Diesel|Action star best known for the Fast and Furious franchise.
+Jason Statham|British action star known for The Transporter and Crank.
+Liam Neeson|Actor known for Schindler's List and the Taken films.
+Ian McKellen|British actor famous for playing Gandalf and Magneto.
+Patrick Stewart|British actor known for Star Trek and playing Professor X.
+Helen Mirren|Oscar-winning British actress known for The Queen.
+Judi Dench|British actress known for playing M in the James Bond films.
+Maggie Smith|British actress known for Downton Abbey and Harry Potter.
+Daniel Craig|British actor known for playing James Bond and Benoit Blanc.
+Sean Connery|Scottish actor famous as the original big-screen James Bond.
+Pierce Brosnan|Irish actor known for playing James Bond in the 1990s.
+Rowan Atkinson|British comedian famous for playing Mr. Bean.
+Ken Jeong|Comedian and actor known for The Hangover and The Masked Singer.
+Awkwafina|Actress and rapper known for Crazy Rich Asians and The Farewell.

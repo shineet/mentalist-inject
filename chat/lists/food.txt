@@ -1,0 +1,242 @@
+Sushi|Vinegared rice with fresh fish, seaweed and a touch of wasabi.
+Pizza Margherita|Thin crust topped with tomato, fresh mozzarella and fragrant basil leaves.
+Butter Chicken|Tender chicken simmered in a creamy, mildly spiced tomato and butter sauce.
+Biryani|Fragrant layered rice with spiced meat, saffron and crispy fried onions.
+Tacos al Pastor|Marinated pork with pineapple, onion and cilantro on soft corn tortillas.
+Pad Thai|Stir fried rice noodles with tamarind, peanuts, egg and fresh lime.
+Ramen|Rich, slow simmered broth with springy noodles, egg and sliced pork.
+Cheeseburger|Juicy grilled beef patty with melted cheese on a toasted bun.
+Masala Dosa|Crispy fermented crepe filled with spiced potatoes, served with chutney and sambar.
+Pho|Fragrant Vietnamese beef broth with rice noodles and fresh herbs.
+Lasagna|Layers of pasta, meaty ragu, bechamel and bubbling melted cheese.
+Paneer Tikka|Chunks of paneer marinated in spiced yogurt and charred in a tandoor.
+Fish and Chips|Crispy battered fish with thick cut fries and a squeeze of lemon.
+Croissant|Buttery, flaky French pastry with delicate golden layers inside.
+Paella|Saffron rice cooked with seafood, chicken and smoky paprika in one pan.
+Dim Sum|Small steamed and fried bites served in bamboo baskets with tea.
+Peking Duck|Crisp lacquered duck skin wrapped in thin pancakes with hoisin sauce.
+Chicken Tikka Masala|Smoky grilled chicken pieces in a rich, spiced tomato cream sauce.
+Falafel|Crispy fried chickpea balls flavored with herbs, garlic and warm spices.
+Hummus|Silky blend of chickpeas, tahini, lemon and garlic with olive oil.
+Shawarma|Spiced meat shaved from a rotating spit and wrapped with garlic sauce.
+Gyro|Seasoned meat in warm pita with tomato, onion and cool tzatziki.
+Moussaka|Baked layers of eggplant, spiced lamb and creamy bechamel topping.
+Spaghetti Carbonara|Pasta tossed with egg, pecorino, black pepper and crispy guanciale.
+Fettuccine Alfredo|Ribbon pasta coated in a rich, creamy butter and parmesan sauce.
+Risotto|Creamy Italian rice slowly stirred with broth, butter and parmesan.
+Bibimbap|Rice bowl topped with vegetables, beef, a fried egg and chili paste.
+Korean Fried Chicken|Double fried chicken with an extra crunchy, sweet and spicy glaze.
+Kimchi|Tangy fermented cabbage seasoned with chili, garlic and ginger.
+Bulgogi|Thinly sliced beef marinated in soy, sesame and pear, then grilled.
+Tom Yum Soup|Hot and sour Thai broth with shrimp, lemongrass and lime leaves.
+Green Curry|Creamy coconut curry with green chilies, Thai basil and tender vegetables.
+Massaman Curry|Mild, nutty Thai curry with potatoes, peanuts and warm spices.
+Banh Mi|Crusty baguette filled with grilled meat, pickled vegetables and cilantro.
+Spring Rolls|Crispy rolls stuffed with vegetables and served with a dipping sauce.
+Xiaolongbao|Delicate soup dumplings filled with pork and a burst of hot broth.
+Kung Pao Chicken|Spicy stir fried chicken with peanuts, dried chilies and Sichuan pepper.
+Mapo Tofu|Silky tofu in a fiery, numbing sauce with minced pork.
+Hot Pot|Simmering shared broth for cooking meats, vegetables and noodles at the table.
+Fried Rice|Wok tossed rice with egg, vegetables and soy for smoky flavor.
+Chow Mein|Stir fried egg noodles with vegetables and a savory soy sauce.
+Sweet and Sour Pork|Crispy pork pieces tossed in a bright, tangy pineapple sauce.
+General Tso's Chicken|Crispy chicken coated in a sweet, garlicky and slightly spicy sauce.
+Orange Chicken|Battered chicken glazed with a sticky, citrusy orange sauce.
+Tempura|Light, crispy battered shrimp and vegetables with a dipping sauce.
+Teriyaki Salmon|Glazed salmon fillet with a glossy sweet soy and mirin sauce.
+Katsu Curry|Crispy breaded cutlet served with rice and a mild Japanese curry.
+Okonomiyaki|Savory Japanese pancake with cabbage, topped with mayo and bonito flakes.
+Takoyaki|Golden octopus filled batter balls drizzled with sauce and mayonnaise.
+Udon|Thick, chewy wheat noodles in a light and comforting dashi broth.
+Miso Soup|Warm, savory broth with miso paste, tofu, seaweed and green onion.
+Onigiri|Hand formed rice balls with a tasty filling, wrapped in seaweed.
+Chole Bhature|Spicy chickpea curry served with big, fluffy deep fried bread.
+Pav Bhaji|Buttery mashed vegetable curry served with soft toasted bread rolls.
+Vada Pav|Spiced potato fritter tucked into a soft bun with tangy chutneys.
+Pani Puri|Crisp hollow puris filled with spiced water, potato and chickpeas.
+Samosa|Flaky triangular pastry stuffed with spiced potatoes and green peas.
+Idli Sambar|Soft steamed rice cakes served with lentil stew and coconut chutney.
+Rogan Josh|Aromatic Kashmiri lamb curry with a deep red, warmly spiced gravy.
+Palak Paneer|Cubes of paneer simmered in a smooth, garlicky spinach gravy.
+Dal Makhani|Black lentils slow cooked overnight with butter and cream.
+Aloo Gobi|Comforting dry curry of potatoes and cauliflower with turmeric and cumin.
+Tandoori Chicken|Chicken marinated in yogurt and spices, roasted in a clay oven.
+Malai Kofta|Soft paneer and potato dumplings in a rich, creamy cashew gravy.
+Hyderabadi Haleem|Slow cooked stew of wheat, lentils and meat, rich and hearty.
+Kerala Fish Curry|Tangy fish curry with coconut milk, kokum and curry leaves.
+Appam and Stew|Lacy rice hoppers served with a mild coconut milk vegetable stew.
+Malabar Parotta|Flaky, layered flatbread that pairs perfectly with spicy curries.
+Gulab Jamun|Soft milk dumplings soaked in warm rose and cardamom syrup.
+Rasmalai|Spongy cheese patties soaked in sweetened, saffron flavored milk.
+Jalebi|Crispy, syrupy spirals of fried batter, best enjoyed hot.
+Kheer|Creamy rice pudding flavored with cardamom, saffron and nuts.
+Mango Lassi|Chilled yogurt drink blended with ripe mango and a pinch of cardamom.
+Chicken 65|Spicy, deep fried chicken bites with curry leaves and red chili.
+Pongal|Comforting rice and lentil dish tempered with ghee, pepper and cumin.
+Uttapam|Thick savory rice pancake topped with onions, tomatoes and chilies.
+Dhokla|Light, spongy steamed gram flour cake with a tangy tempering.
+Misal Pav|Spicy sprouted bean curry topped with crunchy farsan and bread rolls.
+Kathi Roll|Paratha wrapped around spiced kebab, onions and tangy chutney.
+Momos|Steamed dumplings filled with vegetables or meat and a spicy dip.
+Goan Prawn Curry|Juicy prawns in a tangy coconut and red chili curry.
+Pork Vindaloo|Fiery Goan curry of pork with vinegar, garlic and red chilies.
+Navratan Korma|Mild, creamy curry with nine vegetables, nuts and dried fruit.
+Rajma Chawal|Comforting red kidney bean curry served over steamed basmati rice.
+Bhel Puri|Crunchy puffed rice tossed with chutneys, onions and fresh coriander.
+Texas Brisket|Beef brisket smoked low and slow with a peppery bark.
+Barbecue Ribs|Fall off the bone pork ribs brushed with smoky barbecue sauce.
+Chicken and Waffles|Crispy fried chicken on fluffy waffles with a drizzle of syrup.
+Mac and Cheese|Creamy baked macaroni smothered in rich, melted cheddar cheese.
+Buffalo Wings|Crispy chicken wings tossed in tangy hot sauce with blue cheese dip.
+Clam Chowder|Creamy New England soup with clams, potatoes and a little bacon.
+Lobster Roll|Sweet lobster meat in a buttery, toasted split top bun.
+Philly Cheesesteak|Thinly sliced steak with melted cheese and onions on a hoagie roll.
+Hot Dog|Grilled frankfurter in a soft bun with mustard and relish.
+Gumbo|Hearty Louisiana stew with sausage, seafood and a dark roux.
+Jambalaya|Spicy Creole rice with chicken, sausage, shrimp and peppers.
+Shrimp and Grits|Buttery stone ground grits topped with seasoned Southern shrimp.
+Cornbread|Golden, slightly sweet bread with a tender, crumbly texture.
+Apple Pie|Flaky pastry filled with cinnamon spiced apples, best served warm.
+Pancakes|Fluffy stacks of golden pancakes with butter and maple syrup.
+French Toast|Thick bread soaked in custard, griddled and dusted with sugar.
+Eggs Benedict|Poached eggs and ham on an English muffin with hollandaise.
+Biscuits and Gravy|Flaky Southern biscuits smothered in creamy peppered sausage gravy.
+Pulled Pork Sandwich|Slow smoked shredded pork with tangy barbecue sauce and coleslaw.
+Meatloaf|Classic baked loaf of seasoned ground beef with a sweet glaze.
+Pot Roast|Tender beef slow braised with carrots, potatoes and onions.
+Chili con Carne|Hearty stew of beef, beans, tomatoes and smoky chili spices.
+Nachos|Crispy tortilla chips loaded with melted cheese, salsa and jalapenos.
+Quesadilla|Grilled tortilla filled with melted cheese and your favorite fillings.
+Burrito|Large flour tortilla stuffed with rice, beans, meat and salsa.
+Enchiladas|Rolled tortillas filled and baked under a savory chili sauce.
+Tamales|Steamed corn masa parcels with savory fillings, wrapped in husks.
+Chiles Rellenos|Roasted poblano peppers stuffed with cheese, battered and fried.
+Mole Poblano|Rich Mexican sauce of chilies, spices and chocolate over chicken.
+Guacamole|Creamy mashed avocado with lime, onion, cilantro and a little chili.
+Elote|Grilled Mexican street corn with mayo, cotija cheese and chili powder.
+Pozole|Hearty hominy soup with pork, topped with radish and cabbage.
+Churros|Crispy fried dough sticks rolled in cinnamon sugar with chocolate dip.
+Ceviche|Fresh fish cured in lime juice with onion, chili and cilantro.
+Empanadas|Golden pastry turnovers stuffed with seasoned meat or cheese.
+Feijoada|Brazilian black bean stew slow cooked with pork and sausage.
+Arepas|Grilled corn cakes split and stuffed with cheese, meat or beans.
+Lomo Saltado|Peruvian stir fried beef with tomatoes, onions and crispy fries.
+Pupusas|Thick Salvadoran corn cakes stuffed with cheese, beans or pork.
+Picanha|Juicy Brazilian top sirloin cap grilled with just coarse salt.
+Tres Leches Cake|Light sponge cake soaked in three kinds of sweet milk.
+Cuban Sandwich|Pressed sandwich of roast pork, ham, Swiss cheese and pickles.
+Jerk Chicken|Jamaican chicken rubbed with fiery allspice and scotch bonnet marinade.
+Poutine|Crispy fries topped with cheese curds and hot, savory gravy.
+Nanaimo Bars|No bake Canadian bars with a crumb base, custard and chocolate.
+Beef Wellington|Tender beef fillet wrapped in mushroom duxelles and golden puff pastry.
+Shepherd's Pie|Savory minced lamb topped with fluffy mashed potatoes and baked.
+Full English Breakfast|Eggs, bacon, sausages, beans, toast and mushrooms on one plate.
+Sunday Roast|Roast meat with potatoes, Yorkshire pudding, vegetables and gravy.
+Bangers and Mash|Plump sausages served over creamy mashed potatoes with onion gravy.
+Sticky Toffee Pudding|Moist date sponge drenched in warm, buttery toffee sauce.
+Scones|Crumbly British bakes served with clotted cream and strawberry jam.
+Haggis|Scottish savory pudding of spiced oats and lamb, served with neeps.
+Irish Stew|Comforting stew of lamb, potatoes, carrots and onions.
+Coq au Vin|Chicken braised in red wine with mushrooms, bacon and onions.
+Beef Bourguignon|French beef stew slowly simmered in red wine with vegetables.
+Ratatouille|Provencal medley of stewed eggplant, zucchini, peppers and tomatoes.
+French Onion Soup|Caramelized onion soup topped with toasted bread and melted Gruyere.
+Crepes|Thin French pancakes filled with sweet or savory fillings.
+Quiche Lorraine|Buttery tart filled with egg custard, bacon and cheese.
+Bouillabaisse|Provencal seafood stew fragrant with saffron, fennel and orange peel.
+Croque Monsieur|Toasted ham and cheese sandwich topped with bubbling bechamel.
+Creme Brulee|Silky vanilla custard under a crackly caramelized sugar top.
+Macarons|Delicate almond meringue cookies with smooth, colorful fillings.
+Escargot|Tender snails baked in garlic, parsley and plenty of butter.
+Steak Frites|Seared steak served with crispy golden French fries.
+Duck Confit|Duck leg slow cooked in its own fat until crisp and tender.
+Wiener Schnitzel|Thin breaded veal cutlet fried golden and served with lemon.
+Bratwurst|Grilled German sausage served with mustard and sauerkraut.
+Soft Pretzel|Chewy, golden baked pretzel sprinkled with coarse salt.
+Sauerbraten|German pot roast marinated for days in vinegar and spices.
+Black Forest Cake|Chocolate sponge layered with cherries, whipped cream and kirsch.
+Apple Strudel|Paper thin pastry rolled around spiced apples and raisins.
+Goulash|Hungarian beef stew rich with paprika, onions and peppers.
+Pierogi|Polish dumplings filled with potato and cheese, fried with onions.
+Borscht|Vibrant beet soup served with a dollop of sour cream.
+Beef Stroganoff|Tender beef strips in a creamy mushroom and sour cream sauce.
+Swedish Meatballs|Small meatballs in creamy gravy with lingonberry jam on the side.
+Smorrebrod|Danish open faced rye sandwiches with beautifully arranged toppings.
+Gravlax|Nordic salmon cured with salt, sugar and fresh dill.
+Cinnamon Buns|Soft, swirled buns filled with cinnamon sugar and topped with glaze.
+Tiramisu|Coffee soaked ladyfingers layered with mascarpone cream and cocoa.
+Gelato|Dense, silky Italian ice cream in rich and fruity flavors.
+Osso Buco|Braised veal shanks with white wine, vegetables and gremolata.
+Gnocchi|Soft potato dumplings tossed in butter, sage or tomato sauce.
+Arancini|Crispy fried risotto balls with a gooey cheese center.
+Bruschetta|Grilled bread topped with fresh tomatoes, garlic, basil and olive oil.
+Caprese Salad|Fresh mozzarella, ripe tomatoes and basil drizzled with olive oil.
+Minestrone|Hearty Italian vegetable soup with beans and small pasta.
+Trofie al Pesto|Twisted pasta coated in fresh basil, pine nut and parmesan pesto.
+Cacio e Pepe|Simple Roman pasta with pecorino cheese and cracked black pepper.
+Cannoli|Crispy pastry shells filled with sweet ricotta and chocolate chips.
+Panna Cotta|Silky set cream dessert served with a bright berry sauce.
+Chicken Parmesan|Breaded chicken cutlet baked with marinara and melted mozzarella.
+Spaghetti and Meatballs|Classic pasta with tender meatballs in a rich tomato sauce.
+Greek Salad|Tomatoes, cucumber, olives and feta with oregano and olive oil.
+Spanakopita|Flaky phyllo pie filled with spinach, feta and fresh herbs.
+Souvlaki|Grilled skewers of marinated meat served with pita and tzatziki.
+Baklava|Layers of phyllo, chopped nuts and honey syrup, sweet and crunchy.
+Dolmades|Grape leaves stuffed with herbed rice and a squeeze of lemon.
+Adana Kebab|Spicy minced lamb kebab grilled over charcoal on a wide skewer.
+Lahmacun|Thin Turkish flatbread topped with spiced minced meat and herbs.
+Turkish Delight|Chewy, rose scented sweets dusted with powdered sugar.
+Shakshuka|Eggs gently poached in a spiced tomato and pepper sauce.
+Tabbouleh|Fresh parsley salad with bulgur, tomato, mint and lemon.
+Fattoush|Crunchy Lebanese salad with toasted pita and tangy sumac dressing.
+Mansaf|Jordanian lamb cooked in fermented yogurt and served over rice.
+Kibbeh|Fried bulgur shells stuffed with spiced minced meat and pine nuts.
+Couscous|Fluffy steamed semolina served with vegetables and tender meat.
+Chicken Tagine|Moroccan stew of chicken, olives and preserved lemon, slow cooked.
+Jollof Rice|West African rice cooked in a smoky, spiced tomato sauce.
+Bunny Chow|South African hollowed bread loaf filled with spicy curry.
+Bobotie|South African spiced minced meat baked with a golden egg topping.
+Doro Wat|Ethiopian spicy chicken stew served with spongy injera bread.
+Suya|Nigerian spicy grilled meat skewers coated in peanut spice.
+Peri Peri Chicken|Grilled chicken marinated in fiery African bird's eye chili sauce.
+Biltong|South African air dried, spiced meat that makes a perfect snack.
+Nasi Goreng|Indonesian fried rice with sweet soy, shallots and a fried egg.
+Satay|Grilled skewers of marinated meat served with peanut sauce.
+Rendang|Slow cooked beef in coconut milk and spices until rich and dry.
+Laksa|Spicy coconut noodle soup loaded with shrimp, tofu and herbs.
+Hainanese Chicken Rice|Poached chicken with fragrant rice, ginger and chili sauce.
+Chilli Crab|Singapore crab in a sweet, savory and spicy tomato sauce.
+Roti Canai|Flaky Malaysian flatbread served with a side of curry.
+Chicken Adobo|Filipino chicken braised in vinegar, soy, garlic and bay leaves.
+Lumpia|Thin, crispy Filipino spring rolls with savory meat filling.
+Halo Halo|Filipino shaved ice dessert with beans, fruit, jelly and ube.
+Sinigang|Sour Filipino tamarind soup with pork and vegetables.
+Lechon|Whole roasted pig with incredibly crispy, crackling skin.
+Char Siu|Cantonese barbecued pork with a sticky, sweet red glaze.
+Wonton Soup|Delicate pork dumplings floating in a clear, savory broth.
+Egg Tarts|Flaky pastry cups filled with smooth, sweet baked custard.
+Scallion Pancakes|Crispy, chewy flatbreads layered with fresh green onions.
+Dan Dan Noodles|Sichuan noodles in spicy sesame chili oil with minced pork.
+Bao Buns|Fluffy steamed buns filled with braised pork or crispy chicken.
+Hot and Sour Soup|Tangy, peppery soup with tofu, mushrooms and egg ribbons.
+Mochi|Soft, chewy Japanese rice cakes often filled with sweet bean paste.
+Yakitori|Grilled chicken skewers brushed with a sweet soy glaze.
+Gyudon|Japanese rice bowl topped with simmered beef and onions.
+Japchae|Korean glass noodles stir fried with vegetables and sesame oil.
+Tteokbokki|Chewy Korean rice cakes in a sweet and spicy red sauce.
+Korean BBQ|Marinated meats grilled at the table and wrapped in lettuce.
+Avocado Toast|Smashed avocado on toasted sourdough with chili flakes and lemon.
+Caesar Salad|Crisp romaine with creamy dressing, croutons and shaved parmesan.
+Club Sandwich|Triple decker sandwich with turkey, bacon, lettuce and tomato.
+Cobb Salad|Hearty salad of chicken, bacon, egg, avocado and blue cheese.
+New York Cheesecake|Dense, creamy cheesecake on a buttery graham cracker crust.
+Chocolate Chip Cookies|Chewy, golden cookies studded with melty chocolate chips.
+Brownies|Fudgy chocolate squares with a crackly top and gooey center.
+Key Lime Pie|Tangy lime custard in a graham crust with whipped cream.
+Pecan Pie|Sweet, gooey Southern pie packed with toasted pecans.
+Grilled Cheese|Golden buttery toast with gooey melted cheese inside.
+BLT Sandwich|Crispy bacon, lettuce and juicy tomato on toasted bread.
+Acai Bowl|Thick acai smoothie topped with granola, fruit and honey.
+Poke Bowl|Hawaiian bowl of marinated raw fish over rice with toppings.
+Bagel and Lox|Toasted bagel with cream cheese, smoked salmon, capers and onion.
+Pastrami on Rye|Piled high smoked pastrami on rye bread with spicy mustard.

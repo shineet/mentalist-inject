@@ -1,0 +1,233 @@
+Paris|France's capital, famous for the Eiffel Tower and the Louvre.
+London|Britain's capital, home to Big Ben, the Thames and Buckingham Palace.
+New York City|The Big Apple, known for Times Square, Broadway and Central Park.
+Tokyo|Japan's bustling capital, blending neon skyscrapers with ancient temples.
+Rome|Italy's Eternal City, home to the Colosseum and Vatican City.
+Kyoto|Japan's old capital, famous for temples, gardens and geisha districts.
+Barcelona|Spanish city known for Gaudi's Sagrada Familia and lively beaches.
+Venice|Italian city of canals, gondolas and the grand St. Mark's Square.
+Dubai|Gulf city known for the Burj Khalifa and luxury shopping.
+Sydney|Australian harbor city famous for its Opera House and beaches.
+Rio de Janeiro|Brazilian city known for Carnival, Copacabana and Christ the Redeemer.
+Istanbul|Turkish city spanning Europe and Asia, home to the Hagia Sophia.
+Cairo|Egypt's capital, gateway to the Pyramids of Giza.
+Amsterdam|Dutch capital known for canals, bicycles and the Van Gogh Museum.
+Prague|Czech capital with a fairytale old town and Charles Bridge.
+Vienna|Austria's capital, renowned for classical music and grand palaces.
+Berlin|Germany's capital, known for its history, art and the Brandenburg Gate.
+Madrid|Spain's capital, famous for the Prado Museum and lively plazas.
+Lisbon|Portugal's hilly capital, known for trams, tiles and pastries.
+Athens|Greece's capital, home to the ancient Acropolis and Parthenon.
+Florence|Italian Renaissance city famous for the Duomo and Michelangelo's David.
+Milan|Italy's fashion capital, home to a Gothic cathedral and The Last Supper.
+Naples|Italian city known as the birthplace of pizza, near Mount Vesuvius.
+Moscow|Russia's capital, known for Red Square and colorful St. Basil's Cathedral.
+St. Petersburg|Russian city famous for the Hermitage Museum and white nights.
+Edinburgh|Scotland's capital, crowned by a historic castle on a hill.
+Dublin|Ireland's capital, known for literary history and lively pubs.
+Copenhagen|Denmark's capital, known for colorful Nyhavn and Tivoli Gardens.
+Stockholm|Sweden's capital, spread across islands with a charming old town.
+Oslo|Norway's capital, set on a fjord and known for its museums.
+Helsinki|Finland's seaside capital, known for design and saunas.
+Reykjavik|Iceland's colorful capital, a gateway to glaciers and northern lights.
+Zurich|Swiss financial hub set on a beautiful lake near the Alps.
+Geneva|Swiss lakeside city known for diplomacy and its tall water fountain.
+Brussels|Belgium's capital, famous for the Grand Place, waffles and chocolate.
+Bruges|Belgian medieval city of cobbled streets and peaceful canals.
+Budapest|Hungary's capital, divided by the Danube and known for thermal baths.
+Krakow|Polish city with a grand medieval market square and Wawel Castle.
+Warsaw|Poland's capital, known for its rebuilt old town and vibrant culture.
+Dubrovnik|Croatian walled city on the Adriatic, known as a film location.
+Seville|Spanish city known for flamenco, orange trees and the Alcazar.
+Granada|Spanish city home to the stunning Alhambra palace.
+Munich|Bavarian city famous for Oktoberfest and beer gardens.
+Salzburg|Austrian city known as Mozart's birthplace and for The Sound of Music.
+Nice|French Riviera city known for its seaside promenade.
+Monaco|Glamorous tiny principality known for its casino and Grand Prix.
+Marseille|France's old port city on the sunny Mediterranean coast.
+Lyon|French city celebrated as a capital of fine cuisine.
+Santorini|Greek island known for white villages and famous sunsets.
+Los Angeles|California city of Hollywood, beaches and year-round sunshine.
+San Francisco|California city known for the Golden Gate Bridge and cable cars.
+Chicago|Windy City known for its architecture, deep-dish pizza and lakefront.
+Las Vegas|Nevada city famous for casinos, shows and the glittering Strip.
+Miami|Florida city known for South Beach and Latin culture.
+New Orleans|Louisiana city famous for jazz, Mardi Gras and Creole cuisine.
+Washington, D.C.|America's capital, home to the White House and the National Mall.
+Boston|Historic Massachusetts city known for the Freedom Trail and universities.
+Seattle|Pacific Northwest city known for the Space Needle and coffee culture.
+Austin|Texas capital known as the Live Music Capital of the World.
+Nashville|Tennessee city known as the home of country music.
+Philadelphia|Historic city where the Declaration of Independence was signed.
+San Diego|Sunny California city known for beaches and its famous zoo.
+Honolulu|Hawaiian city known for Waikiki Beach and Diamond Head.
+Denver|The Mile High City, a gateway to the Rocky Mountains.
+Atlanta|Georgia city known for business, music and civil rights history.
+Dallas|Texas city known for business, sports and big-city flair.
+Houston|Texas city known for NASA's Space Center and diverse food.
+San Antonio|Texas city famous for the Alamo and its River Walk.
+Orlando|Florida city famous for Walt Disney World and theme parks.
+Portland|Oregon city known for food carts, bridges and quirky culture.
+Phoenix|Sunny Arizona desert city surrounded by mountains.
+Toronto|Canada's largest city, known for the CN Tower.
+Vancouver|Canadian coastal city surrounded by mountains and ocean.
+Montreal|Canadian city with French charm, festivals and a historic old quarter.
+Quebec City|Canadian city with a walled old town and European atmosphere.
+Mexico City|Mexico's vibrant capital, known for Aztec history and great food.
+Cancun|Mexican resort city known for turquoise Caribbean beaches.
+Havana|Cuba's capital, known for classic cars and colorful colonial streets.
+Buenos Aires|Argentina's capital, famous for tango and grand boulevards.
+Lima|Peru's capital, celebrated as a world-class food destination.
+Cusco|Peruvian city in the Andes, gateway to Machu Picchu.
+Santiago|Chile's capital, set against the snowy Andes mountains.
+Bogota|Colombia's high-altitude capital, known for its Gold Museum.
+Cartagena|Colombian Caribbean city with a colorful walled old town.
+Medellin|Colombian city of eternal spring, known for innovation.
+Sao Paulo|Brazil's largest city, a hub of business, art and food.
+Salvador|Brazilian coastal city known for Afro-Brazilian culture and music.
+Quito|Ecuador's capital, with a beautifully preserved colonial center.
+Montevideo|Uruguay's relaxed capital on the Rio de la Plata.
+Panama City|Panama's capital, known for its famous canal and skyline.
+San Juan|Puerto Rico's capital, known for its colorful old town and forts.
+Beijing|China's capital, home to the Forbidden City and the Great Wall nearby.
+Shanghai|China's glittering financial hub, known for the Bund waterfront.
+Hong Kong|Dazzling harbor city known for its skyline and dim sum.
+Singapore|Clean, modern city-state known for Gardens by the Bay.
+Bangkok|Thailand's capital, known for golden temples and street food.
+Seoul|South Korea's capital, blending palaces with K-pop culture.
+Osaka|Japanese city known for street food and Osaka Castle.
+Taipei|Taiwan's capital, known for night markets and Taipei 101.
+Kuala Lumpur|Malaysia's capital, home to the Petronas Twin Towers.
+Hanoi|Vietnam's capital, known for its old quarter and lakes.
+Ho Chi Minh City|Vietnam's busy commercial hub, full of scooters and street food.
+Bali|Indonesian island known for beaches, rice terraces and temples.
+Jakarta|Indonesia's sprawling capital and economic center.
+Manila|Philippine capital known for its historic walled city, Intramuros.
+Mumbai|India's city of dreams, home to Bollywood and the Gateway of India.
+Delhi|India's capital region, rich with Mughal monuments and markets.
+Agra|Indian city home to the magnificent Taj Mahal.
+Jaipur|India's Pink City, known for palaces and forts.
+Udaipur|Indian City of Lakes, known for romantic palaces.
+Varanasi|Ancient Indian city on the Ganges, known for its ghats.
+Bangalore|India's tech capital, known for gardens and a pleasant climate.
+Kolkata|Indian city known for literature, art and colonial architecture.
+Chennai|South Indian coastal city known for temples and classical arts.
+Hyderabad|Indian city famous for the Charminar and biryani.
+Kochi|Kerala port city known for Chinese fishing nets and spice trade history.
+Kathmandu|Nepal's capital, a gateway to the Himalayas.
+Colombo|Sri Lanka's capital, a bustling port on the Indian Ocean.
+Male|The Maldives' tiny capital, gateway to island resorts.
+Abu Dhabi|UAE capital known for the Sheikh Zayed Grand Mosque.
+Doha|Qatar's capital, known for its modern skyline and museums.
+Petra|Jordan's rose-red ancient city carved into rock.
+Amman|Jordan's capital, built across hills with Roman ruins.
+Beirut|Lebanon's capital, known for food and Mediterranean views.
+Marrakech|Moroccan city known for bustling souks and colorful riads.
+Fez|Moroccan city with one of the world's oldest medinas.
+Casablanca|Morocco's largest city, home to the grand Hassan II Mosque.
+Cape Town|South African city beneath the iconic Table Mountain.
+Johannesburg|South Africa's largest city and economic powerhouse.
+Nairobi|Kenya's capital, with a national park right at its edge.
+Zanzibar|Tanzanian island known for spices and historic Stone Town.
+Lagos|Nigeria's largest city, a hub of music and business.
+Accra|Ghana's capital, known for its beaches and lively markets.
+Addis Ababa|Ethiopia's highland capital and home of the African Union.
+Tunis|Tunisia's capital, near the ruins of ancient Carthage.
+Luxor|Egyptian city known for the Valley of the Kings and Karnak Temple.
+Alexandria|Egyptian port city founded by Alexander the Great.
+Melbourne|Australian city known for coffee culture, sport and laneways.
+Brisbane|Sunny Australian city on a winding river.
+Perth|Australian city on the Indian Ocean known for beaches.
+Auckland|New Zealand's largest city, built around two harbors.
+Queenstown|New Zealand's adventure capital, set on a stunning lake.
+Wellington|New Zealand's windy and creative capital.
+Anchorage|Alaska's largest city, surrounded by mountains and wilderness.
+Key West|Florida island city known for sunsets and laid-back vibes.
+Savannah|Georgia city known for oak-shaded squares and Southern charm.
+Charleston|South Carolina city famous for historic homes and cuisine.
+Santa Fe|New Mexico city known for adobe buildings and art galleries.
+Sedona|Arizona town famous for its red rock landscapes.
+Aspen|Colorado mountain town known for skiing and luxury.
+Salt Lake City|Utah's capital, surrounded by mountains and ski resorts.
+Minneapolis|Minnesota city known for lakes, parks and the arts.
+Detroit|Michigan city known as the Motor City and the home of Motown.
+Pittsburgh|Pennsylvania city of bridges, rivers and steel history.
+Baltimore|Maryland port city known for its Inner Harbor and crab cakes.
+St. Louis|Missouri city known for the Gateway Arch.
+Kansas City|Missouri city famous for barbecue and jazz.
+Memphis|Tennessee city known for blues, barbecue and Graceland.
+Calgary|Canadian city known for the Stampede and nearby Rockies.
+Ottawa|Canada's capital, known for Parliament Hill and the Rideau Canal.
+Halifax|Nova Scotia port city with a rich maritime history.
+Antigua Guatemala|Guatemalan colonial town surrounded by volcanoes.
+Valparaiso|Chilean port city with colorful hillside houses.
+La Paz|Bolivia's high-altitude seat of government in the Andes.
+Ushuaia|Argentine city often called the southernmost city in the world.
+Manchester|English city known for football and music history.
+Liverpool|English port city famous as the home of the Beatles.
+Oxford|English city of dreaming spires and a famous university.
+Cambridge|English university city known for punting along the river.
+Bath|English city famous for Roman baths and Georgian architecture.
+York|Historic English city with medieval walls and a grand cathedral.
+Glasgow|Scotland's largest city, known for music and architecture.
+Cardiff|Welsh capital known for its castle and rugby stadium.
+Belfast|Northern Irish city where the Titanic was built.
+Galway|Irish west coast city known for music and festivals.
+Porto|Portuguese city known for port wine and riverside views.
+Valencia|Spanish city known for paella and futuristic architecture.
+Malaga|Spanish coastal city and Picasso's birthplace.
+Ibiza|Spanish island famous for nightlife and beaches.
+Palma de Mallorca|Spanish island capital with a Gothic cathedral.
+Bordeaux|French city at the heart of a famous wine region.
+Strasbourg|French city with half-timbered houses and a grand cathedral.
+Cannes|French Riviera city famous for its film festival.
+Verona|Italian city known as the setting of Romeo and Juliet.
+Pisa|Italian city famous for its leaning tower.
+Siena|Tuscan city known for its medieval square and horse race.
+Amalfi|Italian coastal town with cliffs and lemon groves.
+Turin|Italian city known for chocolate, cars and the Alps.
+Bologna|Italian city known for its food and ancient university.
+Palermo|Sicilian capital known for street food and architecture.
+Hamburg|German port city known for canals and music.
+Cologne|German city with a towering Gothic cathedral.
+Frankfurt|German financial center with a striking skyline.
+Heidelberg|German university town with a romantic castle.
+Rotterdam|Dutch port city famous for modern architecture.
+The Hague|Dutch city that hosts international courts and government.
+Luxembourg City|Small capital with fortifications above deep valleys.
+Lucerne|Swiss lakeside city known for its covered wooden bridge.
+Interlaken|Swiss town between two lakes in the Alps.
+Tallinn|Estonian capital with a beautifully preserved medieval old town.
+Riga|Latvian capital known for its Art Nouveau architecture.
+Vilnius|Lithuanian capital with a baroque old town.
+Bucharest|Romanian capital known for grand boulevards and palaces.
+Sofia|Bulgarian capital at the foot of Vitosha Mountain.
+Belgrade|Serbian capital at the meeting of two rivers.
+Ljubljana|Slovenia's green and charming riverside capital.
+Split|Croatian coastal city built around a Roman palace.
+Valletta|Malta's tiny fortified capital overlooking the sea.
+Mykonos|Greek island known for windmills and beaches.
+Thessaloniki|Greek port city known for Byzantine history and food.
+Antalya|Turkish resort city on the turquoise coast.
+Tbilisi|Georgia's capital, known for sulfur baths and old streets.
+Baku|Azerbaijan's capital on the Caspian Sea with modern towers.
+Samarkand|Uzbek city on the Silk Road with blue-tiled mosques.
+Hiroshima|Japanese city known for its Peace Memorial Park.
+Nara|Japanese city known for ancient temples and friendly deer.
+Sapporo|Japanese city famous for its snow festival.
+Busan|South Korean port city known for beaches and seafood.
+Macau|Chinese city known for casinos and Portuguese heritage.
+Xi'an|Chinese city home to the Terracotta Army.
+Chengdu|Chinese city known for giant pandas and spicy food.
+Guilin|Chinese city surrounded by dramatic karst mountains.
+Chiang Mai|Northern Thai city known for temples and night markets.
+Phuket|Thai island known for beaches and nightlife.
+Siem Reap|Cambodian town that is the gateway to Angkor Wat.
+Luang Prabang|Laotian town known for temples and saffron-robed monks.
+Penang|Malaysian island known for street art and food.
+Ulaanbaatar|Mongolia's capital and gateway to the steppe.
+Muscat|Oman's capital, framed by mountains and sea.
+Riyadh|Saudi Arabia's capital and largest city.
+Victoria Falls|African town beside one of the world's largest waterfalls.
+Kigali|Rwanda's clean, green capital in the hills.
+Dakar|Senegal's capital on Africa's westernmost point.

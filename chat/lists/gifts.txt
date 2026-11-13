@@ -1,0 +1,287 @@
+Weighted Blanket|A cozy, calming blanket that helps them relax and sleep deeply.
+Personalised Star Map|A print of the night sky from a date that matters.
+Scented Candle Set|A trio of soothing candles to make any room feel warm.
+Cashmere Throw|An incredibly soft throw for curling up on the couch.
+Gooseneck Kettle|A sleek kettle for precise pour over coffee and perfect tea.
+Smart Speaker|A voice assistant that plays music and answers questions hands free.
+Digital Photo Frame|A frame that cycles through family photos shared from anywhere.
+Aromatherapy Diffuser|Fills the room with calming essential oil mist and soft light.
+Silk Pillowcase|A luxurious pillowcase that is gentle on skin and hair.
+Luxury Bathrobe|A plush, spa quality robe for slow, relaxing mornings.
+Heated Throw|A warm electric throw for chilly evenings on the sofa.
+Indoor Herb Garden|A countertop kit for growing fresh basil, mint and parsley.
+Monstera Plant|A striking, easy care houseplant that brightens any space.
+Bonsai Tree|A miniature living tree that brings calm to a desk.
+Terrarium Kit|Everything needed to build a tiny glass garden at home.
+Air Purifier|A quiet purifier that keeps the air fresh and clean.
+Robot Vacuum|A smart little helper that keeps floors tidy on its own.
+Sunrise Alarm Clock|Wakes them gently with light that slowly brightens like dawn.
+Shower Speaker|A waterproof speaker for singing along to music in the shower.
+Memory Foam Slippers|Cushioned slippers that feel like a hug for tired feet.
+Luxury Bath Towels|Thick, fluffy towels that make every shower feel indulgent.
+Cast Iron Skillet|A durable pan that sears beautifully and lasts for generations.
+Dutch Oven|A heavy enameled pot perfect for stews, braises and bread.
+Stand Mixer|A kitchen workhorse for baking cakes, cookies and fresh bread.
+Air Fryer|Makes crispy, golden food with a fraction of the oil.
+Espresso Machine|Cafe quality espresso and lattes made right at home.
+Pour Over Coffee Set|A ritual kit for brewing a slow, perfect cup of coffee.
+Coffee Subscription|Freshly roasted beans from great roasters delivered every month.
+Tea Sampler|A curated collection of loose leaf teas from around the world.
+Milk Frother|Whips up creamy foam for lattes and hot chocolate in seconds.
+Pizza Oven|A backyard oven that bakes crisp, blistered pizzas in minutes.
+Cheese Board Set|A wooden board with knives for hosting beautiful spreads.
+Chef's Knife|A sharp, well balanced knife that makes cooking a joy.
+Electric Pressure Cooker|Cooks soups, curries and rice quickly with the push of a button.
+Waffle Maker|Turns out golden, fluffy waffles for lazy weekend breakfasts.
+Ice Cream Maker|Churns homemade ice cream and sorbet in any flavor they like.
+Sous Vide Cooker|A precision cooker for perfectly tender steaks every single time.
+Spice Gift Set|A colorful collection of spices to inspire new recipes.
+Hot Sauce Sampler|A fiery lineup of small batch hot sauces to try.
+Olive Oil Tasting Set|Premium olive oils from different regions for drizzling and dipping.
+Gourmet Chocolate Box|An elegant assortment of handcrafted chocolates and truffles.
+Charcuterie Gift Box|Cured meats, cheeses and crackers ready for a cozy night in.
+Wine Decanter|A beautiful glass decanter that lets red wine breathe properly.
+Whiskey Stones|Chill a pour of whiskey without watering it down.
+Cocktail Shaker Set|A home bar kit with shaker, jigger and strainer.
+Personalised Cutting Board|A wooden board engraved with their name or family recipe.
+Custom Photo Mug|A mug printed with a favorite photo for morning coffee.
+Cookbook|A beautifully photographed cookbook from a favorite chef or cuisine.
+Fondue Set|A fun set for melted cheese or chocolate dipping nights.
+Popcorn Maker|A retro machine for fresh popcorn on movie nights.
+Smoothie Blender|A powerful blender for smoothies, shakes and frozen drinks.
+Cold Brew Maker|Brews smooth, low acid iced coffee right in the fridge.
+Bread Making Kit|Everything needed to bake rustic sourdough loaves at home.
+Kombucha Brewing Kit|A starter kit for brewing fizzy, tangy kombucha at home.
+Home Brewing Kit|All the gear to brew their own craft beer at home.
+Wine Club Membership|Hand picked bottles from interesting vineyards delivered each month.
+Custom Pet Portrait|A charming illustrated portrait of their beloved furry friend.
+Engraved Pocket Watch|A timeless keepsake engraved with a personal message.
+Name Necklace|A delicate necklace with their name in elegant script.
+Birthstone Ring|A dainty ring featuring the stone for their birth month.
+Personalised Photo Book|A printed book of favorite memories from the past year.
+Family Recipe Book|A keepsake book collecting treasured family recipes in one place.
+Monogrammed Leather Wallet|A sleek wallet embossed with their initials.
+Engraved Cufflinks|Classic cufflinks engraved with initials or a special date.
+Custom Bobblehead|A playful figurine made to look just like them.
+Charm Bracelet|A bracelet with charms that tell their personal story.
+Custom Song Commission|An original song written and recorded just for them.
+Personalised Storybook|A children's book where they become the hero of the story.
+Embroidered Hoodie|A cozy hoodie stitched with a name, date or inside joke.
+Hometown Map Print|A stylish print of the streets of a meaningful place.
+Wireless Earbuds|Compact earbuds for music and calls without any tangled wires.
+Noise Cancelling Headphones|Blocks out the world for focused work and peaceful travel.
+Smartwatch|Tracks fitness, shows messages and keeps them on schedule.
+Fitness Tracker|A slim band that tracks steps, sleep and heart rate.
+E-Reader|Carries thousands of books with a glare free, paper like screen.
+Tablet|A versatile screen for streaming, reading, drawing and video calls.
+Portable Charger|A pocket sized power bank to keep phones charged on the go.
+Wireless Charging Pad|A tidy pad that charges phones without fiddling with cables.
+Instant Camera|Prints fun, retro photos the moment you snap them.
+Camera Drone|Captures stunning aerial photos and video from high above.
+Action Camera|A rugged camera for filming adventures, sports and travel.
+Mechanical Keyboard|A satisfying, clicky keyboard that makes typing feel great.
+Gaming Console|Hours of entertainment with the latest games for the whole family.
+VR Headset|Immersive virtual reality for games, fitness and exploring new worlds.
+Smart Ring|A sleek ring that quietly tracks sleep and activity.
+Item Tracker Tags|Small tags that help find keys, bags and wallets fast.
+Digital Notebook|A paper like tablet for handwritten notes that sync to the cloud.
+Mini Projector|Turns any wall into a big screen for movie nights.
+Ring Light|Bright, flattering light for video calls, selfies and content creation.
+Phone Gimbal|Keeps phone videos smooth and steady while on the move.
+Smart Mug|Keeps coffee or tea at the perfect temperature for hours.
+Video Doorbell|See and talk to visitors at the door from anywhere.
+Smart Bulbs|Color changing bulbs controlled by phone or voice.
+Electric Toothbrush|A sonic toothbrush for a dentist fresh clean every day.
+Retro Game Console|A mini console preloaded with classic games from childhood.
+Portable Photo Printer|Prints sticker photos straight from a phone in seconds.
+Laptop Stand|Raises the screen to eye level for better posture.
+Record Player|A stylish turntable for enjoying vinyl with warm, rich sound.
+Vinyl Record|A favorite album on vinyl for their collection or a new turntable.
+Karaoke Microphone|A wireless mic with built in speaker for sing along fun.
+Streaming Stick|Turns any TV into a smart TV with all their favorite apps.
+Massage Gun|Eases sore muscles with deep, percussive massage at home.
+Yoga Mat|A thick, grippy mat for yoga, stretching and home workouts.
+Foam Roller|Helps relieve tight muscles and speed up recovery after exercise.
+Spa Gift Set|A pampering collection of lotions, scrubs and bath soaks.
+Bath Bomb Set|Fizzy, fragrant bath bombs for a relaxing soak.
+Facial Roller|A cooling stone roller that soothes and refreshes the skin.
+Silk Sleep Mask|A soft mask that blocks light for deeper, more restful sleep.
+Acupressure Mat|A spiky mat that helps release tension and ease back aches.
+Meditation Cushion|A supportive cushion for comfortable daily meditation practice.
+Neck Massager|A heated massager that melts away neck and shoulder tension.
+Foot Spa|A warm, bubbling foot bath for tired feet after long days.
+Essential Oil Set|A collection of pure oils like lavender, eucalyptus and peppermint.
+Skincare Set|A curated routine of cleansers, serums and moisturizers.
+Perfume|A signature scent they will reach for every day.
+Fragrance Discovery Set|Sample vials of several scents to find a new favorite.
+Manicure Set|A sleek grooming kit with clippers, files and cuticle tools.
+Hair Dryer Brush|Dries and styles hair in one step for a salon finish.
+Insulated Tumbler|Keeps drinks icy cold or piping hot for hours.
+Smart Water Bottle|Glows to remind them to stay hydrated throughout the day.
+Resistance Bands|A versatile set for strength training at home or while traveling.
+Adjustable Dumbbells|Space saving weights that switch resistance with a quick turn.
+Kettlebell|A compact weight for full body strength and cardio workouts.
+Fitness Class Pass|A pass to try yoga, spin or boxing at local studios.
+Cashmere Sweater|A soft, timeless sweater they will wear every winter.
+Leather Gloves|Elegant gloves lined for warmth, with touchscreen friendly fingertips.
+Wool Scarf|A cozy, classic scarf that adds warmth and style.
+Knit Beanie|A snug knit hat for cold mornings and winter walks.
+Puffer Vest|A lightweight, warm layer for crisp fall and winter days.
+Fuzzy Socks|Ultra soft socks that keep toes toasty all winter.
+Matching Pajamas|Festive coordinated pajamas for the whole family to wear together.
+Leather Tote|A roomy, stylish bag that works for office and weekends.
+Crossbody Bag|A hands free bag that fits all the everyday essentials.
+Sunglasses|Stylish shades with UV protection for sunny days.
+Leather Belt|A well made belt that pairs with jeans or suits.
+Watch Winder|Keeps automatic watches wound and ready to wear.
+Jewelry Box|An elegant organizer for rings, necklaces and earrings.
+Pearl Earrings|Classic pearl studs that pair with any outfit.
+Diamond Studs|Timeless sparkle for everyday wear and special occasions.
+Tennis Bracelet|A glittering line of stones for a touch of elegance.
+Signet Ring|A classic ring that can be engraved with initials or a crest.
+Tie and Pocket Square|A coordinated set for sharp, polished occasions.
+Designer Sneakers|Comfortable, stylish sneakers they would not buy for themselves.
+Weekender Bag|A stylish duffel sized just right for short getaways.
+Travel Jewelry Case|A compact case that keeps jewelry tangle free on trips.
+Passport Holder|A leather cover that keeps travel documents neat and protected.
+Carry On Suitcase|A durable, lightweight suitcase that fits in the overhead bin.
+Packing Cubes|Keeps suitcases organized so packing and unpacking is a breeze.
+Travel Neck Pillow|A supportive pillow for comfortable sleep on long flights.
+Cooking Class|A hands on class to learn a new cuisine with a pro.
+Hot Air Balloon Ride|A breathtaking sunrise flight with views for miles.
+Spa Day|A full day of massages, facials and total relaxation.
+Concert Tickets|A night out seeing their favorite artist perform live.
+Broadway Tickets|An unforgettable evening at a hit musical or play.
+Wine Tasting Tour|A guided tour of vineyards with tastings along the way.
+Weekend Getaway|A short trip to a cozy cabin, beach or city escape.
+Pottery Class|A creative workshop for throwing and glazing their own pieces.
+Skydiving Experience|An adrenaline packed tandem jump for the true thrill seeker.
+Escape Room Voucher|A fun team challenge to crack puzzles before time runs out.
+Couples Massage|A side by side massage for a relaxing date together.
+Sports Game Tickets|Great seats to cheer on their favorite team in person.
+Museum Membership|A year of exhibits, special events and members only perks.
+Zoo Membership|Unlimited visits to see animals all year long.
+Theme Park Passes|A day of rides, shows and thrills for the whole family.
+Dance Lessons|Classes in salsa, swing or ballroom for a fun new skill.
+Flying Lesson|A chance to take the controls of a small plane.
+Magic Show Tickets|A night of mind blowing illusions and jaw dropping mentalism.
+Streaming Subscription|Months of movies and shows for cozy nights in.
+Audiobook Subscription|Monthly credits for audiobooks to enjoy on commutes and walks.
+Meal Kit Subscription|Fresh ingredients and easy recipes delivered right to the door.
+Flower Subscription|Fresh, seasonal bouquets delivered to brighten their home.
+Online Course Subscription|Lessons from world class experts in cooking, writing and more.
+Adopt an Animal|A symbolic adoption that supports wildlife conservation.
+Charity Donation|A meaningful gift made in their name to a cause they love.
+Ancestry DNA Kit|Reveals family heritage and connects them with distant relatives.
+Jigsaw Puzzle|A beautiful thousand piece puzzle for cozy afternoons.
+Board Game|A crowd pleasing game for family nights and friendly rivalry.
+Lego Set|A detailed building set for hours of focused, satisfying fun.
+Paint by Numbers|A relaxing kit that turns anyone into a painter.
+Watercolour Set|Quality paints and brushes for creating soft, dreamy art.
+Sketchbook and Pencils|A premium sketchbook and pencil set for budding artists.
+Embroidery Kit|A beginner friendly kit for stitching a pretty design.
+Knitting Kit|Yarn, needles and a pattern for a cozy handmade scarf.
+Candle Making Kit|Everything needed to pour custom scented candles at home.
+Calligraphy Set|Pens, ink and guides for learning beautiful lettering.
+Telescope|Brings the moon, planets and stars into stunning view.
+Binoculars|Compact, clear optics for birdwatching, hiking and concerts.
+Bird Feeder|Invites colorful birds to visit the backyard every day.
+Gardening Tool Set|Sturdy tools and gloves for the passionate home gardener.
+Fishing Rod|A quality rod and reel for peaceful days on the water.
+Camping Hammock|A lightweight hammock for lazy afternoons outdoors.
+Camping Lantern|A rechargeable lantern that lights up the campsite.
+Hiking Backpack|A comfortable pack with room for all the trail essentials.
+Multitool|A handy pocket tool with pliers, blades and screwdrivers.
+Fire Pit|A backyard gathering spot for cozy nights and roasted marshmallows.
+Golf Rangefinder|Measures distance to the pin for smarter shots.
+Tennis Racket|A lightweight racket for powerful, controlled play on the court.
+Pickleball Paddle Set|Paddles and balls for the fastest growing sport around.
+Electric Bike|Pedal assisted rides that make commutes and hills effortless.
+Electric Scooter|A fun, foldable ride for quick trips around town.
+Skateboard|A classic board for cruising, tricks and outdoor fun.
+Acoustic Guitar|A warm sounding guitar for learning songs and strumming along.
+Ukulele|A cheerful, easy to learn instrument for musical beginners.
+Digital Piano|Full size weighted keys for practicing and playing at home.
+Chess Set|A handsome wooden set for strategic games by the fire.
+Poker Set|Chips, cards and a case for epic game nights.
+Party Card Game|A hilarious game that gets everyone laughing together.
+Magic Trick Set|A kit of classic illusions to amaze friends and family.
+Model Train Set|A detailed train set that chugs around a miniature world.
+Remote Control Car|A speedy car that zooms around indoors and outdoors.
+Robotics Kit|Build and program a robot while learning real coding skills.
+Science Experiment Kit|Hands on experiments that make learning feel like magic.
+Microscope|Reveals the tiny hidden world in leaves, water and crystals.
+Illuminated Globe|A globe that glows at night and sparks curiosity about the world.
+Leather Journal|A handsome journal for thoughts, plans and sketches.
+Fountain Pen|A smooth writing pen that makes every note feel special.
+Desk Organiser|A stylish caddy that keeps pens and gadgets tidy.
+Daily Planner|A thoughtfully designed planner for goals, habits and schedules.
+Coffee Table Book|A stunning photography book that sparks conversation.
+Book Box Subscription|A surprise new novel and treats delivered each month.
+Book Light|A clip on light for reading in bed without disturbing anyone.
+Giant Teddy Bear|An oversized, huggable bear that makes a big impression.
+Dollhouse|A detailed wooden house for imaginative play.
+Play Kitchen|A pretend kitchen for little chefs to cook up fun.
+Balance Bike|A pedal free bike that helps toddlers learn to ride.
+Art Easel|A double sided easel with chalkboard and whiteboard.
+Play Tent|A cozy hideaway for reading, naps and pretend adventures.
+Trampoline|Bouncing fun that keeps kids active outdoors.
+Walkie Talkies|Long range radios for backyard missions and camping trips.
+Kids Camera|A durable camera made for little photographers.
+Slime Kit|Everything kids need to mix colorful, stretchy slime.
+Magnetic Tiles|Colorful tiles that snap together into endless creations.
+Marble Run|A build your own track for racing marbles.
+Night Light Projector|Projects stars and soothing scenes onto the bedroom ceiling.
+Dress Up Costume Set|Costumes for knights, princesses and superheroes.
+Puppet Theater|A little stage for putting on puppet shows.
+Baby Memory Book|A keepsake journal to record baby's firsts and milestones.
+Personalised Stocking|A festive stocking embroidered with their name.
+Personalised Ornament|A tree ornament marking a special year or milestone.
+Advent Calendar|A daily surprise to count down the days to the holiday.
+Gingerbread House Kit|Everything needed to build and decorate a sweet little house.
+Snow Globe|A charming globe with swirling snow and a festive scene.
+Ugly Christmas Sweater|A gloriously tacky sweater for holiday parties.
+Hot Cocoa Gift Set|Rich cocoa mixes, marshmallows and a cozy mug.
+Holiday Cookie Tin|A tin of buttery, festive cookies to share.
+Nutcracker Figure|A classic wooden nutcracker for holiday decor.
+Festive Wreath|A fragrant evergreen wreath to welcome guests at the door.
+Brass Diya Set|Traditional oil lamps that light up Diwali celebrations.
+Dry Fruit Gift Box|A festive box of almonds, cashews, pistachios and dates.
+Mithai Box|An assortment of traditional Indian sweets for celebrations.
+Silk Kurta Set|An elegant outfit for festivals, weddings and family gatherings.
+Orthopedic Pet Bed|A plush, supportive bed for their favorite four legged friend.
+Cat Tree|A tower for climbing, scratching and napping.
+Treat Puzzle Toy|A brain teasing toy that keeps dogs busy and happy.
+Automatic Pet Feeder|Serves meals on schedule even when they are away.
+Pet Camera|Lets them check in and toss treats to pets remotely.
+Pet GPS Collar|Tracks a wandering pet's location in real time.
+Dash Cam|Records the road for peace of mind while driving.
+Heated Seat Cushion|Warms up the car seat on frosty mornings.
+Car Detailing Kit|Premium products to make their car shine like new.
+Portable Jump Starter|Revives a dead battery without needing another car.
+Desk Lamp|A sleek, adjustable lamp for focused work and reading.
+Standing Desk Converter|Turns any desk into a sit and stand workstation.
+White Noise Machine|Soothing sounds that mask noise for better sleep.
+Leather Desk Mat|A smooth, stylish surface that protects the desk.
+Picnic Basket|A complete set with plates, glasses and a cozy blanket.
+Outdoor String Lights|Warm bulbs that turn a patio into a cozy retreat.
+Windproof Umbrella|A sturdy umbrella that stays intact in gusty weather.
+Rechargeable Hand Warmers|Pocket warmers that keep fingers toasty all day.
+Reading Pillow|A supportive backrest for reading or watching TV in bed.
+Electric Wine Opener|Uncorks bottles effortlessly with the push of a button.
+Gallery Frame Set|A matching set of frames for a stylish photo wall.
+Shadow Box|A display case for tickets, medals and treasured mementos.
+Wall Art Print|A beautiful print to refresh a favorite room.
+Custom Neon Sign|A glowing sign with their name or favorite phrase.
+Lava Lamp|A groovy retro lamp with mesmerizing floating blobs.
+Himalayan Salt Lamp|A warm, glowing lamp carved from natural pink salt.
+Wind Chimes|Gentle, melodic chimes that sing with every breeze.
+Grill Tool Set|Sturdy tongs, spatula and brush for the backyard griller.
+Pellet Smoker|Infuses meats with rich, smoky flavor low and slow.
+Meat Thermometer|A wireless probe for perfectly cooked meat every time.
+Bar Cart|A stylish rolling cart for displaying drinks and glassware.
+Wine Chiller|Keeps a bottle perfectly cold at the dinner table.
+Craft Beer Sampler|A variety pack of small batch brews to explore.
+Whiskey Glasses|Heavy crystal tumblers for sipping their favorite pour.
+Champagne Flutes|Elegant flutes for toasting life's big moments.
+Engraved Flask|A pocket flask engraved with initials or a message.

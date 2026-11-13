@@ -1,0 +1,260 @@
+African Elephant|The largest land animal, famous for its huge ears and memory.
+Asian Elephant|A gentle giant with smaller ears and a strong family bond.
+Lion|The social big cat known as the king of the savanna.
+Tiger|The largest wild cat, with bold stripes unique to each one.
+Leopard|A stealthy climber that often stores its meals up in trees.
+Cheetah|The fastest land animal, reaching speeds of about 70 mph.
+Jaguar|A powerful rainforest cat with the strongest bite of any feline.
+Snow Leopard|A ghostly mountain cat with a thick tail for warmth.
+Cougar|A solitary cat of the Americas, also called a mountain lion.
+Lynx|A wild cat with tufted ears and big snowshoe paws.
+Bobcat|A compact North American cat with a short, bobbed tail.
+Giraffe|The tallest animal on Earth, browsing treetops with a long tongue.
+Zebra|A striped grazer whose pattern may help confuse biting flies.
+Hippopotamus|A huge river dweller that spends most of its day in water.
+White Rhinoceros|A massive grazer with two horns and a wide square lip.
+Gorilla|The largest primate, living in calm and close family groups.
+Chimpanzee|A clever ape that uses tools and shares much of our DNA.
+Orangutan|A red haired ape that spends nearly its whole life in trees.
+Bonobo|A peaceful great ape known for resolving conflicts with affection.
+Baboon|A bold monkey that lives in large and noisy troops.
+Ring-Tailed Lemur|A Madagascar primate with a striped tail held high like a flag.
+Gray Wolf|A pack hunter known for its haunting howl and teamwork.
+Red Fox|A clever, adaptable canine found on nearly every continent.
+Arctic Fox|A small fox whose coat turns snowy white in winter.
+Fennec Fox|A tiny desert fox with enormous ears that release heat.
+Coyote|A resourceful canine that thrives everywhere from deserts to cities.
+Spotted Hyena|A skilled hunter with a famous giggling call.
+Grizzly Bear|A powerful brown bear with a distinctive shoulder hump.
+Polar Bear|The largest land carnivore, perfectly built for Arctic sea ice.
+Giant Panda|A black and white bear that eats bamboo nearly all day.
+Red Panda|A fluffy tree dweller with a ringed tail and sweet face.
+American Black Bear|The most common bear in North America, a skilled climber.
+Koala|A sleepy Australian marsupial that feeds on eucalyptus leaves.
+Kangaroo|A hopping marsupial that carries its baby in a pouch.
+Wallaby|A smaller cousin of the kangaroo, quick and agile.
+Wombat|A sturdy burrowing marsupial famous for its cube shaped droppings.
+Platypus|An egg laying mammal with a duck bill and webbed feet.
+Tasmanian Devil|A small but fierce marsupial with a surprisingly loud screech.
+Echidna|A spiny, egg laying mammal that slurps up ants and termites.
+Three-Toed Sloth|A slow moving tree dweller that sleeps much of the day.
+Armadillo|A small mammal wearing a natural suit of bony armor.
+Giant Anteater|A shaggy insect eater with a tongue nearly two feet long.
+Aardvark|A nocturnal digger with a long snout and rabbit like ears.
+Meerkat|A small desert mammal famous for standing guard on its hind legs.
+Mongoose|A quick and fearless hunter known for battling snakes.
+Honey Badger|A tough little mammal with a reputation for total fearlessness.
+Wolverine|A stocky, powerful member of the weasel family from the far north.
+River Otter|A playful swimmer that loves to slide down muddy banks.
+Sea Otter|A furry ocean mammal that holds hands with others while sleeping.
+Beaver|Nature's engineer, building dams and lodges from branches and mud.
+Raccoon|A masked night forager with nimble, hand like front paws.
+Skunk|A striped mammal famous for its powerful defensive spray.
+Porcupine|A rodent covered in sharp quills that detach on contact.
+Hedgehog|A small spiny mammal that rolls into a ball when scared.
+Gray Squirrel|A busy tree climber that buries nuts to eat later.
+Chipmunk|A tiny striped rodent that stuffs its cheeks with seeds.
+Groundhog|A burrowing rodent famous for predicting the end of winter.
+Prairie Dog|A chatty rodent that lives in huge underground towns.
+European Rabbit|A soft eared burrower that lives in groups called warrens.
+Snowshoe Hare|A fast hare whose fur changes color with the seasons.
+Guinea Pig|A friendly rodent that squeaks happily when it sees food.
+Hamster|A small pet rodent that runs miles on its wheel each night.
+Capybara|The world's largest rodent, famously calm around other animals.
+Chinchilla|A soft furred rodent from the Andes with incredibly dense fur.
+Moose|The largest deer, with broad antlers and long legs.
+Elk|A large deer known for its loud, bugling call in autumn.
+Reindeer|An Arctic deer where both males and females grow antlers.
+White-Tailed Deer|A graceful deer that flashes its white tail when alarmed.
+American Bison|A massive grazer that once roamed the plains in huge herds.
+Yak|A shaggy mountain ox built for life at high altitudes.
+Dromedary Camel|A one humped desert traveler that can go days without water.
+Llama|A sturdy South American pack animal with a curious personality.
+Alpaca|A fluffy relative of the llama prized for its soft fleece.
+Horse|A strong and loyal companion that has shaped human history.
+Donkey|A hardworking, sure footed animal with a famously loud bray.
+Dairy Cow|A gentle farm animal that provides milk for much of the world.
+Domestic Pig|A surprisingly smart farm animal that enjoys rolling in mud.
+Sheep|A woolly grazer that has been raised by people for millennia.
+Goat|A curious, nimble climber that will try to nibble almost anything.
+Domestic Dog|A loyal best friend that comes in hundreds of breeds.
+Domestic Cat|An independent, curious companion with a soothing purr.
+Fruit Bat|A flying mammal that helps spread seeds across forests.
+Vampire Bat|A small bat that feeds on blood and shares with roost mates.
+Walrus|A huge Arctic mammal with long tusks and bristly whiskers.
+Harbor Seal|A spotted seal that loves lounging on rocks and beaches.
+California Sea Lion|A playful, barking marine mammal often seen on docks.
+Manatee|A slow, gentle sea cow that grazes on underwater plants.
+Bottlenose Dolphin|A smart, social marine mammal known for playful leaps.
+Orca|A black and white ocean predator that hunts in family pods.
+Blue Whale|The largest animal ever known, longer than a basketball court.
+Humpback Whale|A giant whale famous for its long and haunting songs.
+Narwhal|An Arctic whale with a spiral tusk like a unicorn horn.
+Beluga Whale|A white whale nicknamed the canary of the sea for its chirps.
+Sperm Whale|A deep diving whale with the largest brain of any animal.
+Bald Eagle|A majestic bird of prey and the national symbol of the USA.
+Golden Eagle|A powerful eagle that soars over mountains and open country.
+Peregrine Falcon|The fastest animal on Earth, diving at over 200 mph.
+Red-Tailed Hawk|A common hawk often seen circling above highways and fields.
+Barn Owl|A pale, heart faced owl that hunts by sound alone.
+Snowy Owl|A white Arctic owl that hunts during daylight hours.
+Great Horned Owl|A fierce owl with feathery tufts that look like horns.
+Emperor Penguin|The largest penguin, raising chicks through brutal Antarctic winters.
+Rockhopper Penguin|A small penguin with spiky yellow eyebrows that hops over rocks.
+Flamingo|A pink wading bird that gets its color from its food.
+Peacock|A showy bird that fans out a dazzling tail of eyespots.
+Ostrich|The largest bird, unable to fly but able to run very fast.
+Emu|A tall Australian bird that can sprint across open plains.
+Toucan|A tropical bird with a huge, colorful, surprisingly light beak.
+Scarlet Macaw|A brilliantly colored parrot from the rainforests of the Americas.
+African Grey Parrot|A highly intelligent parrot that can mimic human speech.
+Cockatoo|A crested parrot known for its affectionate and noisy nature.
+Hummingbird|A tiny bird whose wings beat so fast they hum.
+Brown Pelican|A seabird that plunges into the water to scoop up fish.
+Wandering Albatross|A seabird with the widest wingspan of any living bird.
+Atlantic Puffin|A charming seabird with a bright, colorful beak.
+Mute Swan|An elegant white bird that glides gracefully across lakes.
+Mallard Duck|A familiar duck with a shiny green head on the males.
+Canada Goose|A honking goose that migrates in neat V shaped flocks.
+American Robin|A red breasted songbird that signals the start of spring.
+Blue Jay|A bold, noisy bird with bright blue feathers and a crest.
+Northern Cardinal|A brilliant red songbird that brightens up winter backyards.
+American Crow|A clever black bird that can recognize individual human faces.
+Common Raven|A large, intelligent bird known for solving tricky puzzles.
+Magpie|A black and white bird that can recognize itself in mirrors.
+Pileated Woodpecker|A large woodpecker that drums loudly on tree trunks.
+Kingfisher|A colorful bird that dives headfirst to catch small fish.
+Herring Gull|A common seaside bird always on the lookout for snacks.
+Great Blue Heron|A tall wading bird that stands perfectly still to catch fish.
+White Stork|A long legged bird that builds big nests on rooftops.
+Sandhill Crane|A tall bird famous for its elaborate dancing displays.
+Turkey Vulture|A soaring scavenger that finds food by its keen sense of smell.
+California Condor|A huge, rare vulture brought back from the edge of extinction.
+Kiwi|A small flightless bird from New Zealand with nostrils on its beak.
+Roadrunner|A speedy desert bird that prefers running to flying.
+Wild Turkey|A large ground bird that can actually fly short distances.
+Chicken|The most common bird on Earth, descended from jungle fowl.
+Rock Pigeon|A city bird with an amazing ability to find its way home.
+House Sparrow|A small, chirpy bird that lives alongside people worldwide.
+Great Hornbill|A large bird with a huge helmet like casque on its beak.
+Secretary Bird|A long legged bird of prey that stomps on snakes.
+Kookaburra|An Australian bird famous for a call that sounds like laughter.
+Komodo Dragon|The largest living lizard, found on a few Indonesian islands.
+Green Iguana|A large tree climbing lizard that loves warm, sunny spots.
+Chameleon|A lizard that changes color and moves its eyes independently.
+Leopard Gecko|A spotted lizard with sticky toes and a friendly temperament.
+Bearded Dragon|A calm Australian lizard with a spiky beard it can puff up.
+Gila Monster|A slow, venomous lizard with beaded orange and black skin.
+Saltwater Crocodile|The largest living reptile, an ambush hunter of rivers and coasts.
+American Alligator|A broad snouted reptile that lives in southern swamps.
+Gharial|A rare crocodilian with a long, thin snout made for catching fish.
+King Cobra|The longest venomous snake, able to rise up and spread its hood.
+Black Mamba|A fast, highly venomous snake from the African savanna.
+Rattlesnake|A venomous snake that warns others with a rattling tail.
+Reticulated Python|One of the longest snakes in the world, a powerful constrictor.
+Boa Constrictor|A heavy bodied snake that squeezes its prey.
+Green Anaconda|The heaviest snake on Earth, living in South American rivers.
+Garter Snake|A harmless striped snake common in gardens and meadows.
+Galapagos Tortoise|A giant tortoise that can live for over a hundred years.
+Green Sea Turtle|An ocean traveler that returns to the same beach to nest.
+Leatherback Turtle|The largest turtle, with a flexible, leathery shell.
+Box Turtle|A small turtle that can close its shell up completely.
+Snapping Turtle|A tough freshwater turtle with a powerful hooked jaw.
+Frilled Lizard|An Australian lizard that flares a dramatic neck frill when startled.
+Tuatara|A rare New Zealand reptile with roots older than the dinosaurs.
+Horned Lizard|A spiky desert lizard that can squirt blood from its eyes.
+Poison Dart Frog|A tiny, brightly colored frog whose skin carries powerful toxins.
+Axolotl|A smiling salamander that can regrow lost limbs.
+American Bullfrog|A large frog with a deep, booming call heard on summer nights.
+Red-Eyed Tree Frog|A bright green frog with striking red eyes and orange feet.
+Fire Salamander|A black and yellow amphibian found in damp European forests.
+Eastern Newt|A small amphibian that lives both on land and in ponds.
+Cane Toad|A large, warty toad known for spreading quickly in Australia.
+Great White Shark|A powerful ocean predator with rows of sharp teeth.
+Hammerhead Shark|A shark with a wide, flat head that improves its senses.
+Whale Shark|The largest fish in the sea, a gentle filter feeder.
+Tiger Shark|A striped shark known for eating almost anything it finds.
+Manta Ray|A giant, graceful ray that glides through the ocean like a bird.
+Southern Stingray|A flat ocean fish that buries itself in sandy seafloors.
+Common Octopus|A clever, eight armed sea creature that can change color instantly.
+Giant Squid|A deep sea creature with eyes as big as dinner plates.
+Cuttlefish|A color changing cousin of the squid with mesmerizing skin patterns.
+Chambered Nautilus|An ancient shelled sea creature that floats using gas chambers.
+Moon Jellyfish|A translucent jellyfish that drifts gently with ocean currents.
+Portuguese Man O' War|A floating colony of organisms with long, stinging tentacles.
+Starfish|A sea star that can regrow its arms if one is lost.
+Sea Urchin|A spiny ball shaped creature that grazes on ocean algae.
+Seahorse|A tiny fish where the males carry and give birth to babies.
+Clownfish|A bright orange fish that lives safely among sea anemones.
+Blue Tang|A vivid blue reef fish with a yellow tail.
+Pufferfish|A fish that inflates into a spiky ball when threatened.
+Swordfish|A fast ocean fish with a long, flat, sword like bill.
+Sailfish|A speedy fish with a tall sail shaped fin on its back.
+Barracuda|A sleek, toothy fish that strikes prey in quick bursts.
+Moray Eel|A snake like fish that lurks in rocky reef crevices.
+Electric Eel|A South American fish that can deliver a strong electric shock.
+Anglerfish|A deep sea fish with a glowing lure on its head.
+Lionfish|A striking fish with venomous spines and feathery fins.
+Goldfish|A popular pet fish that comes in many shapes and colors.
+Atlantic Salmon|A fish that swims upstream to spawn where it was born.
+Bluefin Tuna|A huge, fast ocean fish that can cross entire seas.
+Red-Bellied Piranha|A South American fish with razor sharp teeth.
+Channel Catfish|A whiskered fish that tastes its surroundings with its skin.
+American Lobster|A clawed ocean crustacean that can live for decades.
+King Crab|A large, spiny crab that lives in cold northern waters.
+Hermit Crab|A crab that moves into empty shells as it grows.
+Mantis Shrimp|A colorful crustacean with one of the fastest punches in nature.
+Sea Anemone|A flower like animal that stings small fish with its tentacles.
+Sea Cucumber|A soft bodied sea creature that cleans the ocean floor.
+Antarctic Krill|A tiny shrimp like animal that feeds whales and penguins.
+Giant Clam|The largest clam on Earth, living on tropical coral reefs.
+Nudibranch|A brightly colored sea slug with flamboyant patterns.
+Brain Coral|A reef building animal shaped like a human brain.
+Honeybee|A busy pollinator that makes honey and lives in organized hives.
+Bumblebee|A fuzzy, round bee that buzzes from flower to flower.
+Monarch Butterfly|An orange butterfly famous for its long annual migration.
+Luna Moth|A large, pale green moth with long, graceful tails.
+Ladybug|A spotted beetle that gardeners love because it eats aphids.
+Dragonfly|An ancient flying insect with incredible aerial skills.
+Firefly|A beetle that lights up summer nights with glowing flashes.
+Praying Mantis|A patient hunter that holds its front legs as if praying.
+Grasshopper|A jumping insect with powerful back legs built for leaping.
+Field Cricket|A small insect that chirps by rubbing its wings together.
+Leafcutter Ant|An ant that farms fungus using pieces of cut leaves.
+Termite|A tiny builder that constructs towering mounds of soil.
+Cicada|An insect that sings loudly and can spend years underground.
+Stag Beetle|A beetle with huge jaws that look like deer antlers.
+Dung Beetle|A strong beetle that rolls balls of dung many times its weight.
+Hercules Beetle|One of the largest beetles, with an impressive horned head.
+Walking Stick|An insect that hides by looking exactly like a twig.
+Mosquito|A tiny buzzing insect best known for its itchy bite.
+Housefly|A common fly that tastes food with its feet.
+Yellowjacket|A black and yellow wasp that loves picnics and sweet drinks.
+Asian Giant Hornet|The world's largest hornet, with a very powerful sting.
+Cockroach|A hardy insect that has survived for hundreds of millions of years.
+Flea|A tiny jumper that can leap many times its own length.
+Tarantula|A large, hairy spider that is usually gentle with people.
+Black Widow|A shiny black spider marked with a red hourglass.
+Emperor Scorpion|A large, glossy black scorpion that glows under UV light.
+Earthworm|A humble soil dweller that keeps gardens healthy.
+Garden Snail|A slow moving mollusk that carries its home on its back.
+Okapi|A shy forest relative of the giraffe with zebra striped legs.
+Tapir|A pig shaped mammal with a short, flexible trunk.
+Pangolin|A scaly mammal that rolls into a tight ball for protection.
+Quokka|A small Australian marsupial famous for its smiling face.
+Sugar Glider|A tiny marsupial that glides between trees on furry membranes.
+Snow Monkey|A Japanese macaque known for relaxing in hot springs.
+Proboscis Monkey|A monkey with a large, droopy nose from Borneo.
+Mandrill|A colorful primate with a bright red and blue face.
+Blue-Footed Booby|A seabird that shows off its bright blue feet when courting.
+Shoebill|A tall, prehistoric looking bird with a huge shoe shaped bill.
+Harpy Eagle|A massive rainforest eagle with talons as big as bear claws.
+Bird Of Paradise|A tropical bird famous for dazzling feathers and dance moves.
+Arctic Tern|A seabird with the longest migration of any animal.
+Ocelot|A small spotted wild cat found in the forests of the Americas.
+Caracal|A sleek wild cat with long black ear tufts and amazing jumps.
+Dingo|A wild dog of Australia with a golden coat.
+Jackrabbit|A long eared desert hare that can run in zigzags.
+Mountain Goat|A sure footed climber that scales steep, rocky cliffs with ease.
+Bighorn Sheep|A wild sheep with massive curled horns used in head butting contests.
+Musk Ox|A shaggy Arctic grazer that forms a circle to protect its young.

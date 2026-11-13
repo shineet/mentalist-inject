@@ -1,0 +1,100 @@
+[
+ {
+  "name": "Food",
+  "title": "favourite foods",
+  "keywords": [
+   "food",
+   "dish",
+   "meal",
+   "cuisine",
+   "eat"
+  ],
+  "builtin": "food"
+ },
+ {
+  "name": "Celebrities",
+  "title": "celebrities",
+  "keywords": [
+   "celebrit",
+   "famous people",
+   "actor",
+   "actress",
+   "star"
+  ],
+  "builtin": "celebrities"
+ },
+ {
+  "name": "Cocktails",
+  "title": "cocktails",
+  "keywords": [
+   "cocktail",
+   "drink"
+  ],
+  "builtin": "cocktails"
+ },
+ {
+  "name": "Movies",
+  "title": "movies",
+  "keywords": [
+   "movie",
+   "film"
+  ],
+  "builtin": "movies"
+ },
+ {
+  "name": "Cities",
+  "title": "cities to visit",
+  "keywords": [
+   "city",
+   "cities",
+   "destination",
+   "places"
+  ],
+  "builtin": "cities"
+ },
+ {
+  "name": "Animals",
+  "title": "animals",
+  "keywords": [
+   "animal"
+  ],
+  "builtin": "animals"
+ },
+ {
+  "name": "Funny things to do",
+  "title": "funny things to do",
+  "keywords": [
+   "funny",
+   "silly",
+   "fun things"
+  ],
+  "builtin": "funny"
+ },
+ {
+  "name": "Random activities",
+  "title": "random activities",
+  "keywords": [
+   "activit",
+   "things to do",
+   "hobb"
+  ],
+  "builtin": "activities"
+ },
+ {
+  "name": "Holiday gift ideas",
+  "title": "holiday gift ideas",
+  "keywords": [
+   "gift",
+   "present"
+  ],
+  "builtin": "gifts"
+ },
+ {
+  "name": "Playing cards",
+  "title": "random playing cards",
+  "keywords": [
+   "card"
+  ],
+  "builtin": "cards"
+ }
+]

@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v359-lumen-duo-label";
+const REVISION = "v360-chat-data";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2286,7 +2286,7 @@ function cleanUnlockConfig(c) {
   // The page it opens to (Mind Unlock 1.1): any short https address.
   if (typeof c.page === "string" && c.page.length <= 300 && /^https:\/\/[^\s/]+/.test(c.page)) out.page = c.page;
   // Which effect a /u link opens (Mind Unlock 1.2): the passcode or the calculator.
-  if (c.effect === "passcode" || c.effect === "calculator" || c.effect === "stopwatch") out.effect = c.effect;
+  if (["passcode", "calculator", "stopwatch", "chat", "notes"].includes(c.effect)) out.effect = c.effect;
   // Opt-in (Shine, 2026-11-13): the spectator's finished tries are relayed to
   // the performer, who prints one as the convincer. Off unless the performer's
   // app switches it on for the room.
@@ -2396,6 +2396,46 @@ function shareAuthorised(req) {
   const given = req.get("x-sms-token") || "";
   return Boolean(sms) && given === sms;
 }
+
+// The ChatGPT-style and Notes-style effects' data (Mind Unlock 1.5): the word pool
+// the 10,000-word list is drawn from, how a typed request picks a category, and
+// the category lists. Served from files in chat/, never bundled in the clip (size
+// limit), and ONLY for a room that exists, so the data is not an open download;
+// the room name is the secret, as for the faces. Read-only, cached briefly.
+const CHAT_DIR = path.resolve("chat");
+function chatRoomOk(room) {
+  const key = normalizeRoom(room);
+  return Boolean(unlockRooms[key] || calcRooms[key]);
+}
+function chatSend(res, file, type) {
+  try {
+    res.setHeader("Cache-Control", "private, max-age=600");
+    res.type(type).send(fs.readFileSync(path.join(CHAT_DIR, file), "utf8"));
+  } catch { res.status(404).json({ ok: false }); }
+}
+app.get("/api/chat/:room/words", (req, res) => {
+  if (!chatRoomOk(req.params.room)) return res.status(404).json({ ok: false });
+  chatSend(res, "words.json", "application/json");
+});
+app.get("/api/chat/:room/library", (req, res) => {
+  if (!chatRoomOk(req.params.room)) return res.status(404).json({ ok: false });
+  chatSend(res, "library.json", "application/json");
+});
+// Name|Note per line, as shipped; returned as JSON items.
+app.get("/api/chat/:room/list/:name", (req, res) => {
+  if (!chatRoomOk(req.params.room)) return res.status(404).json({ ok: false });
+  const name = String(req.params.name || "").toLowerCase().replace(/[^a-z]/g, "").slice(0, 30);
+  if (!name) return res.status(404).json({ ok: false });
+  try {
+    const text = fs.readFileSync(path.join(CHAT_DIR, "lists", name + ".txt"), "utf8");
+    const items = text.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
+      const i = l.indexOf("|");
+      return i < 0 ? { name: l, note: "" } : { name: l.slice(0, i), note: l.slice(i + 1) };
+    });
+    res.setHeader("Cache-Control", "private, max-age=600");
+    res.json({ ok: true, name, items });
+  } catch { res.status(404).json({ ok: false }); }
+});
 
 // From the remote: settings and/or one command.
 app.post("/api/unlock/:room/control", express.json({ limit: "2kb" }), (req, res) => {

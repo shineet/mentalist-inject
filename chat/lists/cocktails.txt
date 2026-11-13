@@ -1,0 +1,223 @@
+Margarita|Tequila, lime and orange liqueur served with a salted rim.
+Old Fashioned|Whiskey stirred with sugar, bitters and a twist of orange peel.
+Mojito|Refreshing mix of rum, mint, lime, sugar and soda water.
+Martini|Crisp, elegant blend of gin and dry vermouth with an olive.
+Negroni|Equal parts gin, Campari and sweet vermouth, bitter and bold.
+Manhattan|Rye whiskey, sweet vermouth and bitters with a cherry garnish.
+Daiquiri|Simple, bright shake of rum, fresh lime juice and sugar.
+Pina Colada|Creamy tropical blend of rum, coconut cream and pineapple juice.
+Cosmopolitan|Vodka, cranberry, lime and orange liqueur in a chic pink pour.
+Moscow Mule|Vodka, spicy ginger beer and lime served in a copper mug.
+Mai Tai|Tiki classic of rum, lime, orgeat and orange curacao.
+Whiskey Sour|Bourbon shaken with lemon, sugar and a silky egg white foam.
+Espresso Martini|Vodka, coffee liqueur and fresh espresso with a frothy top.
+Aperol Spritz|Bubbly Italian aperitif of Aperol, prosecco and a splash of soda.
+Long Island Iced Tea|Potent mix of five spirits with lemon and a splash of cola.
+Bloody Mary|Savory vodka and tomato juice with spices, celery and lemon.
+Mimosa|Chilled sparkling wine topped up with fresh orange juice.
+Bellini|Prosecco blended with sweet white peach puree, light and fruity.
+French 75|Gin, lemon and sugar topped with sparkling Champagne.
+Sidecar|Cognac, orange liqueur and lemon in a sugar rimmed glass.
+Tom Collins|Gin, lemon, sugar and soda served tall over ice.
+Gin and Tonic|Crisp gin and bubbly tonic water with a fresh lime wedge.
+Paloma|Tequila and grapefruit soda with lime and a pinch of salt.
+Tequila Sunrise|Tequila and orange juice with grenadine for a sunrise effect.
+Caipirinha|Brazilian cachaca muddled with lime and sugar over crushed ice.
+Pisco Sour|Peruvian pisco, lime, sugar and egg white with aromatic bitters.
+Sazerac|New Orleans rye cocktail with absinthe rinse and Peychaud's bitters.
+Mint Julep|Bourbon, sugar and fresh mint poured over crushed ice.
+Boulevardier|Bourbon, Campari and sweet vermouth, a warmer cousin of the Negroni.
+Gimlet|Gin and lime cordial, tart, clean and refreshing.
+Last Word|Gin, green Chartreuse, maraschino and lime in equal parts.
+Aviation|Gin, maraschino, lemon and creme de violette with a pale blue hue.
+Bee's Knees|Gin, lemon and honey syrup, bright and gently sweet.
+Corpse Reviver No. 2|Gin, Lillet, orange liqueur and lemon with an absinthe rinse.
+Dark 'n' Stormy|Dark rum and spicy ginger beer with a squeeze of lime.
+Painkiller|Rum, pineapple, orange and coconut cream dusted with nutmeg.
+Zombie|Powerful tiki punch of several rums, fruit juices and spices.
+Hurricane|Rum with passion fruit and citrus, a New Orleans party favorite.
+Singapore Sling|Gin, cherry liqueur, Benedictine and pineapple in a tall glass.
+Planter's Punch|Dark rum, citrus, sugar and grenadine with a dash of bitters.
+Jungle Bird|Rum, Campari, pineapple and lime, bittersweet and tropical.
+Navy Grog|Blend of rums with grapefruit, lime and honey over shaved ice.
+Scorpion Bowl|Shareable punch of rum, brandy, orange juice and orgeat.
+Blue Hawaii|Rum, vodka, blue curacao and pineapple in a vivid blue glass.
+Woo Woo|Vodka, peach schnapps and cranberry juice, a simple party pour.
+Fuzzy Navel|Peach schnapps and orange juice, sweet and easy drinking.
+Screwdriver|Vodka and fresh orange juice served simply over ice.
+Harvey Wallbanger|Vodka and orange juice floated with sweet herbal Galliano.
+Sea Breeze|Vodka with cranberry and grapefruit juice, tart and refreshing.
+Cape Codder|Vodka and cranberry juice with a wedge of lime.
+Bay Breeze|Vodka with cranberry and pineapple juice, light and fruity.
+Greyhound|Vodka or gin topped with fresh grapefruit juice.
+Salty Dog|Gin and grapefruit juice served in a salt rimmed glass.
+White Russian|Vodka, coffee liqueur and cream stirred over ice.
+Black Russian|Vodka and coffee liqueur, dark, smooth and simple.
+Mudslide|Vodka, coffee liqueur and Irish cream, rich like a milkshake.
+Grasshopper|Creme de menthe, creme de cacao and cream, minty and sweet.
+Brandy Alexander|Brandy, creme de cacao and cream topped with grated nutmeg.
+Irish Coffee|Hot coffee, Irish whiskey and sugar topped with lightly whipped cream.
+Hot Toddy|Warm whiskey with honey, lemon and spices, perfect for cold nights.
+Eggnog|Creamy holiday drink of eggs, milk, sugar, nutmeg and rum.
+Tom and Jerry|Warm, frothy holiday punch of batter, rum, brandy and milk.
+Rusty Nail|Scotch whisky stirred with honeyed Drambuie liqueur.
+Rob Roy|Scotch, sweet vermouth and bitters, a Scottish take on the Manhattan.
+Penicillin|Scotch, lemon, honey and ginger with a smoky Islay float.
+Godfather|Scotch whisky and amaretto served over ice, smooth and nutty.
+Godmother|Vodka and amaretto over ice, simple, sweet and mellow.
+Amaretto Sour|Amaretto, lemon and sugar shaken to a sweet and tart finish.
+Midori Sour|Bright green melon liqueur shaken with lemon and lime.
+Pisco Punch|Pisco shaken with pineapple, lemon and gum syrup.
+Clover Club|Gin, raspberry, lemon and egg white with a pretty pink foam.
+Ramos Gin Fizz|Gin, citrus, cream, egg white and orange flower water, shaken hard.
+French Martini|Vodka, pineapple juice and raspberry liqueur with a silky foam.
+Lemon Drop|Vodka, lemon and sugar served in a sugar rimmed glass.
+Appletini|Vodka and sour apple liqueur in a bright green martini glass.
+Vesper|Gin, vodka and Lillet Blanc, made famous by James Bond.
+Gibson|Gin and dry vermouth garnished with a pickled cocktail onion.
+Kir Royale|Champagne with a splash of blackcurrant liqueur, elegant and festive.
+Americano|Campari, sweet vermouth and soda, a light Italian aperitif.
+Hugo|Prosecco, elderflower syrup, mint and soda, floral and refreshing.
+Bramble|Gin, lemon and sugar over crushed ice with a blackberry liqueur drizzle.
+Southside|Gin, lime, sugar and fresh mint, like a gin mojito.
+Tuxedo|Gin, dry vermouth, maraschino and absinthe with orange bitters.
+Martinez|Gin, sweet vermouth, maraschino and bitters, ancestor of the Martini.
+Vieux Carre|Rye, cognac, sweet vermouth and Benedictine, rich and layered.
+Brooklyn|Rye whiskey, dry vermouth, maraschino and Amer Picon.
+Ward Eight|Rye whiskey, lemon, orange juice and grenadine, a Boston classic.
+Jack Rose|Applejack, lemon and grenadine with a rosy pink color.
+Paper Plane|Bourbon, Aperol, Amaro Nonino and lemon in equal parts.
+Naked and Famous|Mezcal, Aperol, yellow Chartreuse and lime, smoky and bright.
+Gold Rush|Bourbon, honey syrup and fresh lemon, rich and smooth.
+Cuba Libre|Rum and cola with a generous squeeze of fresh lime.
+Rum Punch|Fruity Caribbean blend of rum, juices, grenadine and nutmeg.
+Sangria|Red wine punch with brandy, chopped fruit and a splash of soda.
+Michelada|Mexican beer with lime, hot sauce and spices in a salted glass.
+Caesar|Canadian favorite of vodka, Clamato, spices and a celery salt rim.
+Shandy|Beer mixed with lemonade for a light, refreshing summer sip.
+Black Velvet|Stout layered with Champagne, rich and surprisingly elegant.
+Rossini|Prosecco blended with fresh strawberry puree, sweet and bubbly.
+Death in the Afternoon|Absinthe topped with chilled Champagne, created by Hemingway.
+Champagne Cocktail|Sugar cube soaked in bitters, topped with Champagne and cognac.
+Seelbach|Bourbon, orange liqueur and lots of bitters topped with Champagne.
+Air Mail|Rum, lime and honey topped with sparkling Champagne.
+Chartreuse Swizzle|Green Chartreuse, pineapple, lime and falernum over crushed ice.
+Queen's Park Swizzle|Demerara rum, lime, mint and bitters swizzled over crushed ice.
+Ti' Punch|Martinique rhum agricole with lime and cane syrup, simple and strong.
+El Presidente|Rum, dry vermouth, orange curacao and grenadine, a Cuban classic.
+Mary Pickford|Rum, pineapple, maraschino and grenadine, light and fruity.
+El Diablo|Tequila, creme de cassis, lime and ginger beer.
+Batanga|Tequila and cola with lime in a salt rimmed glass.
+Matador|Tequila, pineapple juice and lime, tropical and tangy.
+Ranch Water|Tequila, lime and Topo Chico, a crisp Texas favorite.
+Charro Negro|Tequila and cola with lime, a Mexican cantina staple.
+Kamikaze|Vodka, orange liqueur and lime, usually served as a shooter.
+Blue Lagoon|Vodka, blue curacao and lemonade in a vivid blue glass.
+Madras|Vodka with cranberry and orange juice, fruity and easy.
+Chi Chi|Vodka, pineapple and coconut cream, a twist on the Pina Colada.
+Bullshot|Vodka and beef bouillon with Worcestershire and spices.
+Caipiroska|Vodka muddled with fresh lime and sugar over crushed ice.
+Mind Eraser|Vodka, coffee liqueur and soda layered and sipped through a straw.
+Purple Rain|Vodka, blue curacao, cranberry and lemonade in a deep purple hue.
+Gin Rickey|Gin, lime and soda water, dry, tart and bubbly.
+White Lady|Gin, orange liqueur, lemon and egg white, crisp and silky.
+Hanky Panky|Gin, sweet vermouth and a dash of Fernet Branca.
+Bijou|Gin, sweet vermouth and green Chartreuse, jewel toned and herbal.
+Pegu Club|Gin, orange curacao, lime and bitters, a colonial era classic.
+Army and Navy|Gin, lemon and orgeat, nutty and bright.
+Gin Basil Smash|Gin, lemon and sugar shaken with handfuls of fresh basil.
+Red Snapper|Gin, tomato juice, lemon and spices, a gin twist on brunch.
+Floradora|Gin, raspberry, lime and ginger ale, fruity and fizzy.
+Monkey Gland|Gin, orange juice, grenadine and an absinthe rinse.
+Twentieth Century|Gin, Lillet Blanc, creme de cacao and lemon.
+Saturn|Gin, passion fruit, lemon, orgeat and falernum, a tiki classic.
+Pink Gin|Gin with a few dashes of aromatic bitters, simple and dry.
+Pink Lady|Gin, applejack, grenadine, lemon and egg white with a rosy foam.
+Whiskey Smash|Bourbon muddled with lemon and mint, served over crushed ice.
+Boilermaker|A shot of whiskey served alongside a cold glass of beer.
+Highball|Whisky and chilled soda water in a tall glass with ice.
+Mamie Taylor|Scotch, lime and ginger beer, a spicy forerunner of the mule.
+Blood and Sand|Scotch, cherry liqueur, sweet vermouth and orange juice.
+Bobby Burns|Scotch, sweet vermouth and Benedictine, named for the poet.
+Old Pal|Rye whiskey, dry vermouth and Campari, crisp and bitter.
+Toronto|Rye whiskey, Fernet Branca, sugar and bitters, bold and herbal.
+Scofflaw|Rye whiskey, dry vermouth, lemon and grenadine, a Prohibition classic.
+Rattlesnake|Rye whiskey, lemon, sugar and egg white with an absinthe rinse.
+New York Sour|Whiskey sour finished with a striking float of red wine.
+Lynchburg Lemonade|Tennessee whiskey, orange liqueur, sour mix and lemon lime soda.
+Presbyterian|Whisky topped with ginger ale and soda water, light and easy.
+Morning Glory Fizz|Scotch, lemon, sugar, egg white and absinthe topped with soda.
+Brown Derby|Bourbon, grapefruit juice and honey syrup, bright and smooth.
+Revolver|Bourbon, coffee liqueur and orange bitters with a flamed orange peel.
+Remember the Maine|Rye, sweet vermouth, cherry liqueur and an absinthe rinse.
+Monte Carlo|Rye whiskey, Benedictine and bitters, rich and herbal.
+Kentucky Buck|Bourbon, strawberry, lemon and ginger beer, fruity and spicy.
+Cameron's Kick|Scotch, Irish whiskey, lemon and orgeat, smooth and nutty.
+Bahama Mama|Rum, coconut liqueur, pineapple and orange juice with grenadine.
+Rum Runner|Rum, banana and blackberry liqueur with pineapple and grenadine.
+Goombay Smash|Coconut rum, dark rum, pineapple and orange, a Bahamas favorite.
+Fog Cutter|Rum, gin, brandy and orgeat topped with a sherry float.
+Missionary's Downfall|Rum, peach, pineapple, lime and fresh mint, blended with ice.
+Hotel Nacional|Rum, pineapple, apricot liqueur and lime from Havana.
+Canchanchara|Cuban mix of aguardiente, honey and lime over ice.
+Hot Buttered Rum|Warm rum with butter, brown sugar and spices for cozy nights.
+Coquito|Puerto Rican coconut eggnog with rum and cinnamon.
+Batida|Brazilian shake of cachaca, fruit and sweetened condensed milk.
+Between the Sheets|Cognac, rum, orange liqueur and lemon, smooth and citrusy.
+Stinger|Brandy and white creme de menthe, cool and smooth.
+Japanese Cocktail|Cognac, orgeat and bitters, an elegant nineteenth century classic.
+Brandy Crusta|Cognac, orange liqueur, lemon and maraschino with a sugar crust.
+Champs Elysees|Cognac, green Chartreuse, lemon and bitters, bright and herbal.
+B-52|Layered shot of coffee liqueur, Irish cream and orange liqueur.
+Pink Squirrel|Creme de noyaux, creme de cacao and cream, nutty and pink.
+Golden Cadillac|Galliano, creme de cacao and cream, smooth and dessert like.
+Alabama Slammer|Sloe gin, amaretto, Southern Comfort and orange juice.
+Garibaldi|Campari with fluffy, freshly juiced orange, bright and bittersweet.
+Bicicletta|Campari, dry white wine and soda, a breezy Italian spritz.
+Jagerbomb|Jagermeister dropped into an energy drink, a party favorite.
+Toasted Almond|Amaretto, coffee liqueur and cream, sweet and nutty.
+Snowball|Advocaat, lemonade and lime, a British holiday classic.
+Bushwacker|Frozen blend of rum, coffee liqueur, creme de cacao and coconut.
+Nutty Irishman|Irish cream and hazelnut liqueur over ice, smooth and sweet.
+Trinidad Sour|An ounce and a half of bitters with orgeat, lemon and rye.
+Death Flip|Tequila, Chartreuse, Jagermeister and a whole egg, rich and wild.
+Siesta|Tequila, Campari, grapefruit and lime, bitter and refreshing.
+Division Bell|Mezcal, Aperol, maraschino and lime, smoky and bright.
+Cable Car|Spiced rum, orange curacao and lemon with a cinnamon sugar rim.
+Jasmine|Gin, Campari, orange liqueur and lemon, tasting like grapefruit.
+Old Cuban|Rum, mint, lime and bitters topped with Champagne.
+Final Ward|Rye, green Chartreuse, maraschino and lemon in equal parts.
+Greenpoint|Rye, sweet vermouth and yellow Chartreuse with bitters.
+Red Hook|Rye whiskey, Punt e Mes and maraschino, rich and bittersweet.
+Little Italy|Rye whiskey, sweet vermouth and Cynar, bold and herbal.
+Bitter Giuseppe|Cynar and sweet vermouth with lemon and bitters.
+Enzoni|Gin, Campari, lemon and muddled grapes, fruity and bitter.
+Industry Sour|Fernet Branca and green Chartreuse with lime and simple syrup.
+Sgroppino|Lemon sorbet whisked with prosecco and vodka, a frothy Venetian treat.
+Pimm's Cup|Pimm's No. 1 with lemonade, cucumber, mint and summer fruit.
+Kalimotxo|Spanish mix of red wine and cola, simple and surprisingly good.
+Tinto de Verano|Red wine with lemon soda over ice, Spain's summer favorite.
+Agua de Valencia|Cava, orange juice, vodka and gin in a festive pitcher.
+Glogg|Scandinavian mulled wine with spices, raisins and almonds.
+Mulled Wine|Red wine warmed with cinnamon, cloves, orange and sugar.
+Wassail|Hot spiced cider punch with citrus, a traditional holiday drink.
+Spiked Cider|Warm apple cider with a generous splash of bourbon or rum.
+Snakebite|Equal parts lager and hard cider, crisp and easy drinking.
+Buck's Fizz|Champagne and orange juice, a British brunch favorite.
+Bourbon Renewal|Bourbon, lemon, creme de cassis and bitters, tart and fruity.
+Tipperary|Irish whiskey, sweet vermouth and green Chartreuse, herbal and rich.
+Algonquin|Rye whiskey, dry vermouth and pineapple juice, light and tangy.
+Blinker|Rye whiskey, grapefruit juice and raspberry syrup, bright and fruity.
+Hemingway Special|Rum, grapefruit, lime and maraschino, tart and refreshing.
+Limoncello Collins|Limoncello, gin, lemon and soda, sunny and refreshing.
+Rosemary Greyhound|Grapefruit, vodka and a fragrant sprig of fresh rosemary.
+Cucumber Cooler|Gin, cucumber, lime and soda, crisp and garden fresh.
+Lavender Lemonade|Vodka, lemonade and lavender syrup, floral and refreshing.
+Blackberry Bourbon Smash|Bourbon muddled with blackberries, lemon and mint.
+Cranberry Mule|Vodka, cranberry juice, ginger beer and lime, festive and tart.
+Pomegranate Martini|Vodka, pomegranate juice and lime, ruby red and elegant.
+Sherry Cobbler|Sherry, sugar and orange shaken and poured over crushed ice.
+Corn 'n' Oil|Aged rum, falernum, lime and bitters, dark and spiced.
+Bamboo|Dry sherry and dry vermouth with bitters, light and elegant.
+Adonis|Fino sherry and sweet vermouth with orange bitters, low and smooth.
+Widow's Kiss|Apple brandy, Benedictine and yellow Chartreuse, herbal and warming.

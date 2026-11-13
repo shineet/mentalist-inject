@@ -1,0 +1,243 @@
+The Godfather|Coppola's epic crime saga about the Corleone mafia family.
+The Shawshank Redemption|Story of hope and friendship between two men in prison.
+The Dark Knight|Batman faces the chaotic Joker in Christopher Nolan's crime thriller.
+Pulp Fiction|Tarantino's stylish, interlocking tales of Los Angeles crime.
+Forrest Gump|A kind-hearted man witnesses decades of American history.
+Inception|A thief steals secrets by entering people's dreams.
+Titanic|Romance aboard the ill-fated ocean liner's maiden voyage.
+Avatar|A marine joins the Na'vi on the lush alien moon Pandora.
+Star Wars|A farm boy joins a rebellion against a galactic empire.
+The Empire Strikes Back|The rebels face Darth Vader in this acclaimed Star Wars sequel.
+Return of the Jedi|Luke Skywalker confronts the Emperor in the original trilogy's finale.
+Jurassic Park|Dinosaurs brought back to life escape on an island theme park.
+Jaws|A great white shark terrorizes a beach town in Spielberg's thriller.
+E.T. the Extra-Terrestrial|A boy befriends a gentle alien stranded on Earth.
+Back to the Future|A teenager travels back in time in a DeLorean.
+Raiders of the Lost Ark|Indiana Jones races to find the Ark of the Covenant.
+The Matrix|A hacker learns reality is a computer simulation.
+Gladiator|A betrayed Roman general seeks justice in the arena.
+Fight Club|An office worker and a soap salesman start an underground club.
+Goodfellas|Scorsese's tale of a young man's rise in the mob.
+The Silence of the Lambs|An FBI trainee seeks help from Hannibal Lecter.
+Schindler's List|A businessman saves over a thousand lives during the Holocaust.
+Saving Private Ryan|Soldiers search for a paratrooper after the D-Day landings.
+The Lion King|A young lion prince must reclaim his place as king.
+Toy Story|Toys come to life when their owner leaves the room.
+Finding Nemo|A clownfish father crosses the ocean to find his son.
+Frozen|Two royal sisters, one with icy powers, save their kingdom.
+Shrek|A grumpy ogre sets out to rescue a princess.
+Up|An old man flies his house away with thousands of balloons.
+Inside Out|The emotions inside a girl's mind guide her through change.
+Coco|A boy journeys to the Land of the Dead to find family.
+Spirited Away|A girl wanders into a magical world of spirits.
+The Wizard of Oz|Dorothy follows the yellow brick road to the Emerald City.
+Casablanca|Romance and sacrifice in wartime Morocco with Bogart and Bergman.
+Gone with the Wind|Sweeping Civil War romance centered on Scarlett O'Hara.
+Citizen Kane|Orson Welles' classic about a newspaper tycoon's life.
+Psycho|Hitchcock's thriller set at the infamous Bates Motel.
+Vertigo|Hitchcock's mystery about obsession and a detective's fear of heights.
+Rear Window|A photographer stuck at home suspects his neighbor of a crime.
+Singin' in the Rain|Joyful musical about Hollywood's shift to talking pictures.
+The Sound of Music|A governess brings music to a family in Austria.
+Mary Poppins|A magical nanny brings joy to a London family.
+Lawrence of Arabia|Epic about a British officer's adventures in the desert.
+2001: A Space Odyssey|Kubrick's visionary journey through space and human evolution.
+The Shining|A family isolated in a haunted hotel for the winter.
+A Clockwork Orange|Kubrick's provocative tale of a young delinquent in future Britain.
+Apocalypse Now|A captain journeys upriver during the Vietnam War.
+Taxi Driver|A lonely New York cab driver spirals into obsession.
+Rocky|A small-time boxer gets a shot at the heavyweight title.
+Top Gun|Hotshot naval aviators compete at an elite flight school.
+Top Gun: Maverick|Maverick returns to train a new generation of pilots.
+Die Hard|A New York cop battles thieves in a Los Angeles skyscraper.
+Terminator 2: Judgment Day|A reprogrammed cyborg protects the future leader of humanity.
+Alien|A crew encounters a deadly creature aboard their spaceship.
+Aliens|Ripley returns to face a colony full of creatures.
+Blade Runner|A detective hunts rogue replicants in futuristic Los Angeles.
+Interstellar|Astronauts travel through a wormhole to save humanity.
+The Prestige|Two rival magicians battle to create the ultimate illusion.
+Memento|A man with short-term memory loss hunts for answers.
+Oppenheimer|The story of the scientist behind the atomic bomb.
+Barbie|Barbie leaves Barbieland and discovers the real world.
+Dunkirk|The dramatic evacuation of Allied soldiers from France.
+The Avengers|Earth's mightiest heroes team up to stop an alien invasion.
+Avengers: Endgame|The Avengers make a final stand to undo Thanos' snap.
+Avengers: Infinity War|The Avengers try to stop Thanos from collecting the Infinity Stones.
+Iron Man|A billionaire builds a high-tech suit and becomes a hero.
+Black Panther|The new king of Wakanda defends his hidden nation.
+Spider-Man: No Way Home|Spider-Man's multiverse adventure brings together heroes from every era.
+Guardians of the Galaxy|A ragtag band of misfits protects the galaxy.
+Thor: Ragnarok|Thor races to stop the goddess of death in a colorful adventure.
+Wonder Woman|An Amazon warrior leaves her island to fight in World War I.
+Joker|A struggling comedian descends into madness in Gotham City.
+The Batman|A young Batman investigates a serial killer in Gotham.
+Superman|The Man of Steel arrives on Earth to protect humanity.
+Harry Potter and the Sorcerer's Stone|A young wizard begins his first year at Hogwarts.
+The Deathly Hallows|Harry Potter's final battle against Voldemort brings the saga home.
+The Lord of the Rings: The Fellowship of the Ring|A hobbit sets out to destroy a powerful ring.
+The Two Towers|The fellowship splits as war comes to Middle-earth.
+The Return of the King|The epic conclusion of the Lord of the Rings trilogy.
+The Hobbit|Bilbo Baggins joins dwarves on a quest to reclaim their home.
+Pirates of the Caribbean|Captain Jack Sparrow battles cursed pirates on the high seas.
+Indiana Jones and the Last Crusade|Indy and his father search for the Holy Grail.
+Men in Black|Secret agents police alien life on Earth.
+Independence Day|Humanity unites to fight an alien invasion.
+Ghostbusters|Paranormal investigators battle ghosts in New York City.
+Home Alone|A boy defends his home from burglars at Christmas.
+The Breakfast Club|Five teenagers bond during Saturday detention.
+Ferris Bueller's Day Off|A teen skips school for an unforgettable day in Chicago.
+Grease|Summer romance and rock and roll at Rydell High.
+Dirty Dancing|A young woman falls for a dance instructor at a resort.
+Pretty Woman|An unlikely romance blossoms in Beverly Hills.
+Notting Hill|A London bookseller falls for a famous movie star.
+When Harry Met Sally|Two friends wonder if men and women can just be friends.
+The Notebook|A sweeping romance told across decades.
+La La Land|A jazz pianist and an actress chase their dreams in Los Angeles.
+The Greatest Showman|A musical about P.T. Barnum and the birth of the circus.
+Mamma Mia!|ABBA songs fill a Greek island wedding celebration.
+Chicago|Two murderesses seek fame in jazz-age Chicago.
+Moulin Rouge!|A dazzling musical romance set in a Paris nightclub.
+Les Miserables|Musical epic of redemption set in 19th-century France.
+West Side Story|Rival gangs and star-crossed lovers in New York City.
+Beauty and the Beast|A young woman finds kindness inside a cursed beast.
+Aladdin|A street boy finds a magic lamp and a wish-granting genie.
+The Little Mermaid|A mermaid dreams of life on land.
+Moana|A brave girl sails across the ocean to save her island.
+Zootopia|A rabbit cop and a fox solve a mystery among animals.
+Ratatouille|A rat with a gift for cooking dreams of being a chef.
+WALL-E|A lonely robot cleans up an abandoned Earth.
+Monsters, Inc.|Monsters who scare children for energy meet a little girl.
+The Incredibles|A family of superheroes comes out of retirement.
+Despicable Me|A supervillain's life changes when he adopts three girls.
+Kung Fu Panda|A clumsy panda becomes a kung fu warrior.
+How to Train Your Dragon|A young Viking befriends a dragon.
+Encanto|A magical Colombian family discovers what makes them special.
+Spider-Man: Into the Spider-Verse|Miles Morales joins Spider-heroes from other dimensions.
+The Sixth Sense|A boy who sees ghosts seeks help from a psychologist.
+Se7en|Two detectives hunt a killer inspired by the seven deadly sins.
+The Usual Suspects|A con man spins a tale about a mysterious crime lord.
+No Country for Old Men|A hunter stumbles onto drug money and a relentless pursuer.
+The Departed|An undercover cop and a mole race to expose each other.
+Gone Girl|A husband becomes the suspect when his wife vanishes.
+Parasite|A poor family schemes its way into a wealthy household.
+Everything Everywhere All at Once|A laundromat owner explores the multiverse to save her family.
+Get Out|A young man uncovers a disturbing secret at his girlfriend's family home.
+A Quiet Place|A family survives in silence from sound-hunting creatures.
+The Exorcist|A priest battles a demon possessing a young girl.
+Halloween|A masked killer stalks babysitters on Halloween night.
+It|Children face a shape-shifting clown in a small town.
+Mad Max: Fury Road|A high-octane chase across a post-apocalyptic desert.
+John Wick|A retired hitman returns for revenge.
+Mission: Impossible|Agent Ethan Hunt takes on daring spy missions.
+Casino Royale|James Bond earns his license to kill and plays high-stakes poker.
+Skyfall|Bond's loyalty to M is tested when MI6 comes under attack.
+Goldfinger|Bond faces a gold-obsessed villain in this classic adventure.
+The Bourne Identity|An amnesiac discovers he is a trained assassin.
+Fast and Furious|Street racers become involved in heists and high-speed action.
+Speed|A bus must stay above 50 miles per hour or explode.
+Braveheart|William Wallace leads Scotland's fight for freedom.
+The Last Samurai|An American soldier comes to respect the samurai way of life.
+Dances with Wolves|A Union soldier befriends a Sioux tribe on the frontier.
+The Good, the Bad and the Ugly|Three gunslingers hunt for buried Confederate gold.
+Unforgiven|An aging gunfighter takes one last job.
+Django Unchained|A freed man and a bounty hunter set out on a rescue.
+Inglourious Basterds|A band of soldiers plots against Nazi leaders in wartime France.
+Kill Bill|A former assassin seeks revenge in Tarantino's action saga.
+Once Upon a Time in Hollywood|An actor and his stunt double navigate 1969 Los Angeles.
+The Wolf of Wall Street|A stockbroker's wild rise and fall on Wall Street.
+Catch Me If You Can|A young con artist evades an FBI agent.
+The Social Network|The founding of Facebook and the lawsuits that followed.
+The Truman Show|A man discovers his whole life is a TV show.
+Good Will Hunting|A janitor with a gift for math finds his way.
+Dead Poets Society|An inspiring teacher encourages students to seize the day.
+A Beautiful Mind|The story of brilliant mathematician John Nash.
+The Pursuit of Happyness|A struggling father works toward a better life.
+Rain Man|A man reconnects with his autistic savant brother.
+The Green Mile|A death row guard meets an inmate with a miraculous gift.
+Cast Away|A FedEx employee is stranded on a deserted island.
+The Terminal|A traveler is stuck living in a New York airport.
+Big|A boy wakes up in the body of an adult.
+Groundhog Day|A weatherman relives the same day over and over.
+Mrs. Doubtfire|A father disguises himself as a nanny to see his kids.
+The Mask|A meek bank clerk finds a mask that transforms him.
+Elf|A human raised by elves visits New York to find his father.
+The Hangover|Friends piece together a wild night in Las Vegas.
+Superbad|Two high school friends try to enjoy their final weeks.
+Mean Girls|A new student navigates the social rules of high school.
+Legally Blonde|A fashion-loving student proves herself at Harvard Law.
+The Devil Wears Prada|A young assistant survives a demanding fashion editor.
+Bridesmaids|A maid of honor's life unravels before her best friend's wedding.
+Crazy Rich Asians|A woman meets her boyfriend's very wealthy family in Singapore.
+Slumdog Millionaire|A Mumbai teen recalls his life while on a game show.
+Life of Pi|A boy survives at sea with a Bengal tiger.
+Gravity|Two astronauts are stranded after an accident in orbit.
+The Martian|An astronaut is stranded alone on Mars.
+Arrival|A linguist works to communicate with alien visitors.
+Dune|A young nobleman's destiny unfolds on a desert planet.
+Dune: Part Two|Paul Atreides unites with the Fremen to fight his enemies.
+Blade Runner 2049|A new replicant hunter uncovers a long-buried secret.
+The Terminator|A cyborg assassin is sent back in time.
+Edward Scissorhands|A gentle man with scissor hands moves to the suburbs.
+Beetlejuice|A mischievous ghost helps a couple haunt their home.
+Charlie and the Chocolate Factory|A boy wins a tour of Willy Wonka's factory.
+Willy Wonka and the Chocolate Factory|Children tour a magical candy factory in this classic.
+The Princess Bride|A fairy tale adventure of true love and swashbuckling.
+Rocky Balboa|An aging Rocky steps back into the ring.
+Creed|Apollo Creed's son trains with Rocky Balboa.
+Remember the Titans|A newly integrated football team unites in Virginia.
+The Blind Side|A family takes in a homeless teen who becomes a football star.
+Moneyball|A baseball manager rethinks the game using statistics.
+Hidden Figures|Black women mathematicians help launch NASA's space program.
+Apollo 13|Astronauts must find a way home after a crisis in space.
+Ford v Ferrari|Car designers build a Ford to beat Ferrari at Le Mans.
+Bohemian Rhapsody|The rise of Queen and its frontman Freddie Mercury.
+Rocketman|A musical fantasy about Elton John's breakthrough years.
+Elvis|The life and career of the King of Rock and Roll.
+A Star Is Born|A musician helps a young singer find fame.
+Whiplash|An ambitious drummer clashes with an intense instructor.
+Black Swan|A ballerina's pursuit of perfection takes a dark turn.
+Sholay|Bollywood classic about two outlaws hired to catch a bandit.
+Dilwale Dulhania Le Jayenge|Iconic Bollywood romance that ran in a Mumbai theater for decades.
+3 Idiots|Three engineering students question India's education system.
+Lagaan|Villagers challenge British officers to a game of cricket.
+Dangal|A former wrestler trains his daughters to become champions.
+Kabhi Khushi Kabhie Gham|A family drama about love, tradition and reconciliation.
+Kuch Kuch Hota Hai|Friendship turns into love in this beloved Bollywood romance.
+Mughal-e-Azam|A grand historical romance set in the Mughal court.
+Mother India|A classic about a mother's struggle in rural India.
+Devdas|A lavish tragic romance starring Shah Rukh Khan and Aishwarya Rai.
+Baahubali|An epic fantasy about rival brothers and a lost kingdom.
+RRR|Two revolutionaries form a friendship in 1920s India.
+PK|An alien visitor questions religion and customs on Earth.
+Zindagi Na Milegi Dobara|Three friends take a life-changing road trip through Spain.
+Queen|A woman goes on her honeymoon alone and finds herself.
+Om Shanti Om|A reincarnation story set in the world of Bollywood.
+Chak De! India|A coach leads India's women's hockey team to glory.
+Taare Zameen Par|A teacher helps a dyslexic boy discover his talent.
+Pathaan|A spy battles to protect India in a high-octane thriller.
+Jawan|A man takes on corruption in a stylish action drama.
+Amelie|A shy waitress in Paris quietly improves others' lives.
+Crouching Tiger, Hidden Dragon|Martial arts epic of warriors and a stolen sword.
+Seven Samurai|Kurosawa's tale of samurai defending a village.
+Pan's Labyrinth|A girl enters a dark fairy tale world during war.
+Life Is Beautiful|A father shields his son with humor during wartime.
+Cinema Paradiso|A filmmaker recalls his childhood love of movies.
+The Grand Budapest Hotel|A concierge and lobby boy share a madcap adventure.
+Knives Out|A detective investigates a wealthy novelist's death.
+Ocean's Eleven|A crew plans an elaborate Las Vegas casino heist.
+The Italian Job|Thieves plan a gold heist with Mini Coopers.
+Heat|A detective pursues a master thief in Los Angeles.
+Scarface|A Cuban immigrant rises to power in Miami's drug trade.
+The Godfather Part II|Michael Corleone's reign is paralleled with his father's youth.
+Casino|The inner workings of a Las Vegas casino run by the mob.
+Gran Torino|A retired veteran befriends his Hmong neighbors.
+Million Dollar Baby|A boxing trainer takes on a determined young fighter.
+The Revenant|A frontiersman fights to survive after a bear attack.
+Twister|Storm chasers pursue tornadoes across Oklahoma.
+Armageddon|Drillers are sent to destroy an asteroid headed for Earth.
+Wicked|The untold story of the witches of Oz.
+Inside Out 2|New emotions arrive as Riley becomes a teenager.
+Avatar: The Way of Water|Jake Sully's family seeks refuge with ocean clans.
+Jumanji: Welcome to the Jungle|Teens are sucked into a video game jungle.
+The Jungle Book|A boy raised by wolves journeys through the jungle.
+Paddington 2|A polite bear tries to clear his name in London.
