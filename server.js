@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v358-swface";
+const REVISION = "v359-lumen-duo-label";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2477,7 +2477,7 @@ const MYSTIO_MODULES = [
   // MystIO arming a calculator routine readies the Mind Unlock clip on a
   // spectator's phone too (Shine, 2026-11-12).
   ["spectator_phone", "Spectator's phone"],
-  ["motherboard", "Motherboard"], ["duo", "Duo"], ["secondsight", "Second Sight"],
+  ["motherboard", "Motherboard"], ["duo", "Lumen Duo"], ["secondsight", "Second Sight"],
   ["ultrasharpie", "Ultra Sharpie"], ["novasharpie", "Nova Sharpie"], ["pad", "Impression Pad"],
   ["kronaby", "Kronaby"], ["lumenspectra", "Lumen Spectra"], ["lumenprism", "Lumen Prism"],
   ["notifier", "Notifier"], ["peeksmith", "PeekSmith"],
