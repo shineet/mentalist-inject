@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v354-unlock-w-removed";
+const REVISION = "v355-unlock-share-token";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2356,12 +2356,24 @@ app.post("/api/unlock/:room/entry", express.json({ limit: "1kb" }), (req, res) =
   res.json({ ok: true });
 });
 
+// Only a performer build may switch "share" on or off for a room. The store
+// clip and app are public binaries and the room name is not a secret (it is in
+// the link), so this needs the private SMS token, which never ships in a store
+// build. The calculator token is NOT enough: it is public by design.
+function shareAuthorised(req) {
+  const sms = process.env.RINGER_SMS_TOKEN || "";
+  const given = req.get("x-sms-token") || "";
+  return Boolean(sms) && given === sms;
+}
+
 // From the remote: settings and/or one command.
 app.post("/api/unlock/:room/control", express.json({ limit: "2kb" }), (req, res) => {
   const rec = unlockRoom(normalizeRoom(req.params.room), true);
   const body = req.body || {};
   if (body.config && typeof body.config === "object") {
-    rec.config = { ...rec.config, ...cleanUnlockConfig(body.config) };
+    const incoming = { ...body.config };
+    if (!shareAuthorised(req)) delete incoming.share;
+    rec.config = { ...rec.config, ...cleanUnlockConfig(incoming) };
   }
   if (body.cmd !== undefined) {
     if (!UNLOCK_CMDS.includes(body.cmd)) return res.status(400).json({ ok: false, error: "unknown command" });
