@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v357-face-layout";
+const REVISION = "v358-swface";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2054,6 +2054,21 @@ app.get("/api/calc/:room/face", (req, res) => {
   if (!rec) return res.status(404).json({ ok: false, error: "no face" });
   res.json({ ok: true, image: rec.image, disp: rec.disp, keys: rec.keys, layout: rec.layout || null,
              model: asked ? faceModel(req.query.model) : (config.faceModel || "default"), at: rec.at });
+});
+
+// The Stopwatch's real-look pictures, by explicit model ("sw-<phone>-<state>"),
+// read by the clip with no token like /face. Separate from /face so the
+// calculator's Classic switch never decides whether these are served, and only
+// "sw-" models can be asked for here, so this cannot return a calculator look.
+app.get("/api/calc/:room/swface", (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  res.setHeader("Cache-Control", "no-store");
+  const model = faceModel(req.query.model);
+  if (!key || !model.startsWith("sw-")) return res.status(404).json({ ok: false, error: "no face" });
+  const rec = readFace(key, model);
+  if (!rec) return res.status(404).json({ ok: false, error: "no face" });
+  res.json({ ok: true, image: rec.image, disp: rec.disp, keys: rec.keys, layout: rec.layout || null,
+             model, at: rec.at });
 });
 
 // Read by the CLIP, on a stranger's phone, so it cannot carry a token.
