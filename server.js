@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v363-privacy-typed-digits";
+const REVISION = "v364-notes-note-relay";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2326,7 +2326,7 @@ app.get("/api/unlock/:room", (req, res) => {
   const rec = unlockRooms[key];
   if (!rec) return res.json({ ok: true, exists: false });
   res.json({ ok: true, exists: true, config: rec.config, seq: rec.seq, cmd: rec.cmd,
-             status: rec.status, swap: freshSwap(key), entries: freshEntries(key), now: Date.now() });
+             status: rec.status, swap: freshSwap(key), entries: freshEntries(key), note: freshNote(key), now: Date.now() });
 });
 
 // Mind Unlock 1.1 "Swap": what the participant types on the PERFORMER's phone,
@@ -2384,6 +2384,36 @@ app.post("/api/unlock/:room/entry", express.json({ limit: "1kb" }), (req, res) =
   const e = unlockEntries.get(key) || { tries: {}, at: 0 };
   e.tries[n] = code; e.at = Date.now();
   unlockEntries.set(key, e);
+  res.json({ ok: true });
+});
+
+// The Notes effect's word-association note (Mind Unlock 1.5): the note the
+// spectators wrote, and the line they just finished, sent to the performer only
+// while "share" is on for the room (which only the private token can set).
+// Memory only, ten minutes, never logged, never on disk. "reset" clears them.
+const unlockNotes = new Map();
+function freshNote(key) {
+  const e = unlockNotes.get(key);
+  if (!e) return null;
+  if (Date.now() - e.at > 10 * 60 * 1000) { unlockNotes.delete(key); return null; }
+  return { text: e.text, n: e.n, peek: e.peek, pn: e.pn };
+}
+app.post("/api/unlock/:room/note", express.json({ limit: "4kb" }), (req, res) => {
+  const key = normalizeRoom(req.params.room);
+  const rec = unlockRooms[key];
+  if (!rec) return res.status(404).json({ ok: false });
+  if (rec.config.share !== true) return res.json({ ok: true, ignored: true });
+  const b = req.body || {};
+  const e = unlockNotes.get(key) || { text: "", n: 0, peek: "", pn: 0, at: 0 };
+  if (b.kind === "peek") {
+    e.peek = String(b.text || "").replace(/[\u0000-\u0008\u000b-\u001f]/g, "").slice(0, 200);
+    e.pn += 1;
+  } else {
+    e.text = String(b.text || "").replace(/[\u0000-\u0008\u000b-\u001f]/g, "").slice(0, 1500);
+    e.n += 1;
+  }
+  e.at = Date.now();
+  unlockNotes.set(key, e);
   res.json({ ok: true });
 });
 
@@ -2452,7 +2482,7 @@ app.post("/api/unlock/:room/control", express.json({ limit: "2kb" }), (req, res)
     if (!UNLOCK_CMDS.includes(body.cmd)) return res.status(400).json({ ok: false, error: "unknown command" });
     rec.seq += 1;
     rec.cmd = { seq: rec.seq, name: body.cmd, at: Date.now() };
-    if (body.cmd === "reset") { unlockSwaps.delete(normalizeRoom(req.params.room)); unlockEntries.delete(normalizeRoom(req.params.room)); }
+    if (body.cmd === "reset") { unlockSwaps.delete(normalizeRoom(req.params.room)); unlockEntries.delete(normalizeRoom(req.params.room)); unlockNotes.delete(normalizeRoom(req.params.room)); }
   }
   rec.at = Date.now();
   saveUnlockRooms();
