@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v365-callfriend-privacy-wording";
+const REVISION = "v366-chat-note-real-look";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2064,7 +2064,8 @@ app.get("/api/calc/:room/swface", (req, res) => {
   const key = normalizeRoom(req.params.room);
   res.setHeader("Cache-Control", "no-store");
   const model = faceModel(req.query.model);
-  if (!key || !model.startsWith("sw-")) return res.status(404).json({ ok: false, error: "no face" });
+  // "sw-" the Stopwatch, "ch-" the chat, "nt-" the note: never a calculator look.
+  if (!key || !(model.startsWith("sw-") || model.startsWith("ch-") || model.startsWith("nt-"))) return res.status(404).json({ ok: false, error: "no face" });
   const rec = readFace(key, model);
   if (!rec) return res.status(404).json({ ok: false, error: "no face" });
   res.json({ ok: true, image: rec.image, disp: rec.disp, keys: rec.keys, layout: rec.layout || null,
