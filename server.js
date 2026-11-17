@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v367-mindunlock-privacy-1-5";
+const REVISION = "v369-ringer-keypad-block";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1614,7 +1614,17 @@ app.post("/api/ringer/:room/face", express.json({ limit: "3mb" }), (req, res) =>
     return res.json({ ok: true, room: key, faceAt: null });
   }
   if (image.length > FACE_MAX) return res.status(413).json({ ok: false, error: "image too large" });
-  const rec = { image, keys, num, call, at: Date.now() };
+  // The same picture in dark mode, so the clip can wear the one that matches the
+  // spectator's own phone (2026-11-16). Optional: an old performer app sends one.
+  const imageDark = String(b.imageDark || "");
+  if (imageDark.length > FACE_MAX) return res.status(413).json({ ok: false, error: "image too large" });
+  // The keypad block (2026-11-16): just the keys and Call, drawn from the app's
+  // own keypad at natural size, light and dark. New clips use these; older
+  // clips keep reading image/imageDark above.
+  const block = String(b.block || ""), blockDark = String(b.blockDark || "");
+  if (block.length > FACE_MAX || blockDark.length > FACE_MAX) return res.status(413).json({ ok: false, error: "image too large" });
+  const rec = { image, imageDark: imageDark || null, keys, num, call, at: Date.now(),
+                block: block || null, blockDark: blockDark || null };
   try { fs.writeFileSync(ringerFaceFile(key), JSON.stringify(rec)); }
   catch (e) { return res.status(500).json({ ok: false, error: "could not save" }); }
   res.json({ ok: true, room: key, faceAt: rec.at });
@@ -1627,7 +1637,7 @@ app.get("/api/ringer/:room/face", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   const rec = key ? readRingerFace(key) : null;
   if (!rec) return res.status(404).json({ ok: false, error: "no face" });
-  res.json({ ok: true, image: rec.image, keys: rec.keys, num: rec.num, call: rec.call, at: rec.at });
+  res.json({ ok: true, image: rec.image, imageDark: rec.imageDark || null, block: rec.block || null, blockDark: rec.blockDark || null, keys: rec.keys, num: rec.num, call: rec.call, at: rec.at });
 });
 
 // The full record, for api/voice-twiml.js alone, at the moment of the call.
