@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v369-ringer-keypad-block";
+const REVISION = "v370-ringer-keypad-classic";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -1623,8 +1623,12 @@ app.post("/api/ringer/:room/face", express.json({ limit: "3mb" }), (req, res) =>
   // clips keep reading image/imageDark above.
   const block = String(b.block || ""), blockDark = String(b.blockDark || "");
   if (block.length > FACE_MAX || blockDark.length > FACE_MAX) return res.status(413).json({ ok: false, error: "image too large" });
+  // The flat iOS 18 keypad, for phones that have not got iOS 26's glass.
+  const blockClassic = String(b.blockClassic || ""), blockClassicDark = String(b.blockClassicDark || "");
+  if (blockClassic.length > FACE_MAX || blockClassicDark.length > FACE_MAX) return res.status(413).json({ ok: false, error: "image too large" });
   const rec = { image, imageDark: imageDark || null, keys, num, call, at: Date.now(),
-                block: block || null, blockDark: blockDark || null };
+                block: block || null, blockDark: blockDark || null,
+                blockClassic: blockClassic || null, blockClassicDark: blockClassicDark || null };
   try { fs.writeFileSync(ringerFaceFile(key), JSON.stringify(rec)); }
   catch (e) { return res.status(500).json({ ok: false, error: "could not save" }); }
   res.json({ ok: true, room: key, faceAt: rec.at });
@@ -1637,7 +1641,7 @@ app.get("/api/ringer/:room/face", (req, res) => {
   res.setHeader("Cache-Control", "no-store");
   const rec = key ? readRingerFace(key) : null;
   if (!rec) return res.status(404).json({ ok: false, error: "no face" });
-  res.json({ ok: true, image: rec.image, imageDark: rec.imageDark || null, block: rec.block || null, blockDark: rec.blockDark || null, keys: rec.keys, num: rec.num, call: rec.call, at: rec.at });
+  res.json({ ok: true, image: rec.image, imageDark: rec.imageDark || null, block: rec.block || null, blockDark: rec.blockDark || null, blockClassic: rec.blockClassic || null, blockClassicDark: rec.blockClassicDark || null, keys: rec.keys, num: rec.num, call: rec.call, at: rec.at });
 });
 
 // The full record, for api/voice-twiml.js alone, at the moment of the call.
