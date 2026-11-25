@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
 /** bump on deploy */
-const REVISION = "v371-vsend-pages-no-calculator";
+const REVISION = "v372-covert-name-module";
 
 // Persistence (v87): room settings/messages used to live in memory only, so
 // every deploy (server restart) wiped them back to hardcoded defaults. Now
@@ -2550,7 +2550,7 @@ function saveMystioAccess() {
 // The ids the app knows. Order is the admin page's order.
 const MYSTIO_MODULES = [
   ["audience", "Audience Page"], ["voice", "Voice & Conversation"], ["chatgpt", "ChatGPT"],
-  ["notes", "Notes"], ["notes_wordassoc", "Word association"], ["calculator", "Calculator"], ["stopwatch", "Stopwatch"], ["phone", "Phone"],
+  ["notes", "Notes"], ["notes_wordassoc", "Word association"], ["notes_covert", "Covert name"], ["calculator", "Calculator"], ["stopwatch", "Stopwatch"], ["phone", "Phone"],
   ["readers", "Camera Readers"], ["cardphoto", "Card in a Photo"], ["video", "Video Recorder"],
   ["photostudio", "Photo Studio"], ["song", "Song, Spotify & YouTube"], ["lookups", "AI Lookups (Famous for, Movie, T9 name)"],
   ["routinemaker", "Routine Maker"], ["inject", "Inject"], ["injectprint", "Print Inject photos"], ["instagram", "Instagram"],
@@ -2574,7 +2574,7 @@ const MYSTIO_MODULES = [
 const MYSTIO_IDS = new Set(MYSTIO_MODULES.map(m => m[0]));
 // Sub-features (Shine, 2026-11-01): each needs its parent module and is
 // dropped from anyone without it. The app applies the same rule.
-const MYSTIO_PARENT = { notes_wordassoc: "notes" };
+const MYSTIO_PARENT = { notes_wordassoc: "notes", notes_covert: "notes" };
 // v338 called it wordassoc for a few hours.
 for (const p of Object.values(mystioAccess.profiles)) {
   if (Array.isArray(p.modules) && p.modules.includes("wordassoc")) {
